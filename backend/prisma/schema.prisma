@@ -1,0 +1,165 @@
+// Prisma Schema for SecureNote
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  username      String       @unique
+  passwordHash  String
+  publicKey     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  notes         Note[]
+  notebooks     Notebook[]
+  boards        Board[]
+  labels        Label[]
+  sessions      Session[]
+  sharesReceived SharedNote[]
+}
+
+model Note {
+  id            String       @id @default(cuid())
+  title         String?
+  content       String
+  iv            String?
+  salt          String?
+  posX          Float?       @default(100)
+  posY          Float?       @default(100)
+  width         Float?       @default(260)
+  height        Float?       @default(240)
+  textColor     String?      @default("#1e293b")
+  fontSize      String?      @default("normal")
+  fontFamily    String?      @default("sans")
+  kanbanStatus  String?      @default("todo") // 'todo' | 'doing' | 'done'
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebookId    String?
+  notebook      Notebook?    @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  boardId       String?
+  board         Board?       @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  color         String       @default("#FEF08A")
+  isArchived    Boolean      @default(false)
+  isLocked      Boolean      @default(false)
+  isPinned      Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  labels        LabelNote[]
+  shares        SharedNote[]
+  attachments   FileAttachment[]
+  outgoingLinks NoteConnection[] @relation("SourceNote")
+  incomingLinks NoteConnection[] @relation("TargetNote")
+}
+
+model Board {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  color       String       @default("#F59E0B")
+  theme       String       @default("cork") // 'cork' | 'grid' | 'dark' | 'clean' | 'custom'
+  bgImage     String?      // Custom background image URL or base64
+  shareCode   String?      @unique // Unique code for public or collaborative sharing
+  isPublic    Boolean      @default(false)
+  sharePermission String   @default("read") // 'read' | 'edit'
+  isDefault   Boolean      @default(false)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  notes       Note[]
+  connections NoteConnection[]
+}
+
+model FileAttachment {
+  id          String       @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  noteId      String
+  note        Note         @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+}
+
+model NoteConnection {
+  id          String       @id @default(cuid())
+  sourceId    String
+  sourceNote  Note         @relation("SourceNote", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId    String
+  targetNote  Note         @relation("TargetNote", fields: [targetId], references: [id], onDelete: Cascade)
+  boardId     String?
+  board       Board?       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  label       String?
+  color       String       @default("#6366F1")
+  arrowType   String       @default("arrow") // 'arrow' | 'line'
+  createdAt   DateTime     @default(now())
+
+  @@unique([sourceId, targetId])
+}
+
+model Notebook {
+  id            String       @id @default(cuid())
+  name          String
+  description   String?
+  color         String       @default("#6366F1")
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDefault     Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  notes         Note[]
+}
+
+model Label {
+  id            String       @id @default(cuid())
+  name          String
+  color         String       @default("#EF4444")
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  
+  notes         LabelNote[]
+}
+
+model LabelNote {
+  id            String       @id @default(cuid())
+  noteId        String
+  note          Note         @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  labelId       String
+  label         Label        @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+
+  @@unique([noteId, labelId])
+}
+
+model SharedNote {
+  id            String       @id @default(cuid())
+  noteId        String
+  note          Note         @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  sharedWithId  String
+  sharedWith    User         @relation(fields: [sharedWithId], references: [id], onDelete: Cascade)
+  permission    String       @default("read")
+  createdAt     DateTime     @default(now())
+
+  @@unique([noteId, sharedWithId])
+}
+
+model Session {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token         String       @unique
+  expiresAt     DateTime
+  createdAt     DateTime     @default(now())
+}

@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: secure-note-db
+    environment:
+      POSTGRES_USER: securenote
+      POSTGRES_PASSWORD: securepassword
+      POSTGRES_DB: securenote
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - secure-note-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: secure-note-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - secure-note-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: secure-note-backend
+    environment:
+      DATABASE_URL: postgresql://securenote:securepassword@postgres:5432/securenote
+      JWT_SECRET: ${JWT_SECRET:-supersecretkey}
+      PORT: 5000
+      FRONTEND_URL: http://localhost:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - secure-note-network
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: secure-note-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      NEXT_PUBLIC_WS_URL: ws://localhost:5000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - secure-note-network
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
+
+networks:
+  secure-note-network:
+    driver: bridge

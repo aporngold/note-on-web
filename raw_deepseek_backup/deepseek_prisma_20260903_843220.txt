@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String
+  publicKey     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  notes         Note[]
+  notebooks     Notebook[]
+  labels        Label[]
+  sessions      Session[]
+}
+
+model Note {
+  id            String    @id @default(cuid())
+  title         String?
+  content       String
+  iv            String?
+  salt          String?
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  notebookId    String?
+  notebook      Notebook? @relation(fields: [notebookId], references: [id])
+  color         String    @default("#6366F1")
+  isArchived    Boolean   @default(false)
+  isLocked      Boolean   @default(false)
+  isPinned      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  labels        LabelNote[]
+  shares        SharedNote[]
+}
+
+model Notebook {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  color         String    @default("#6366F1")
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  isDefault     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  notes         Note[]
+}
+
+model Label {
+  id            String    @id @default(cuid())
+  name          String
+  color         String    @default("#EF4444")
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  createdAt     DateTime  @default(now())
+  
+  notes         LabelNote[]
+}
+
+model LabelNote {
+  id            String    @id @default(cuid())
+  noteId        String
+  note          Note      @relation(fields: [noteId], references: [id])
+  labelId       String
+  label         Label     @relation(fields: [labelId], references: [id])
+  createdAt     DateTime  @default(now())
+}
+
+model SharedNote {
+  id            String    @id @default(cuid())
+  noteId        String
+  note          Note      @relation(fields: [noteId], references: [id])
+  sharedWithId  String
+  sharedWith    User      @relation(fields: [sharedWithId], references: [id])
+  permission    String    @default("read")
+  createdAt     DateTime  @default(now())
+}
+
+model Session {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  token         String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+}

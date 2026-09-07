@@ -1,0 +1,57 @@
+
+---
+
+## 📋 ฟีเจอร์ที่ต้องมี (Must-Have Features)
+
+### 1. ระบบ Authentication
+- [ ] ลงทะเบียน (Register)
+- [ ] เข้าสู่ระบบ (Login)
+- [ ] ออกจากระบบ (Logout)
+- [ ] JWT Token Management
+- [ ] Protected Routes
+- [ ] Remember Me
+- [ ] เปลี่ยนรหัสผ่าน
+
+### 2. ระบบจัดการโน้ต (CRUD)
+- [ ] สร้างโน้ตใหม่ (Title + Content)
+- [ ] แก้ไขโน้ต (Rich Text Editor)
+- [ ] ลบโน้ต (Move to Trash)
+- [ ] กู้คืนโน้ต (Restore from Trash)
+- [ ] ลบถาวร (Permanent Delete)
+- [ ] คัดลอกโน้ต (Duplicate)
+- [ ] เปลี่ยนสีโน้ต (Color Picker)
+- [ ] ปักหมุด (Pin/Unpin)
+
+### 3. ระบบจัดระเบียบ
+- [ ] สมุดบันทึก (Notebooks) - สร้าง/แก้ไข/ลบ
+- [ ] ป้ายกำกับ (Labels) - สร้าง/แก้ไข/ลบ
+- [ ] จัดโน้ตลง Notebook
+- [ ] เพิ่ม Label ให้โน้ต
+- [ ] ระบบค้นหา (Search) แบบ Real-time
+- [ ] ตัวกรอง (Filter) ตาม Notebook, Label, สี
+- [ ] เรียงลำดับ (Sort) ตามวันที่, ชื่อ
+
+### 4. ระบบความปลอดภัย
+- [ ] End-to-End Encryption (AES-256-GCM)
+- [ ] Master Password Protection
+- [ ] Vault (ห้องนิรภัย) - ล็อกโน้ตด้วยรหัสผ่าน
+- [ ] Auto-lock เมื่อไม่ได้ใช้งาน
+- [ ] 2FA (Two-Factor Authentication)
+- [ ] Session Management
+- [ ] Rate Limiting
+
+### 5. ฟีเจอร์เสริม
+- [ ] ทำงานออฟไลน์ (Offline Mode)
+- [ ] ซิงค์อัตโนมัติ (Auto-sync)
+- [ ] แชร์โน้ต (Share Note)
+- [ ] ร่วมมือแก้ไข (Real-time Collaboration)
+- [ ] Version History
+- [ ] ส่งออก PDF/Markdown
+- [ ] Dark/Light Mode
+- [ ] Responsive Design (Mobile First)
+
+---
+
+## 🎨 ดีไซน์ UI/UX ที่ต้องการ
+
+### ธีมสี

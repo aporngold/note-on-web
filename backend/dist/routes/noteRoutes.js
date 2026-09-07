@@ -1,0 +1,20 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const noteController_1 = require("../controllers/noteController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)();
+// Protect all note routes with authentication
+router.use(auth_1.authenticate);
+router.get('/', noteController_1.NoteController.getNotes);
+router.post('/', noteController_1.NoteController.createNote);
+router.get('/backup/export', noteController_1.NoteController.exportBackup);
+router.post('/backup/restore', noteController_1.NoteController.restoreBackup);
+router.delete('/trash/empty', noteController_1.NoteController.emptyTrash);
+router.get('/:id', noteController_1.NoteController.getNoteById);
+router.put('/:id', noteController_1.NoteController.updateNote);
+router.delete('/:id', noteController_1.NoteController.deleteNote);
+router.post('/:id/restore', noteController_1.NoteController.restoreNote);
+router.post('/:id/duplicate', noteController_1.NoteController.duplicateNote);
+router.post('/:id/pin', noteController_1.NoteController.togglePin);
+exports.default = router;
