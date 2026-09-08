@@ -16,6 +16,7 @@ import {
   Tag,
   Palette,
   CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -28,6 +29,9 @@ import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Image from '@tiptap/extension-image';
 
 import { Note, Notebook, Label } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -71,9 +75,15 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
 
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(!initialNoteId);
+
+  const noteIdRef = useRef(initialNoteId);
+  noteIdRef.current = initialNoteId;
+  const isFirstRender = useRef(true);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // TipTap WYSIWYG Editor Instance
   const editor = useEditor({
@@ -107,6 +117,14 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       TableRow,
       TableHeader,
       TableCell,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+      }),
     ],
     content: '',
     immediatelyRender: false,
@@ -195,6 +213,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     }
   };
 
+  // Explicit Save (Ctrl+S or Save Button)
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -215,8 +234,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         iv = encResult.iv;
       }
 
-      if (initialNoteId) {
-        await updateNote(initialNoteId, {
+      if (noteIdRef.current) {
+        await updateNote(noteIdRef.current, {
           title: title.trim() || 'ไม่มีชื่อบันทึก',
           content: finalContent,
           color,
@@ -242,6 +261,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           iv,
           salt,
         });
+        noteIdRef.current = created.id;
         toast.success('สร้างโน้ตใหม่สำเร็จ');
         router.replace(`/notes/${created.id}`);
       }
@@ -256,7 +276,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     content,
     isLocked,
     isVaultUnlocked,
-    initialNoteId,
     title,
     color,
     textColor,
@@ -267,6 +286,108 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     createNote,
     router,
   ]);
+
+  // Debounced Auto-Save
+  const triggerAutoSave = useCallback(async () => {
+    if (!isLoaded || isSaving || isAutoSaving) return;
+    if (isLocked && !isVaultUnlocked) return;
+    // Don't auto-save if totally empty
+    const currentHtml = editor ? editor.getHTML() : content;
+    if (!title.trim() && (!currentHtml || currentHtml === '<p></p>')) return;
+
+    try {
+      setIsAutoSaving(true);
+      let finalContent = currentHtml;
+      let iv: string | null = null;
+      let salt: string | null = null;
+
+      if (isLocked) {
+        if (!isVaultUnlocked) {
+          setIsAutoSaving(false);
+          return;
+        }
+        const encryption = EncryptionService.getInstance();
+        const encResult = encryption.encrypt(currentHtml);
+        finalContent = JSON.stringify(encResult);
+        iv = encResult.iv;
+      }
+
+      if (noteIdRef.current) {
+        await updateNote(noteIdRef.current, {
+          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          content: finalContent,
+          color,
+          textColor,
+          isLocked,
+          isPinned,
+          notebookId,
+          labelIds: selectedLabelIds,
+          iv,
+          salt,
+        });
+      } else {
+        const created = await createNote({
+          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          content: finalContent,
+          color,
+          textColor,
+          isLocked,
+          isPinned,
+          notebookId,
+          labelIds: selectedLabelIds,
+          iv,
+          salt,
+        });
+        noteIdRef.current = created.id;
+        router.replace(`/notes/${created.id}`, undefined, { shallow: true });
+      }
+      setLastSaved(new Date().toLocaleTimeString('th-TH'));
+    } catch (err) {
+      console.error('Auto save error:', err);
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }, [
+    isLoaded,
+    isSaving,
+    isAutoSaving,
+    isLocked,
+    isVaultUnlocked,
+    title,
+    content,
+    editor,
+    color,
+    textColor,
+    isPinned,
+    notebookId,
+    selectedLabelIds,
+    updateNote,
+    createNote,
+    router,
+  ]);
+
+  // Debounce Auto Save effect (1.5s after user stops typing)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (!isLoaded) return;
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      triggerAutoSave();
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [title, content, color, textColor, notebookId, selectedLabelIds, isPinned, isLoaded, triggerAutoSave]);
 
   // Keyboard shortcut Ctrl+S
   useEffect(() => {
@@ -346,11 +467,17 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <ArrowLeft size={19} />
           </button>
 
-          {lastSaved && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-              <CheckCircle2 size={13} /> บันทึกล่าสุด: {lastSaved}
+          {/* Auto-save live indicator */}
+          {isAutoSaving ? (
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-indigo-600 dark:text-indigo-400 font-medium animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+              กำลังบันทึกอัตโนมัติ...
             </span>
-          )}
+          ) : lastSaved ? (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              <CheckCircle2 size={13} /> บันทึกอัตโนมัติแล้ว: {lastSaved}
+            </span>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">

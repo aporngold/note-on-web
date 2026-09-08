@@ -31,6 +31,7 @@ import {
   Outdent,
   Minus,
   CheckSquare,
+  Image as ImageIcon,
   Code,
   Check,
   ChevronDown,
@@ -146,6 +147,7 @@ export default function NoteRichToolbar({
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const customColorInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -308,6 +310,46 @@ export default function NoteRichToolbar({
     insertLinePrefix('1. ');
   };
 
+  // Checklist (TaskList)
+  const handleChecklist = () => {
+    if (editor) {
+      editor.chain().focus().toggleTaskList().run();
+      return;
+    }
+    insertLinePrefix('- [ ] ');
+  };
+
+  // Inline Image Insertion
+  const handleInsertImageClick = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleImageFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      if (editor) {
+        editor.chain().focus().setImage({ src: base64, alt: file.name }).run();
+        toast.success('แทรกรูปภาพเรียบร้อย');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleInsertImageUrl = () => {
+    const url = window.prompt('ใส่ URL ของรูปภาพ (เช่น https://example.com/image.png):');
+    if (url && url.trim()) {
+      if (editor) {
+        editor.chain().focus().setImage({ src: url.trim() }).run();
+        toast.success('แทรกรูปภาพเรียบร้อย');
+      }
+    }
+  };
+
   const handleAlign = (alignment: 'left' | 'center' | 'right' | 'justify') => {
     if (editor) {
       editor.chain().focus().setTextAlign(alignment).run();
@@ -461,6 +503,7 @@ export default function NoteRichToolbar({
   const isStrikeActive = editor?.isActive('strike') ?? false;
   const isBulletListActive = editor?.isActive('bulletList') ?? false;
   const isOrderedListActive = editor?.isActive('orderedList') ?? false;
+  const isTaskListActive = editor?.isActive('taskList') ?? false;
   const isCodeBlockActive = editor?.isActive('codeBlock') ?? false;
   const isLinkActive = editor?.isActive('link') ?? false;
   const isAlignLeftActive = editor?.isActive({ textAlign: 'left' }) ?? false;
@@ -490,6 +533,15 @@ export default function NoteRichToolbar({
 
   return (
     <div className="toolbar-dropdown-container w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 select-none text-slate-700 dark:text-slate-200">
+      {/* Hidden File Input for Image Upload */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageFileSelected}
+        className="hidden"
+      />
+
       {/* ══════════════════════════════════════════════════════
           แถวที่ 1: แถบบนสุด (Top Action Utility Bar)
          ══════════════════════════════════════════════════════ */}
@@ -933,7 +985,7 @@ export default function NoteRichToolbar({
             Insert
           </button>
           {activeMenu === 'insert' && (
-            <div className="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 z-50 animate-fade-in text-xs">
+            <div className="absolute left-0 top-full mt-1 w-52 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 z-50 animate-fade-in text-xs space-y-0.5">
               <button
                 type="button"
                 onClick={() => {
@@ -955,6 +1007,39 @@ export default function NoteRichToolbar({
               >
                 <LinkIcon size={14} />
                 <span>ลิงก์เชื่อมโยง (Link)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleChecklist();
+                  setActiveMenu(null);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium"
+              >
+                <CheckSquare size={14} />
+                <span>กล่องเช็คลิสต์ (Checklist)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleInsertImageClick();
+                  setActiveMenu(null);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium"
+              >
+                <ImageIcon size={14} />
+                <span>แทรกรูปภาพ (จากไฟล์ในเครื่อง)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleInsertImageUrl();
+                  setActiveMenu(null);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              >
+                <ImageIcon size={14} />
+                <span>แทรกรูปภาพ (จาก URL ลิงก์)</span>
               </button>
               <button
                 type="button"
@@ -1031,6 +1116,16 @@ export default function NoteRichToolbar({
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 line-through"
               >
                 ขีดฆ่า (Strikethrough)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleChecklist();
+                  setActiveMenu(null);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold"
+              >
+                กล่องเช็คลิสต์
               </button>
               <button
                 type="button"
@@ -1162,7 +1257,7 @@ export default function NoteRichToolbar({
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          แถวที่ 4: แถบจัดแต่งข้อความแถวที่ 1 (Paragraph, B, I, U, S, Color, Highlight, Link, Lists)
+          แถวที่ 4: แถบจัดแต่งข้อความแถวที่ 1 (Paragraph, B, I, U, S, Color, Highlight, Link, Lists, Checklist, Image)
          ══════════════════════════════════════════════════════ */}
       <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 flex-wrap text-slate-700 dark:text-slate-200">
         {/* Paragraph Style Dropdown */}
@@ -1347,7 +1442,7 @@ export default function NoteRichToolbar({
           type="button"
           onClick={handleOrderedList}
           className={getToolBtnClass(isOrderedListActive)}
-          title="รายการลำดับตัวเลข"
+          title="รายการลำดับตัวเลข (Numbered List)"
         >
           <ListOrdered size={16} />
         </button>
@@ -1357,9 +1452,29 @@ export default function NoteRichToolbar({
           type="button"
           onClick={handleBulletList}
           className={getToolBtnClass(isBulletListActive)}
-          title="รายการหัวข้อย่อย"
+          title="รายการหัวข้อย่อย (Bullet List)"
         >
           <List size={16} />
+        </button>
+
+        {/* Checklist */}
+        <button
+          type="button"
+          onClick={handleChecklist}
+          className={getToolBtnClass(isTaskListActive)}
+          title="กล่องเช็คลิสต์ (Checklist)"
+        >
+          <CheckSquare size={16} />
+        </button>
+
+        {/* Image */}
+        <button
+          type="button"
+          onClick={handleInsertImageClick}
+          className={getToolBtnClass(false)}
+          title="แทรกรูปภาพ (เลือกไฟล์รูปภาพจากเครื่อง)"
+        >
+          <ImageIcon size={16} />
         </button>
 
         {/* More Options (...) */}
@@ -1373,7 +1488,7 @@ export default function NoteRichToolbar({
             <MoreHorizontal size={16} />
           </button>
           {isMoreMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 z-50 animate-fade-in text-xs">
+            <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 z-50 animate-fade-in text-xs space-y-0.5">
               <button
                 type="button"
                 onClick={() => {
@@ -1384,6 +1499,17 @@ export default function NoteRichToolbar({
               >
                 <Calendar size={13} />
                 <span>ใส่วันที่ปัจจุบัน</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleInsertImageUrl();
+                  setIsMoreMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              >
+                <ImageIcon size={13} />
+                <span>แทรกรูปภาพจาก URL</span>
               </button>
               <button
                 type="button"
@@ -1402,7 +1528,7 @@ export default function NoteRichToolbar({
                   handleClearFormatting();
                   setIsMoreMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-rose-600"
               >
                 ล้างการจัดรูปแบบ
               </button>
@@ -1412,7 +1538,7 @@ export default function NoteRichToolbar({
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          แถวที่ 5: แถบจัดแต่งข้อความแถวที่ 2 (Clear Format, Alignments, Indent, HR, Code)
+          แถวที่ 5: แถบจัดแต่งข้อความแถวที่ 2 (Clear Format, Alignments, Indent, HR, Checklist, Image, Code)
          ══════════════════════════════════════════════════════ */}
       <div className="px-3 py-1.5 flex items-center gap-1.5 flex-wrap text-slate-700 dark:text-slate-200">
         {/* Clear Format Tx */}
@@ -1471,6 +1597,26 @@ export default function NoteRichToolbar({
 
         {/* Separator */}
         <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+
+        {/* Checklist shortcut */}
+        <button
+          type="button"
+          onClick={handleChecklist}
+          className={getToolBtnClass(isTaskListActive)}
+          title="กล่องเช็คลิสต์ (Checklist)"
+        >
+          <CheckSquare size={16} />
+        </button>
+
+        {/* Image shortcut */}
+        <button
+          type="button"
+          onClick={handleInsertImageClick}
+          className={getToolBtnClass(false)}
+          title="แทรกรูปภาพ"
+        >
+          <ImageIcon size={16} />
+        </button>
 
         {/* Horizontal Rule — */}
         <button
