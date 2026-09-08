@@ -174,13 +174,14 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                         key={note.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, note.id)}
+                        onClick={() => setFullscreenNote(note)}
                         onDoubleClick={() => setFullscreenNote(note)}
                         style={{
                           backgroundColor: note.color || '#FEF08A',
                           color: note.textColor || '#0F172A',
                         }}
-                        className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all cursor-grab active:cursor-grabbing group select-none relative"
-                        title="ลากเพื่อเปลี่ยนสถานะ / ดับเบิ้ลคลิกเพื่อเปิดแก้ไขเต็มจอ"
+                        className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all cursor-grab active:cursor-grabbing group select-none relative cursor-pointer"
+                        title="คลิกหรือดับเบิ้ลคลิกเพื่อเปิดแก้ไขเต็มจอ / ลากเพื่อเปลี่ยนสถานะ"
                       >
                         {/* Pin status badge at Top-Right (as in reference) */}
                         {note.isPinned && (

@@ -48,6 +48,10 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
       onUnlockRequest();
       return;
     }
+    if (onOpenFullscreen) {
+      onOpenFullscreen(note);
+      return;
+    }
     router.push(`/notes/${note.id}`);
   };
 

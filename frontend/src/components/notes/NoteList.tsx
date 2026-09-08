@@ -28,6 +28,10 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
                 onUnlockRequest();
                 return;
               }
+              if (onOpenFullscreen) {
+                onOpenFullscreen(note);
+                return;
+              }
               router.push(`/notes/${note.id}`);
             }}
             onDoubleClick={(e) => {

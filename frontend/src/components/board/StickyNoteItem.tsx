@@ -382,6 +382,10 @@ export default function StickyNoteItem({
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${isConnectingMode && !isConnectingSource ? 'hover:ring-4 hover:ring-indigo-400 cursor-pointer' : ''}`}
         onMouseDown={handleMouseDown}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          if (onOpenFullscreen) onOpenFullscreen(note);
+        }}
       >
         {/* ── Tape (when not pinned) ── */}
         {!note.isPinned && (
@@ -768,10 +772,11 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 if (onOpenFullscreen) onOpenFullscreen(note);
               }}
-              className="p-1 rounded hover:bg-black/10 transition"
+              className="px-1.5 py-0.5 rounded bg-black/5 hover:bg-black/15 transition text-slate-800 dark:text-slate-100 flex items-center gap-1 font-bold text-[10px]"
               title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
             >
-              <Maximize2 size={12} />
+              <Maximize2 size={11} />
+              {!isCompact && <span>เต็มจอ</span>}
             </button>
 
             {/* Delete to trash */}

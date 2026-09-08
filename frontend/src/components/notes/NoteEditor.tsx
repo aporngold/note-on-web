@@ -771,11 +771,11 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 }
               }
             }}
-            className="p-2 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition flex items-center gap-1.5 font-semibold text-xs"
+            className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center gap-1.5 font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95"
             title="เปิดแก้ไขแบบเต็มจอ (เหมือนหน้าคัมบัง)"
           >
-            <Maximize2 size={16} />
-            <span className="hidden sm:inline">เต็มจอ</span>
+            <Maximize2 size={15} />
+            <span>เต็มจอ</span>
           </button>
 
           {/* Save Button */}
