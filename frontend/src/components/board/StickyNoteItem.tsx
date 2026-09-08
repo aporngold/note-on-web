@@ -23,7 +23,6 @@ import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
-import FullscreenNoteModal from '../notes/FullscreenNoteModal';
 import toast from 'react-hot-toast';
 
 interface StickyNoteItemProps {
@@ -35,6 +34,7 @@ interface StickyNoteItemProps {
   onTargetConnect?: (noteId: string) => void;
   isConnectingSource?: boolean;
   isConnectingMode?: boolean;
+  onOpenFullscreen?: (note: Note) => void;
 }
 
 const PAPER_COLORS = [
@@ -89,6 +89,7 @@ export default function StickyNoteItem({
   onTargetConnect,
   isConnectingSource = false,
   isConnectingMode = false,
+  onOpenFullscreen,
 }: StickyNoteItemProps) {
   const router = useRouter();
   const {
@@ -107,7 +108,6 @@ export default function StickyNoteItem({
   const [isKanbanStatusOpen, setIsKanbanStatusOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [isFullscreenModalOpen, setIsFullscreenModalOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -383,16 +383,26 @@ export default function StickyNoteItem({
         } ${isConnectingMode && !isConnectingSource ? 'hover:ring-4 hover:ring-indigo-400 cursor-pointer' : ''}`}
         onMouseDown={handleMouseDown}
       >
-        {/* ── Visual Push Pin or Tape ── */}
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
-          {note.isPinned ? (
-            <div className="w-5 h-5 rounded-full bg-red-600 shadow-md flex items-center justify-center text-white border border-red-700">
-              <div className="w-2 h-2 rounded-full bg-red-400" />
-            </div>
-          ) : (
+        {/* ── Tape (when not pinned) ── */}
+        {!note.isPinned && (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 pointer-events-none z-10">
             <div className="w-20 h-5 bg-white/40 dark:bg-white/20 backdrop-blur-sm shadow-sm border border-white/40 -rotate-1 rounded-xs" />
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* ── Visual Push Pin Badge at Top-Right (as requested) ── */}
+        {note.isPinned && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePin(note.id);
+            }}
+            className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white z-30 cursor-pointer hover:scale-110 transition active:scale-95"
+            title="คลิกเพื่อยกเลิกการปักหมุด"
+          >
+            <Pin size={12} className="fill-current" />
+          </div>
+        )}
 
         {/* ── Top Header Controls (Adaptive to Note Width) ── */}
         <div className="flex items-center justify-between gap-1 mb-1.5 no-drag shrink-0 w-full overflow-hidden">
@@ -751,17 +761,18 @@ export default function StickyNoteItem({
               )}
             </div>
 
-            {/* Open note in Fullscreen focus mode (hidden on narrow) */}
-            {!isNarrow && (
-              <button
-                type="button"
-                onClick={() => setIsFullscreenModalOpen(true)}
-                className="p-1 rounded hover:bg-black/10 transition"
-                title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เฉพาะโน้ตนี้)"
-              >
-                <Maximize2 size={12} />
-              </button>
-            )}
+            {/* Open note in Fullscreen focus mode (เหมือนหน้าคัมบัง) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenFullscreen) onOpenFullscreen(note);
+              }}
+              className="p-1 rounded hover:bg-black/10 transition"
+              title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
+            >
+              <Maximize2 size={12} />
+            </button>
 
             {/* Delete to trash */}
             <button
@@ -910,7 +921,10 @@ export default function StickyNoteItem({
             </div>
           ) : (
             <div
-              onDoubleClick={() => setIsFullscreenModalOpen(true)}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                if (onOpenFullscreen) onOpenFullscreen(note);
+              }}
               className={`w-full h-full overflow-y-auto leading-relaxed cursor-text ${getFontSizeClass()} ${getFontFamilyClass()}`}
               style={{ color: textColor }}
             >
@@ -1005,15 +1019,6 @@ export default function StickyNoteItem({
             </button>
           </div>
         </div>
-      )}
-
-      {/* Fullscreen Note Focus Modal */}
-      {isFullscreenModalOpen && (
-        <FullscreenNoteModal
-          note={note}
-          isOpen={isFullscreenModalOpen}
-          onClose={() => setIsFullscreenModalOpen(false)}
-        />
       )}
     </>
   );

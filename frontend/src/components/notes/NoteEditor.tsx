@@ -23,6 +23,7 @@ import {
   Upload,
   Plus,
   X,
+  Maximize2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -48,6 +49,7 @@ import api from '@/utils/api';
 import NoteRichToolbar from './NoteRichToolbar';
 import AudioRecorderModal from './AudioRecorderModal';
 import NoteAttachmentDrawer from './NoteAttachmentDrawer';
+import FullscreenNoteModal from './FullscreenNoteModal';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 const COLORS = [
@@ -80,6 +82,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isAttachmentDrawerOpen, setIsAttachmentDrawerOpen] = useState(false);
+  const [isFullscreenModalOpen, setIsFullscreenModalOpen] = useState(false);
+  const [activeNoteForModal, setActiveNoteForModal] = useState<Note | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -721,6 +725,59 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </button>
           )}
 
+          {/* Fullscreen Focus Modal (เหมือนหน้าคัมบัง) */}
+          <button
+            onClick={async () => {
+              if (initialNoteId) {
+                setActiveNoteForModal({
+                  id: initialNoteId,
+                  title,
+                  content: editor ? editor.getHTML() : content,
+                  color,
+                  textColor,
+                  fontFamily: 'sans',
+                  fontSize: 'normal',
+                  isPinned,
+                  isFavorite,
+                  isLocked,
+                  isArchived: false,
+                  attachments,
+                  notebookId,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                });
+                setIsFullscreenModalOpen(true);
+              } else {
+                try {
+                  const newNote = await createNote({
+                    title: title || 'โน้ตใหม่',
+                    content: editor ? editor.getHTML() : content,
+                    color,
+                    textColor,
+                    fontFamily: 'sans',
+                    fontSize: 'normal',
+                    notebookId: notebookId || undefined,
+                    isPinned,
+                    isFavorite,
+                    isLocked,
+                  });
+                  if (newNote?.id) {
+                    router.replace(`/notes/${newNote.id}`);
+                    setActiveNoteForModal(newNote);
+                    setIsFullscreenModalOpen(true);
+                  }
+                } catch (err) {
+                  toast.error('ไม่สามารถเปิดโหมดเต็มจอได้');
+                }
+              }
+            }}
+            className="p-2 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition flex items-center gap-1.5 font-semibold text-xs"
+            title="เปิดแก้ไขแบบเต็มจอ (เหมือนหน้าคัมบัง)"
+          >
+            <Maximize2 size={16} />
+            <span className="hidden sm:inline">เต็มจอ</span>
+          </button>
+
           {/* Save Button */}
           <button
             onClick={handleSave}
@@ -1011,6 +1068,40 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         onDeleteAttachment={handleDeleteAttachment}
         onInsertIntoEditor={handleInsertAttachmentIntoEditor}
       />
+
+      {/* Fullscreen Note Focus Modal (เหมือนหน้าคัมบัง) */}
+      {isFullscreenModalOpen && activeNoteForModal && (
+        <FullscreenNoteModal
+          note={activeNoteForModal}
+          isOpen={isFullscreenModalOpen}
+          onClose={async () => {
+            setIsFullscreenModalOpen(false);
+            setActiveNoteForModal(null);
+            const targetId = initialNoteId || activeNoteForModal?.id;
+            if (targetId) {
+              try {
+                const res = await api.get(`/notes/${targetId}`);
+                if (res.data) {
+                  const n = res.data;
+                  setTitle(n.title || '');
+                  setColor(n.color || COLORS[0]);
+                  setTextColor(n.textColor || '#0F172A');
+                  setIsPinned(n.isPinned);
+                  setIsFavorite(!!n.isFavorite);
+                  setAttachments(n.attachments || []);
+                  const updatedHtml = convertLegacyContentToHtml(n.content || '');
+                  setContent(updatedHtml);
+                  if (editor) {
+                    editor.commands.setContent(updatedHtml, { emitUpdate: false });
+                  }
+                }
+              } catch (e) {
+                // ignore
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

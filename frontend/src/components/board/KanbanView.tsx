@@ -182,10 +182,17 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                         className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all cursor-grab active:cursor-grabbing group select-none relative"
                         title="ลากเพื่อเปลี่ยนสถานะ / ดับเบิ้ลคลิกเพื่อเปิดแก้ไขเต็มจอ"
                       >
-                        {/* Pin status badge */}
+                        {/* Pin status badge at Top-Right (as in reference) */}
                         {note.isPinned && (
-                          <div className="absolute -top-2 -right-1 w-4 h-4 bg-red-600 text-white rounded-full flex items-center justify-center shadow-sm">
-                            <Pin size={10} className="fill-current" />
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePin(note.id);
+                            }}
+                            className="absolute -top-2.5 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white z-20 cursor-pointer hover:scale-110 transition active:scale-95"
+                            title="คลิกเพื่อยกเลิกการปักหมุด"
+                          >
+                            <Pin size={12} className="fill-current" />
                           </div>
                         )}
 

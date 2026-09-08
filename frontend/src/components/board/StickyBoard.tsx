@@ -15,6 +15,7 @@ import {
   Link2,
   Compass,
   Image as ImageIcon,
+  Maximize2,
 } from 'lucide-react';
 import StickyNoteItem from './StickyNoteItem';
 import NoteConnectionCanvas from './NoteConnectionCanvas';
@@ -22,6 +23,7 @@ import KanbanView from './KanbanView';
 import BoardShareModal from '../modals/BoardShareModal';
 import WebStickyModal from '../modals/WebStickyModal';
 import BoardBackgroundModal, { BOARD_PATTERNS } from './BoardBackgroundModal';
+import FullscreenNoteModal from '../notes/FullscreenNoteModal';
 import { Note, Board, BoardViewMode } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
@@ -64,6 +66,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   const [boardTheme, setBoardTheme] = useState<BoardTheme>('cork');
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
 
   // Modals for Sharing, Web Sticky, and Backgrounds
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -155,6 +158,30 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       isPinned: false,
       boardId: activeBoardId || undefined,
     });
+  };
+
+  // Quick add sticky note and open in Fullscreen Focus Modal (เหมือนหน้าคัมบัง)
+  const handleQuickAddFullscreen = async (color: string = '#FEF08A') => {
+    const x = 140 + ((notes.length * 60) % 650);
+    const y = 140 + (Math.floor(notes.length / 4) * 80) % 320;
+
+    const newNote = await createNote({
+      title: 'โน้ตใหม่',
+      content: '',
+      color,
+      textColor: '#0F172A',
+      fontSize: 'normal',
+      fontFamily: 'sans',
+      kanbanStatus: 'todo',
+      posX: x,
+      posY: y,
+      isPinned: false,
+      boardId: activeBoardId || undefined,
+    });
+
+    if (newNote) {
+      setFullscreenNote(newNote);
+    }
   };
 
   // Auto-arrange all notes in a neat grid
@@ -380,6 +407,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <span>ฟ้า</span>
             </button>
 
+            {/* Quick Add and Open Fullscreen (เหมือนหน้าคัมบัง) */}
+            <button
+              onClick={() => handleQuickAddFullscreen('#FEF08A')}
+              className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+              title="สร้างโน้ตใหม่และเปิดแก้ไขเต็มจอทันที (เหมือนหน้าคัมบัง)"
+            >
+              <Maximize2 size={13} />
+              <span>+ โน้ตใหม่ (เต็มจอ)</span>
+            </button>
+
             {/* Web Sticky Simulator Button */}
             <button
               onClick={() => setIsWebStickyModalOpen(true)}
@@ -467,13 +504,23 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 กดปุ่ม &quot;+ แปะโน้ต&quot; ด้านบน เพื่อสร้างโน้ตใหม่ ลากวางตำแหน่ง เชื่อมต่อโน้ต หรือแนบไฟล์รูปภาพ/PDF ได้อย่างอิสระ!
               </p>
-              <button
-                onClick={() => handleQuickAdd('#FEF08A')}
-                className="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5 mx-auto"
-              >
-                <Plus size={15} />
-                <span>+ แปะโน้ตแรกในบอร์ดนี้</span>
-              </button>
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => handleQuickAdd('#FEF08A')}
+                  className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5"
+                >
+                  <Plus size={15} />
+                  <span>+ แปะโน้ต</span>
+                </button>
+                <button
+                  onClick={() => handleQuickAddFullscreen('#FEF08A')}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5"
+                  title="สร้างโน้ตใหม่และเปิดแก้ไขเต็มจอทันที"
+                >
+                  <Maximize2 size={14} />
+                  <span>+ เต็มจอ</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -494,6 +541,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                   onUnlockRequest={() => setIsVaultModalOpen(true)}
                   onStartConnect={handleStartConnect}
                   onTargetConnect={handleTargetConnect}
+                  onOpenFullscreen={(n) => setFullscreenNote(n)}
                   isConnectingSource={connectingSourceId === note.id}
                   isConnectingMode={!!connectingSourceId}
                 />
@@ -698,6 +746,18 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         isOpen={isVaultModalOpen}
         onClose={() => setIsVaultModalOpen(false)}
       />
+
+      {/* Fullscreen Note Focus Modal (เหมือนหน้าคัมบัง) */}
+      {fullscreenNote && (
+        <FullscreenNoteModal
+          note={fullscreenNote}
+          isOpen={!!fullscreenNote}
+          onClose={() => {
+            setFullscreenNote(null);
+            fetchNotes({ isArchived: false });
+          }}
+        />
+      )}
     </div>
   );
 }
