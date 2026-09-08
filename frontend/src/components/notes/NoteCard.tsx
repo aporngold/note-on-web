@@ -7,6 +7,7 @@ import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
+import { stripHtmlTags } from '@/utils/editorHelper';
 
 interface NoteCardProps {
   note: Note;
@@ -39,10 +40,7 @@ export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
   }
 
   // Strip markdown/html tags for clean preview
-  const cleanPreview = previewText
-    ?.replace(/<[^>]*>?/gm, ' ')
-    ?.replace(/[#*`_~]/g, '')
-    ?.trim();
+  const cleanPreview = stripHtmlTags(previewText);
 
   const handleClick = () => {
     if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {

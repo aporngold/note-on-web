@@ -884,7 +884,7 @@ export default function StickyNoteItem({
           </div>
         )}
 
-        {/* ── Note Content Textarea ── */}
+        {/* ── Note Content Area ── */}
         <div className="flex-1 no-drag min-h-0 overflow-hidden">
           {isEncrypted ? (
             <div
@@ -896,14 +896,27 @@ export default function StickyNoteItem({
               {displayContent}
             </div>
           ) : (
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onBlur={handleBlur}
-              placeholder="เขียนข้อความของคุณตรงนี้..."
-              className={`w-full h-full bg-transparent resize-none focus:outline-none leading-relaxed placeholder-black/30 overflow-y-auto ${getFontSizeClass()} ${getFontFamilyClass()}`}
+            <div
+              onDoubleClick={() => setIsFullscreenModalOpen(true)}
+              className={`w-full h-full overflow-y-auto leading-relaxed cursor-text ${getFontSizeClass()} ${getFontFamilyClass()}`}
               style={{ color: textColor }}
-            />
+            >
+              {/<[a-z][\s\S]*>/i.test(displayContent) ? (
+                <div
+                  className="prose dark:prose-invert max-w-none text-inherit text-xs sm:text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: displayContent }}
+                />
+              ) : (
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  onBlur={handleBlur}
+                  placeholder="เขียนข้อความของคุณตรงนี้..."
+                  className="w-full h-full bg-transparent resize-none focus:outline-none leading-relaxed placeholder-black/30"
+                  style={{ color: textColor }}
+                />
+              )}
+            </div>
           )}
         </div>
 

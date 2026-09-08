@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import {
   ArrowLeft,
@@ -16,17 +16,19 @@ import {
   Tag,
   Palette,
   CheckCircle2,
-  Bold,
-  Italic,
-  Heading1,
-  Heading2,
-  List,
-  ListOrdered,
-  Code,
-  Quote,
-  CheckSquare,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import { Color } from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+
 import { Note, Notebook, Label } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -34,6 +36,7 @@ import { EncryptionService } from '@/utils/encryption';
 import MasterPasswordModal from './MasterPasswordModal';
 import api from '@/utils/api';
 import NoteRichToolbar from './NoteRichToolbar';
+import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 const COLORS = [
   '#6366F1', // Indigo
@@ -72,7 +75,45 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(!initialNoteId);
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // TipTap WYSIWYG Editor Instance
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      Underline,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: 'เริ่มพิมพ์บันทึกของคุณที่นี่... (จัดรูปแบบตัวหนา ตัวเอียง สี หรือหัวข้อได้ทันที)',
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
+    content: '',
+    immediatelyRender: false,
+    onUpdate: ({ editor }) => {
+      setContent(editor.getHTML());
+    },
+  });
 
   // Fetch initial note data if editing
   useEffect(() => {
@@ -93,6 +134,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         setNotebookId(n.notebookId || null);
         setSelectedLabelIds(n.labels?.map((l) => l.id) || []);
 
+        let loadedContent = n.content || '';
+
         // Decrypt if locked
         if (n.isLocked) {
           if (isVaultUnlocked) {
@@ -100,20 +143,21 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               const parsed = JSON.parse(n.content);
               if (parsed.encrypted && parsed.iv) {
                 const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
-                setContent(dec);
-              } else {
-                setContent(n.content);
+                loadedContent = dec;
               }
             } catch (e) {
-              setContent(n.content);
+              // Not JSON encrypted or failed
             }
           } else {
             // Vault locked, prompt user
             setIsVaultModalOpen(true);
-            setContent(n.content);
           }
-        } else {
-          setContent(n.content);
+        }
+
+        const html = convertLegacyContentToHtml(loadedContent);
+        setContent(html);
+        if (editor) {
+          editor.commands.setContent(html, { emitUpdate: false });
         }
 
         setIsLoaded(true);
@@ -127,12 +171,18 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     return () => {
       isMounted = false;
     };
-  }, [initialNoteId, isVaultUnlocked, router]);
+  }, [initialNoteId, isVaultUnlocked, router, editor]);
+
+  // Sync editor content when loaded
+  useEffect(() => {
+    if (editor && isLoaded && content && editor.isEmpty) {
+      editor.commands.setContent(convertLegacyContentToHtml(content), { emitUpdate: false });
+    }
+  }, [editor, isLoaded]);
 
   // Handle Vault lock toggle
   const handleLockToggle = () => {
     if (!isLocked) {
-      // Enabling lock requires master password
       if (!isVaultUnlocked) {
         setIsVaultModalOpen(true);
         return;
@@ -145,26 +195,11 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     }
   };
 
-  // Formatting helpers for textarea
-  const insertFormatting = (prefix: string, suffix: string = '') => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const selected = content.substring(start, end);
-    const replacement = `${prefix}${selected || 'ข้อความ'}${suffix}`;
-    const newContent = content.substring(0, start) + replacement + content.substring(end);
-    setContent(newContent);
-    setTimeout(() => {
-      el.focus();
-      el.setSelectionRange(start + prefix.length, start + prefix.length + (selected.length || 6));
-    }, 10);
-  };
-
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      let finalContent = content;
+      const htmlContent = editor ? editor.getHTML() : content;
+      let finalContent = htmlContent;
       let iv: string | null = null;
       let salt: string | null = null;
 
@@ -175,7 +210,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           return;
         }
         const encryption = EncryptionService.getInstance();
-        const encResult = encryption.encrypt(content);
+        const encResult = encryption.encrypt(htmlContent);
         finalContent = JSON.stringify(encResult);
         iv = encResult.iv;
       }
@@ -216,7 +251,34 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [
+    editor,
+    content,
+    isLocked,
+    isVaultUnlocked,
+    initialNoteId,
+    title,
+    color,
+    textColor,
+    isPinned,
+    notebookId,
+    selectedLabelIds,
+    updateNote,
+    createNote,
+    router,
+  ]);
+
+  // Keyboard shortcut Ctrl+S
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
 
   const handleDelete = async () => {
     if (!initialNoteId) {
@@ -238,7 +300,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
 
   const handleExportMarkdown = () => {
     const filename = `${(title || 'untitled').replace(/[^a-zA-Z0-9ก-๙_-]/g, '_')}.md`;
-    const blob = new Blob([`# ${title || 'ไม่มีชื่อบันทึก'}\n\n${content}`], {
+    const textContent = editor ? editor.getText() : stripHtmlTags(content);
+    const blob = new Blob([`# ${title || 'ไม่มีชื่อบันทึก'}\n\n${textContent}`], {
       type: 'text/markdown;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
@@ -299,10 +362,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-1 ring-amber-400/50'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title={isLocked ? 'โน้ตนี้ถูกเข้ารหัสด้วย Master Password' : 'คลิกเพื่อเข้ารหัสโน้ตนี้'}
+            title={isLocked ? 'ปลดล็อกหรือจัดการการเข้ารหัส' : 'เปิดการเข้ารหัสลับแบบ E2EE'}
           >
             {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
-            <span>{isLocked ? 'E2EE ล็อกแล้ว' : 'ไม่เข้ารหัส'}</span>
+            <span>{isLocked ? 'ล็อก E2EE' : 'ไม่ล็อก'}</span>
           </button>
 
           {/* Pin Button */}
@@ -310,49 +373,45 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             onClick={() => setIsPinned(!isPinned)}
             className={`p-2 rounded-xl transition ${
               isPinned
-                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 ring-1 ring-indigo-500/20'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ต'}
+            title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้'}
           >
             <Pin size={17} className={isPinned ? 'fill-current' : ''} />
           </button>
 
-          {/* Duplicate Button (if existing) */}
+          {/* Preview Toggle */}
+          <button
+            onClick={() => setIsPreview(!isPreview)}
+            className={`p-2 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold ${
+              isPreview
+                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-none'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title={isPreview ? 'แก้ไขเนื้อหา' : 'ดูตัวอย่าง'}
+          >
+            {isPreview ? <Edit3 size={15} /> : <Eye size={15} />}
+            <span className="hidden sm:inline">{isPreview ? 'แก้ไข' : 'ดูตัวอย่าง'}</span>
+          </button>
+
+          {/* Duplicate Button */}
           {initialNoteId && (
             <button
               onClick={handleDuplicate}
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
               title="คัดลอกโน้ตนี้"
             >
               <Copy size={17} />
             </button>
           )}
 
-          {/* Export to Markdown */}
-          <button
-            onClick={handleExportMarkdown}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            title="ส่งออกเป็นไฟล์ Markdown (.md)"
-          >
-            <Download size={17} />
-          </button>
-
-          {/* Print */}
-          <button
-            onClick={handlePrint}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            title="พิมพ์ หรือ บันทึกเป็น PDF"
-          >
-            <Printer size={17} />
-          </button>
-
-          {/* Delete to trash */}
+          {/* Delete Button */}
           {initialNoteId && (
             <button
               onClick={handleDelete}
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition"
-              title="ย้ายไปถังขยะ"
+              className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition"
+              title="ลบโน้ตนี้"
             >
               <Trash2 size={17} />
             </button>
@@ -362,25 +421,25 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 ml-1"
+            className="ml-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md shadow-indigo-200 dark:shadow-none transition active:scale-95 disabled:opacity-50"
           >
-            <Save size={15} />
+            <Save size={16} />
             <span>{isSaving ? 'กำลังบันทึก...' : 'บันทึก'}</span>
           </button>
         </div>
       </div>
 
-      {/* Note Configuration Strip (Notebook, Color, Labels) */}
+      {/* Metadata Bar (Notebook, Color, Labels) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Notebook Selector */}
           <div className="flex items-center gap-2">
             <Book size={16} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">สมุด:</span>
+            <span className="text-xs font-semibold text-slate-500">สมุดบันทึก:</span>
             <select
               value={notebookId || ''}
               onChange={(e) => setNotebookId(e.target.value || null)}
-              className="text-xs font-medium px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
             >
               <option value="">(ไม่มีสมุดบันทึก)</option>
               {notebooks.map((nb) => (
@@ -391,11 +450,11 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </select>
           </div>
 
-          {/* Color Palette Selector */}
+          {/* Color Picker Swatches */}
           <div className="flex items-center gap-2">
             <Palette size={16} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">สีแถบ:</span>
-            <div className="flex gap-1.5">
+            <span className="text-xs font-semibold text-slate-500">สีขอบ:</span>
+            <div className="flex items-center gap-1.5">
               {COLORS.map((c) => (
                 <button
                   key={c}
@@ -425,9 +484,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                     type="button"
                     onClick={() => toggleLabel(lbl.id)}
                     className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition ${
-                      isSelected
-                        ? 'ring-1 font-bold'
-                        : 'opacity-50 hover:opacity-80'
+                      isSelected ? 'ring-1 font-bold' : 'opacity-50 hover:opacity-80'
                     }`}
                     style={{
                       backgroundColor: `${lbl.color}20`,
@@ -450,7 +507,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         style={{ borderTop: `6px solid ${color}` }}
       >
         {/* Title Input */}
-        <div className="p-6 pb-2 border-b border-slate-100 dark:border-slate-800/80">
+        <div className="p-6 pb-3 border-b border-slate-100 dark:border-slate-800/80">
           <input
             type="text"
             placeholder="ชื่อเรื่องโน้ต..."
@@ -463,7 +520,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         {/* Rich Note Toolbar */}
         <NoteRichToolbar
           content={content}
-          onContentChange={(newContent) => setContent(newContent)}
+          onContentChange={(newContent) => {
+            setContent(newContent);
+            if (editor && editor.getHTML() !== newContent) {
+              editor.commands.setContent(newContent, { emitUpdate: false });
+            }
+          }}
+          editor={editor}
           color={color}
           onColorChange={(newColor) => setColor(newColor)}
           textColor={textColor}
@@ -472,16 +535,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           onTogglePin={() => setIsPinned(!isPinned)}
           isBorderless={isBorderless}
           onToggleBorderless={() => setIsBorderless(!isBorderless)}
-          textareaRef={textareaRef}
           zoomLevel={zoomLevel}
           onZoomChange={(z) => setZoomLevel(z)}
           onCopyNote={() => {
-            const fullText = `${title}\n\n${content}`;
+            const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
             navigator.clipboard.writeText(fullText);
             toast.success('คัดลอกข้อความโน้ตแล้ว');
           }}
           onDownloadTxt={() => {
-            const fullText = `${title}\n\n${content}`;
+            const textContent = editor ? editor.getText() : stripHtmlTags(content);
+            const fullText = `${title}\n\n${textContent}`;
             const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -494,12 +557,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           onDownloadMd={handleExportMarkdown}
           onPrint={handlePrint}
           onShare={() => {
+            const textContent = editor ? editor.getText() : stripHtmlTags(content);
             if (typeof navigator !== 'undefined' && navigator.share) {
-              navigator.share({ title, text: content }).catch(() => {});
+              navigator.share({ title, text: textContent }).catch(() => {});
             } else {
-              const fullText = `${title}\n\n${content}`;
+              const fullText = `${title}\n\n${textContent}`;
               navigator.clipboard.writeText(fullText);
-              toast.success('คัดลอกลิงก์/ข้อความโน้ตแล้ว');
+              toast.success('คัดลอกข้อความโน้ตแล้ว');
             }
           }}
           onDelete={handleDelete}
@@ -508,24 +572,30 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           isSaving={isSaving}
         />
 
-        {/* Content Area (Editor / Preview) */}
+        {/* Content Area (TipTap Editor / Preview) */}
         <div className="flex-1 p-6 flex flex-col">
           {isPreview ? (
-            <div className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
-              {content || <span className="text-slate-400 italic">ไม่มีเนื้อหา...</span>}
-            </div>
+            <div
+              className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed"
+              dangerouslySetInnerHTML={{
+                __html: content || '<p class="text-slate-400 italic">ไม่มีเนื้อหา...</p>',
+              }}
+            />
           ) : (
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="เริ่มพิมพ์บันทึกของคุณที่นี่... (รองรับ Markdown, เช็คลิสต์, รายการ, โค้ด)"
-              className="w-full flex-1 min-h-[400px] bg-transparent text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none resize-none text-sm sm:text-base leading-relaxed font-sans"
+            <div
+              className="flex-1 min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed font-sans"
+              onClick={() => {
+                if (editor && !editor.isFocused) {
+                  editor.commands.focus();
+                }
+              }}
               style={{
                 color: textColor,
                 fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
               }}
-            />
+            >
+              <EditorContent editor={editor} />
+            </div>
           )}
         </div>
       </div>
@@ -534,13 +604,17 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         isOpen={isVaultModalOpen}
         onClose={() => setIsVaultModalOpen(false)}
         onSuccess={() => {
-          // If we had encrypted content, attempt to decrypt
+          // Decrypt if locked
           if (content) {
             try {
               const parsed = JSON.parse(content);
               if (parsed.encrypted && parsed.iv) {
                 const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
-                setContent(dec);
+                const html = convertLegacyContentToHtml(dec);
+                setContent(html);
+                if (editor) {
+                  editor.commands.setContent(html, { emitUpdate: false });
+                }
               }
             } catch (e) {
               // ignore

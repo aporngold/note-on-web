@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import type { Editor } from '@tiptap/react';
 import {
   RotateCcw,
+  RotateCw,
   ZoomIn,
   ZoomOut,
   Paperclip,
@@ -15,6 +17,7 @@ import {
   Trash2,
   Bold,
   Italic,
+  Underline as UnderlineIcon,
   Strikethrough,
   Link as LinkIcon,
   List,
@@ -75,6 +78,7 @@ export const HIGHLIGHT_COLORS = [
 interface NoteRichToolbarProps {
   content: string;
   onContentChange: (val: string) => void;
+  editor?: Editor | null;
   color: string;
   onColorChange: (color: string) => void;
   textColor?: string;
@@ -83,7 +87,7 @@ interface NoteRichToolbarProps {
   onTogglePin: () => void;
   isBorderless: boolean;
   onToggleBorderless: () => void;
-  textareaRef: React.RefObject<HTMLTextAreaElement | null> | React.RefObject<HTMLTextAreaElement>;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null> | React.RefObject<HTMLTextAreaElement>;
   zoomLevel: number;
   onZoomChange: (zoom: number) => void;
   onAttachFile?: () => void;
@@ -105,6 +109,7 @@ interface NoteRichToolbarProps {
 export default function NoteRichToolbar({
   content,
   onContentChange,
+  editor,
   color,
   onColorChange,
   textColor = '#0F172A',
@@ -158,27 +163,16 @@ export default function NoteRichToolbar({
     return () => window.removeEventListener('click', handleOutsideClick);
   }, []);
 
-  // Update history for Undo
+  // Update history for legacy textarea undo
   const pushHistory = (newContent: string) => {
     setHistoryStack((prev) => [...prev.slice(0, historyIndex + 1), newContent]);
     setHistoryIndex((prev) => prev + 1);
     onContentChange(newContent);
   };
 
-  const handleUndo = () => {
-    if (historyIndex > 0) {
-      const prevIdx = historyIndex - 1;
-      setHistoryIndex(prevIdx);
-      onContentChange(historyStack[prevIdx]);
-      toast('ย้อนกลับการแก้ไข (Undo)', { icon: '↩️' });
-    } else {
-      toast('ไม่มีประวัติการแก้ไขก่อนหน้า', { icon: 'ℹ️' });
-    }
-  };
-
-  // ────────────── INSERTION HELPERS ──────────────
+  // ────────────── INSERTION HELPERS (TEXTAREA FALLBACK) ──────────────
   const insertFormatting = (prefix: string, suffix: string = '', defaultPlaceholder: string = 'ข้อความ') => {
-    const ta = textareaRef.current;
+    const ta = textareaRef?.current;
     if (!ta) return;
 
     const start = ta.selectionStart;
@@ -197,7 +191,7 @@ export default function NoteRichToolbar({
   };
 
   const insertLinePrefix = (prefix: string) => {
-    const ta = textareaRef.current;
+    const ta = textareaRef?.current;
     if (!ta) return;
 
     const start = ta.selectionStart;
@@ -213,20 +207,139 @@ export default function NoteRichToolbar({
     }, 30);
   };
 
-  // Insert Current Date matching user screenshot (e.g. "วันที่ 7/9/2569")
-  const handleInsertDate = () => {
-    const now = new Date();
-    const d = now.getDate();
-    const m = now.getMonth() + 1;
-    const y = now.getFullYear() + 543;
-    const dateStr = `วันที่ ${d}/${m}/${y}`;
-    insertFormatting(` ${dateStr} `);
-    toast.success(`แทรก ${dateStr} แล้ว`);
+  // ────────────── UNIFIED EDITOR ACTIONS ──────────────
+  const handleUndo = () => {
+    if (editor) {
+      editor.chain().focus().undo().run();
+      return;
+    }
+    if (historyIndex > 0) {
+      const prevIdx = historyIndex - 1;
+      setHistoryIndex(prevIdx);
+      onContentChange(historyStack[prevIdx]);
+      toast('ย้อนกลับการแก้ไข (Undo)', { icon: '↩️' });
+    } else {
+      toast('ไม่มีประวัติการแก้ไขก่อนหน้า', { icon: 'ℹ️' });
+    }
   };
 
-  // Clear Formatting from selected text
+  const handleRedo = () => {
+    if (editor) {
+      editor.chain().focus().redo().run();
+      return;
+    }
+    if (historyIndex < historyStack.length - 1) {
+      const nextIdx = historyIndex + 1;
+      setHistoryIndex(nextIdx);
+      onContentChange(historyStack[nextIdx]);
+      toast('ทำซ้ำการแก้ไข (Redo)', { icon: '↪️' });
+    }
+  };
+
+  const handleBold = () => {
+    if (editor) {
+      editor.chain().focus().toggleBold().run();
+      return;
+    }
+    insertFormatting('**', '**');
+  };
+
+  const handleItalic = () => {
+    if (editor) {
+      editor.chain().focus().toggleItalic().run();
+      return;
+    }
+    insertFormatting('*', '*');
+  };
+
+  const handleUnderline = () => {
+    if (editor) {
+      editor.chain().focus().toggleUnderline().run();
+      return;
+    }
+    insertFormatting('<u>', '</u>');
+  };
+
+  const handleStrike = () => {
+    if (editor) {
+      editor.chain().focus().toggleStrike().run();
+      return;
+    }
+    insertFormatting('~~', '~~');
+  };
+
+  const handleSetHeading = (level: 1 | 2 | 3 | 0) => {
+    if (editor) {
+      if (level === 0) {
+        editor.chain().focus().setParagraph().run();
+      } else {
+        editor.chain().focus().toggleHeading({ level }).run();
+      }
+      setIsParagraphMenuOpen(false);
+      return;
+    }
+    insertLinePrefix(level === 0 ? '' : level === 1 ? '# ' : level === 2 ? '## ' : '### ');
+    setIsParagraphMenuOpen(false);
+  };
+
+  const handleQuote = () => {
+    if (editor) {
+      editor.chain().focus().toggleBlockquote().run();
+      setIsParagraphMenuOpen(false);
+      return;
+    }
+    insertLinePrefix('> ');
+    setIsParagraphMenuOpen(false);
+  };
+
+  const handleBulletList = () => {
+    if (editor) {
+      editor.chain().focus().toggleBulletList().run();
+      return;
+    }
+    insertLinePrefix('- ');
+  };
+
+  const handleOrderedList = () => {
+    if (editor) {
+      editor.chain().focus().toggleOrderedList().run();
+      return;
+    }
+    insertLinePrefix('1. ');
+  };
+
+  const handleAlign = (alignment: 'left' | 'center' | 'right' | 'justify') => {
+    if (editor) {
+      editor.chain().focus().setTextAlign(alignment).run();
+      return;
+    }
+    insertFormatting(`<div align="${alignment}">\n`, '\n</div>');
+  };
+
+  const handleLink = () => {
+    if (editor) {
+      const previousUrl = editor.getAttributes('link').href;
+      const url = window.prompt('ใส่ URL ของลิงก์ (เช่น https://example.com):', previousUrl || 'https://');
+      if (url === null) return;
+      if (url.trim() === '') {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+        toast('ลบลิงก์ออกแล้ว', { icon: '🔗' });
+        return;
+      }
+      editor.chain().focus().extendMarkRange('link').setLink({ href: url.trim() }).run();
+      toast.success('ใส่ลิงก์เชื่อมโยงแล้ว');
+      return;
+    }
+    insertFormatting('[', '](https://)', 'ชื่อลิงก์');
+  };
+
   const handleClearFormatting = () => {
-    const ta = textareaRef.current;
+    if (editor) {
+      editor.chain().focus().unsetAllMarks().clearNodes().run();
+      toast.success('ล้างการจัดรูปแบบแล้ว');
+      return;
+    }
+    const ta = textareaRef?.current;
     if (!ta) return;
 
     const start = ta.selectionStart;
@@ -239,7 +352,6 @@ export default function NoteRichToolbar({
       return;
     }
 
-    // Strip markdown and html tags: *, _, ~, `, #, >, span, div, mark
     const cleaned = selected
       .replace(/[*_~`#>]|\<span[^\>]*\>|\<\/span\>|\<div[^\>]*\>|\<\/div\>|\<mark[^\>]*\>|\<\/mark\>/g, '')
       .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
@@ -249,14 +361,16 @@ export default function NoteRichToolbar({
     toast.success('ล้างการจัดรูปแบบแล้ว');
   };
 
-  // Insert Table
   const handleInsertTable = (rows: number = 2, cols: number = 2) => {
+    if (editor) {
+      editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+      setActiveMenu(null);
+      toast.success(`แทรกตาราง ${rows}x${cols} เรียบร้อย`);
+      return;
+    }
     let tableMd = '\n\n';
-    // Header
     tableMd += '| ' + Array.from({ length: cols }, (_, i) => `หัวข้อ ${i + 1}`).join(' | ') + ' |\n';
-    // Separator
     tableMd += '| ' + Array.from({ length: cols }, () => '---').join(' | ') + ' |\n';
-    // Rows
     for (let r = 0; r < rows; r++) {
       tableMd += '| ' + Array.from({ length: cols }, (_, c) => `ข้อมูล ${r + 1}-${c + 1}`).join(' | ') + ' |\n';
     }
@@ -265,6 +379,62 @@ export default function NoteRichToolbar({
     insertFormatting(tableMd);
     setActiveMenu(null);
     toast.success(`แทรกตาราง ${rows}x${cols} เรียบร้อย`);
+  };
+
+  const handleInsertDate = () => {
+    const now = new Date();
+    const d = now.getDate();
+    const m = now.getMonth() + 1;
+    const y = now.getFullYear() + 543;
+    const dateStr = `วันที่ ${d}/${m}/${y}`;
+    if (editor) {
+      editor.chain().focus().insertContent(` ${dateStr} `).run();
+      toast.success(`แทรก ${dateStr} แล้ว`);
+      return;
+    }
+    insertFormatting(` ${dateStr} `);
+    toast.success(`แทรก ${dateStr} แล้ว`);
+  };
+
+  const handleSetTextColor = (colorHex: string, colorName: string) => {
+    if (editor) {
+      editor.chain().focus().setColor(colorHex).run();
+      if (onTextColorChange) onTextColorChange(colorHex);
+      setIsTextColorMenuOpen(false);
+      toast.success(`เปลี่ยนสีตัวอักษรเป็น ${colorName}`);
+      return;
+    }
+    insertFormatting(`<span style="color: ${colorHex}">`, '</span>');
+    if (onTextColorChange) onTextColorChange(colorHex);
+    setIsTextColorMenuOpen(false);
+    toast.success(`เปลี่ยนสีหมึกเป็น ${colorName}`);
+  };
+
+  const handleSetHighlight = (colorHex: string, colorName: string) => {
+    if (editor) {
+      editor.chain().focus().toggleHighlight({ color: colorHex }).run();
+      setIsHighlightMenuOpen(false);
+      toast.success(`ไฮไลต์ ${colorName}`);
+      return;
+    }
+    insertFormatting(`<mark style="background-color: ${colorHex}; padding: 1px 4px; border-radius: 4px;">`, '</mark>');
+    setIsHighlightMenuOpen(false);
+  };
+
+  const handleHorizontalRule = () => {
+    if (editor) {
+      editor.chain().focus().setHorizontalRule().run();
+      return;
+    }
+    insertFormatting('\n\n---\n\n');
+  };
+
+  const handleCodeBlock = () => {
+    if (editor) {
+      editor.chain().focus().toggleCodeBlock().run();
+      return;
+    }
+    insertFormatting('```\n', '\n```', '// เขียนโค้ดที่นี่');
   };
 
   // Zoom helpers
@@ -284,22 +454,65 @@ export default function NoteRichToolbar({
     }
   };
 
+  // Active States for Toolbar Buttons
+  const isBoldActive = editor?.isActive('bold') ?? false;
+  const isItalicActive = editor?.isActive('italic') ?? false;
+  const isUnderlineActive = editor?.isActive('underline') ?? false;
+  const isStrikeActive = editor?.isActive('strike') ?? false;
+  const isBulletListActive = editor?.isActive('bulletList') ?? false;
+  const isOrderedListActive = editor?.isActive('orderedList') ?? false;
+  const isCodeBlockActive = editor?.isActive('codeBlock') ?? false;
+  const isLinkActive = editor?.isActive('link') ?? false;
+  const isAlignLeftActive = editor?.isActive({ textAlign: 'left' }) ?? false;
+  const isAlignCenterActive = editor?.isActive({ textAlign: 'center' }) ?? false;
+  const isAlignRightActive = editor?.isActive({ textAlign: 'right' }) ?? false;
+  const isAlignJustifyActive = editor?.isActive({ textAlign: 'justify' }) ?? false;
+
+  const currentBlockLabel = editor
+    ? editor.isActive('heading', { level: 1 })
+      ? 'Heading 1'
+      : editor.isActive('heading', { level: 2 })
+      ? 'Heading 2'
+      : editor.isActive('heading', { level: 3 })
+      ? 'Heading 3'
+      : editor.isActive('blockquote')
+      ? 'Quote'
+      : 'Paragraph'
+    : 'Paragraph';
+
+  const getToolBtnClass = (isActive: boolean, customPadding: string = 'p-1.5') => {
+    return `${customPadding} rounded-lg transition-all duration-150 ${
+      isActive
+        ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold ring-1 ring-indigo-400/50 shadow-xs'
+        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+    }`;
+  };
+
   return (
     <div className="toolbar-dropdown-container w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 select-none text-slate-700 dark:text-slate-200">
       {/* ══════════════════════════════════════════════════════
           แถวที่ 1: แถบบนสุด (Top Action Utility Bar)
          ══════════════════════════════════════════════════════ */}
       <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap text-slate-600 dark:text-slate-300">
-        {/* Left: Undo, Zoom In, Zoom Out */}
+        {/* Left: Undo, Redo, Zoom In, Zoom Out */}
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={handleUndo}
             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-            title="เลิกทำ / ย้อนกลับ (Undo)"
+            title="เลิกทำ / ย้อนกลับ (Ctrl+Z)"
           >
             <RotateCcw size={16} />
           </button>
+          <button
+            type="button"
+            onClick={handleRedo}
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+            title="ทำซ้ำ (Ctrl+Y หรือ Ctrl+Shift+Z)"
+          >
+            <RotateCw size={16} />
+          </button>
+          <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
           <button
             type="button"
             onClick={handleZoomIn}
@@ -626,6 +839,17 @@ export default function NoteRichToolbar({
               <button
                 type="button"
                 onClick={() => {
+                  handleRedo();
+                  setActiveMenu(null);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
+              >
+                <span>ทำซ้ำ (Redo)</span>
+                <span className="text-[10px] text-slate-400">Ctrl+Y</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   if (onCopyNote) onCopyNote();
                   setActiveMenu(null);
                 }}
@@ -724,18 +948,7 @@ export default function NoteRichToolbar({
               <button
                 type="button"
                 onClick={() => {
-                  insertFormatting('- [ ] ', '', 'งานที่ต้องทำ');
-                  setActiveMenu(null);
-                }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
-              >
-                <CheckSquare size={14} />
-                <span>กล่องเช็คลิสต์</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  insertFormatting('[', '](https://)', 'ชื่อลิงก์');
+                  handleLink();
                   setActiveMenu(null);
                 }}
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
@@ -746,7 +959,7 @@ export default function NoteRichToolbar({
               <button
                 type="button"
                 onClick={() => {
-                  insertFormatting('\n\n---\n\n');
+                  handleHorizontalRule();
                   setActiveMenu(null);
                 }}
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
@@ -782,7 +995,7 @@ export default function NoteRichToolbar({
               <button
                 type="button"
                 onClick={() => {
-                  insertFormatting('**', '**');
+                  handleBold();
                   setActiveMenu(null);
                 }}
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-bold"
@@ -792,7 +1005,7 @@ export default function NoteRichToolbar({
               <button
                 type="button"
                 onClick={() => {
-                  insertFormatting('*', '*');
+                  handleItalic();
                   setActiveMenu(null);
                 }}
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 italic"
@@ -802,7 +1015,17 @@ export default function NoteRichToolbar({
               <button
                 type="button"
                 onClick={() => {
-                  insertFormatting('~~', '~~');
+                  handleUnderline();
+                  setActiveMenu(null);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 underline"
+              >
+                ขีดเส้นใต้ (Underline)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleStrike();
                   setActiveMenu(null);
                 }}
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 line-through"
@@ -874,11 +1097,23 @@ export default function NoteRichToolbar({
           </button>
           {activeMenu === 'tools' && (
             <div className="absolute left-0 top-full mt-1 w-52 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-fade-in text-xs space-y-1">
-              <p className="text-[11px] text-slate-500">สถิติโน้ต:</p>
+              <p className="text-[11px] text-slate-500 font-bold">สถิติเนื้อหาในโน้ต:</p>
               <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg text-xs space-y-0.5">
-                <p>จำนวนคำ: <b>{content.trim() ? content.trim().split(/\s+/).length : 0}</b> คำ</p>
-                <p>จำนวนตัวอักษร: <b>{content.length}</b> ตัว</p>
-                <p>จำนวนบรรทัด: <b>{content.split('\n').length}</b> บรรทัด</p>
+                <p>
+                  จำนวนคำ:{' '}
+                  <b>
+                    {editor
+                      ? editor.getText().trim() ? editor.getText().trim().split(/\s+/).length : 0
+                      : content.trim() ? content.trim().split(/\s+/).length : 0}
+                  </b>{' '}
+                  คำ
+                </p>
+                <p>
+                  จำนวนตัวอักษร: <b>{editor ? editor.getText().length : content.length}</b> ตัว
+                </p>
+                <p>
+                  จำนวนบรรทัด: <b>{editor ? editor.getText().split('\n').length : content.split('\n').length}</b> บรรทัด
+                </p>
               </div>
             </div>
           )}
@@ -902,10 +1137,24 @@ export default function NoteRichToolbar({
                 <span>คีย์ลัดที่รองรับ</span>
               </p>
               <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
-                <p className="flex justify-between"><span>ตัวหนา (Bold):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+B</kbd></p>
-                <p className="flex justify-between"><span>ตัวเอียง (Italic):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+I</kbd></p>
-                <p className="flex justify-between"><span>บันทึก (Save):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+S</kbd></p>
-                <p className="flex justify-between"><span>ปิดหน้าต่าง:</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Esc</kbd></p>
+                <p className="flex justify-between">
+                  <span>ตัวหนา (Bold):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+B</kbd>
+                </p>
+                <p className="flex justify-between">
+                  <span>ตัวเอียง (Italic):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+I</kbd>
+                </p>
+                <p className="flex justify-between">
+                  <span>ขีดเส้นใต้ (Underline):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+U</kbd>
+                </p>
+                <p className="flex justify-between">
+                  <span>เลิกทำ (Undo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+Z</kbd>
+                </p>
+                <p className="flex justify-between">
+                  <span>ทำซ้ำ (Redo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+Y</kbd>
+                </p>
+                <p className="flex justify-between">
+                  <span>บันทึก (Save):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+S</kbd>
+                </p>
               </div>
             </div>
           )}
@@ -913,7 +1162,7 @@ export default function NoteRichToolbar({
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          แถวที่ 4: แถบจัดแต่งข้อความแถวที่ 1 (Paragraph, B, I, S, A, Highlight, Link, Lists)
+          แถวที่ 4: แถบจัดแต่งข้อความแถวที่ 1 (Paragraph, B, I, U, S, Color, Highlight, Link, Lists)
          ══════════════════════════════════════════════════════ */}
       <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 flex-wrap text-slate-700 dark:text-slate-200">
         {/* Paragraph Style Dropdown */}
@@ -923,58 +1172,53 @@ export default function NoteRichToolbar({
             onClick={() => setIsParagraphMenuOpen(!isParagraphMenuOpen)}
             className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition"
           >
-            <span>Paragraph</span>
+            <span>{currentBlockLabel}</span>
             <ChevronDown size={12} className="opacity-60" />
           </button>
           {isParagraphMenuOpen && (
             <div className="absolute left-0 top-full mt-1 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 z-50 animate-fade-in text-xs space-y-0.5">
               <button
                 type="button"
-                onClick={() => {
-                  insertLinePrefix('');
-                  setIsParagraphMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                onClick={() => handleSetHeading(0)}
+                className={`w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${
+                  currentBlockLabel === 'Paragraph' ? 'text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-950/40' : ''
+                }`}
               >
                 Paragraph (ปกติ)
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  insertLinePrefix('# ');
-                  setIsParagraphMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-base"
+                onClick={() => handleSetHeading(1)}
+                className={`w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-base ${
+                  currentBlockLabel === 'Heading 1' ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' : ''
+                }`}
               >
                 Heading 1 (หัวข้อใหญ่)
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  insertLinePrefix('## ');
-                  setIsParagraphMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-sm"
+                onClick={() => handleSetHeading(2)}
+                className={`w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-sm ${
+                  currentBlockLabel === 'Heading 2' ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' : ''
+                }`}
               >
                 Heading 2 (หัวข้อย่อย)
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  insertLinePrefix('### ');
-                  setIsParagraphMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold"
+                onClick={() => handleSetHeading(3)}
+                className={`w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-semibold ${
+                  currentBlockLabel === 'Heading 3' ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40' : ''
+                }`}
               >
                 Heading 3 (หัวข้อรอง)
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  insertLinePrefix('> ');
-                  setIsParagraphMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 italic"
+                onClick={handleQuote}
+                className={`w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 italic ${
+                  currentBlockLabel === 'Quote' ? 'text-indigo-600 font-bold bg-indigo-50 dark:bg-indigo-950/40' : ''
+                }`}
               >
                 Quote (กล่องอ้างอิง)
               </button>
@@ -988,8 +1232,8 @@ export default function NoteRichToolbar({
         {/* Bold */}
         <button
           type="button"
-          onClick={() => insertFormatting('**', '**')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-bold"
+          onClick={handleBold}
+          className={getToolBtnClass(isBoldActive)}
           title="ตัวหนา (Ctrl+B)"
         >
           <Bold size={16} />
@@ -998,18 +1242,28 @@ export default function NoteRichToolbar({
         {/* Italic */}
         <button
           type="button"
-          onClick={() => insertFormatting('*', '*')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition italic"
+          onClick={handleItalic}
+          className={getToolBtnClass(isItalicActive)}
           title="ตัวเอียง (Ctrl+I)"
         >
           <Italic size={16} />
         </button>
 
+        {/* Underline */}
+        <button
+          type="button"
+          onClick={handleUnderline}
+          className={getToolBtnClass(isUnderlineActive)}
+          title="ขีดเส้นใต้ (Ctrl+U)"
+        >
+          <UnderlineIcon size={16} />
+        </button>
+
         {/* Strikethrough */}
         <button
           type="button"
-          onClick={() => insertFormatting('~~', '~~')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={handleStrike}
+          className={getToolBtnClass(isStrikeActive)}
           title="ขีดฆ่า (Strikethrough)"
         >
           <Strikethrough size={16} />
@@ -1034,12 +1288,7 @@ export default function NoteRichToolbar({
                   <button
                     key={tc.color}
                     type="button"
-                    onClick={() => {
-                      insertFormatting(`<span style="color: ${tc.color}">`, '</span>');
-                      if (onTextColorChange) onTextColorChange(tc.color);
-                      setIsTextColorMenuOpen(false);
-                      toast.success(`เปลี่ยนสีหมึกเป็น ${tc.name}`);
-                    }}
+                    onClick={() => handleSetTextColor(tc.color, tc.name)}
                     className="w-6 h-6 rounded-full border border-slate-300 shadow-xs hover:scale-110 transition flex items-center justify-center"
                     style={{ backgroundColor: tc.color }}
                     title={tc.name}
@@ -1069,10 +1318,7 @@ export default function NoteRichToolbar({
                   <button
                     key={hc.color}
                     type="button"
-                    onClick={() => {
-                      insertFormatting(`<mark style="background-color: ${hc.color}; padding: 1px 4px; border-radius: 4px;">`, '</mark>');
-                      setIsHighlightMenuOpen(false);
-                    }}
+                    onClick={() => handleSetHighlight(hc.color, hc.name)}
                     className="w-5 h-5 rounded-md border border-slate-300 shadow-xs hover:scale-110 transition"
                     style={{ backgroundColor: hc.color }}
                     title={hc.name}
@@ -1089,8 +1335,8 @@ export default function NoteRichToolbar({
         {/* Link */}
         <button
           type="button"
-          onClick={() => insertFormatting('[', '](https://)', 'ชื่อลิงก์')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={handleLink}
+          className={getToolBtnClass(isLinkActive)}
           title="แทรกลิงก์ (Link)"
         >
           <LinkIcon size={16} />
@@ -1099,8 +1345,8 @@ export default function NoteRichToolbar({
         {/* Numbered List */}
         <button
           type="button"
-          onClick={() => insertLinePrefix('1. ')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={handleOrderedList}
+          className={getToolBtnClass(isOrderedListActive)}
           title="รายการลำดับตัวเลข"
         >
           <ListOrdered size={16} />
@@ -1109,8 +1355,8 @@ export default function NoteRichToolbar({
         {/* Bullet List */}
         <button
           type="button"
-          onClick={() => insertLinePrefix('- ')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={handleBulletList}
+          className={getToolBtnClass(isBulletListActive)}
           title="รายการหัวข้อย่อย"
         >
           <List size={16} />
@@ -1148,7 +1394,7 @@ export default function NoteRichToolbar({
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
               >
                 <TableIcon size={13} />
-                <span>แทรกตาราง</span>
+                <span>แทรกตาราง 2x2</span>
               </button>
               <button
                 type="button"
@@ -1166,7 +1412,7 @@ export default function NoteRichToolbar({
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          แถวที่ 5: แถบจัดแต่งข้อความแถวที่ 2 (Clear Format, Alignments, Indent, HR, Checklist, Code)
+          แถวที่ 5: แถบจัดแต่งข้อความแถวที่ 2 (Clear Format, Alignments, Indent, HR, Code)
          ══════════════════════════════════════════════════════ */}
       <div className="px-3 py-1.5 flex items-center gap-1.5 flex-wrap text-slate-700 dark:text-slate-200">
         {/* Clear Format Tx */}
@@ -1186,8 +1432,8 @@ export default function NoteRichToolbar({
         {/* Align Left */}
         <button
           type="button"
-          onClick={() => insertFormatting('<div align="left">\n', '\n</div>')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={() => handleAlign('left')}
+          className={getToolBtnClass(isAlignLeftActive)}
           title="จัดชิดซ้าย"
         >
           <AlignLeft size={16} />
@@ -1196,8 +1442,8 @@ export default function NoteRichToolbar({
         {/* Align Center */}
         <button
           type="button"
-          onClick={() => insertFormatting('<div align="center">\n', '\n</div>')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={() => handleAlign('center')}
+          className={getToolBtnClass(isAlignCenterActive)}
           title="จัดกึ่งกลาง"
         >
           <AlignCenter size={16} />
@@ -1206,8 +1452,8 @@ export default function NoteRichToolbar({
         {/* Align Right */}
         <button
           type="button"
-          onClick={() => insertFormatting('<div align="right">\n', '\n</div>')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={() => handleAlign('right')}
+          className={getToolBtnClass(isAlignRightActive)}
           title="จัดชิดขวา"
         >
           <AlignRight size={16} />
@@ -1216,8 +1462,8 @@ export default function NoteRichToolbar({
         {/* Align Justify */}
         <button
           type="button"
-          onClick={() => insertFormatting('<div align="justify">\n', '\n</div>')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          onClick={() => handleAlign('justify')}
+          className={getToolBtnClass(isAlignJustifyActive)}
           title="จัดเต็มบรรทัด (Justify)"
         >
           <AlignJustify size={16} />
@@ -1226,72 +1472,21 @@ export default function NoteRichToolbar({
         {/* Separator */}
         <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
-        {/* Decrease Indent */}
-        <button
-          type="button"
-          onClick={() => insertLinePrefix('')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition opacity-60 hover:opacity-100"
-          title="ลดการเยื้อง (Decrease Indent)"
-        >
-          <Outdent size={16} />
-        </button>
-
-        {/* Increase Indent */}
-        <button
-          type="button"
-          onClick={() => insertLinePrefix('&nbsp;&nbsp;&nbsp;&nbsp;')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-          title="เพิ่มการเยื้อง (Increase Indent)"
-        >
-          <Indent size={16} />
-        </button>
-
-        {/* Paragraph Direction Symbols ¶| and |¶ */}
-        <button
-          type="button"
-          onClick={() => insertFormatting('<div dir="ltr">\n', '\n</div>')}
-          className="px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-mono text-xs"
-          title="ทิศทางข้อความ ซ้ายไปขวา (LTR)"
-        >
-          ¶|
-        </button>
-        <button
-          type="button"
-          onClick={() => insertFormatting('<div dir="rtl">\n', '\n</div>')}
-          className="px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-mono text-xs"
-          title="ทิศทางข้อความ ขวาไปซ้าย (RTL)"
-        >
-          |¶
-        </button>
-
-        {/* Separator */}
-        <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
-
         {/* Horizontal Rule — */}
         <button
           type="button"
-          onClick={() => insertFormatting('\n\n---\n\n')}
+          onClick={handleHorizontalRule}
           className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-bold"
           title="เส้นแบ่งบรรทัด (Horizontal Rule)"
         >
           <Minus size={16} />
         </button>
 
-        {/* Checklist Checkbox ✓ */}
-        <button
-          type="button"
-          onClick={() => insertFormatting('- [ ] ', '', 'รายการที่ต้องทำ')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-bold text-emerald-600 dark:text-emerald-400"
-          title="กล่องเช็คลิสต์ (Checklist)"
-        >
-          <CheckSquare size={16} />
-        </button>
-
         {/* Source Code Block <> */}
         <button
           type="button"
-          onClick={() => insertFormatting('```\n', '\n```', '// เขียนโค้ดที่นี่')}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-mono"
+          onClick={handleCodeBlock}
+          className={getToolBtnClass(isCodeBlockActive)}
           title="บล็อกโค้ด (Code Block)"
         >
           <Code size={16} />

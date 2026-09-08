@@ -23,10 +23,22 @@ import {
   Save,
   Share2,
 } from 'lucide-react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import { Color } from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
+
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import toast from 'react-hot-toast';
 import NoteRichToolbar from './NoteRichToolbar';
+import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 interface FullscreenNoteModalProps {
   note: Note | null;
@@ -83,25 +95,68 @@ export default function FullscreenNoteModal({
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Dropdown states
-  const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
-  const [isTextMenuOpen, setIsTextMenuOpen] = useState(false);
-  const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // TipTap Instance for Fullscreen focus modal
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      Underline,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: 'เขียนรายละเอียดเนื้อหาโน้ตของคุณที่นี่ได้อย่างเต็มที่...',
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
+    content: '',
+    immediatelyRender: false,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      setContent(html);
+      if (note) {
+        handleAutoSave({ content: html });
+      }
+    },
+  });
 
   // Sync state when active note changes
   useEffect(() => {
     if (note) {
       setTitle(note.title || '');
-      setContent(note.content || '');
       setColor(note.color || '#FEF08A');
       setTextColor(note.textColor || '#0F172A');
       setFontFamily(note.fontFamily || 'sans');
       setFontSize(note.fontSize || 'normal');
+
+      const initialHtml = convertLegacyContentToHtml(note.content || '');
+      setContent(initialHtml);
+      if (editor) {
+        editor.commands.setContent(initialHtml, { emitUpdate: false });
+      }
     }
-  }, [note]);
+  }, [note, editor]);
 
   // Handle Escape key to close
   useEffect(() => {
@@ -133,74 +188,19 @@ export default function FullscreenNoteModal({
     handleAutoSave({ title: val });
   };
 
-  const handleContentChange = (val: string) => {
-    setContent(val);
-    handleAutoSave({ content: val });
+  const handleColorSelect = (c: string) => {
+    setColor(c);
+    handleAutoSave({ color: c });
   };
 
-  const handleColorSelect = (newColor: string) => {
-    setColor(newColor);
-    setIsColorMenuOpen(false);
-    handleAutoSave({ color: newColor });
-  };
-
-  const handleTextColorSelect = (newTextColor: string) => {
-    setTextColor(newTextColor);
-    setIsTextMenuOpen(false);
-    handleAutoSave({ textColor: newTextColor });
-  };
-
-  const handleFontSelect = (newFont: string) => {
-    setFontFamily(newFont);
-    setIsFontMenuOpen(false);
-    handleAutoSave({ fontFamily: newFont });
-  };
-
-  const handleFontSizeSelect = (newSize: string) => {
-    setFontSize(newSize);
-    handleAutoSave({ fontSize: newSize });
-  };
-
-  // Insert markdown helper into textarea
-  const insertFormatting = (prefix: string, suffix: string = '') => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const text = ta.value;
-    const selected = text.substring(start, end);
-
-    const replacement = `${prefix}${selected || 'ข้อความ'}${suffix}`;
-    const newContent = text.substring(0, start) + replacement + text.substring(end);
-    setContent(newContent);
-    handleAutoSave({ content: newContent });
-
-    setTimeout(() => {
-      ta.focus();
-      ta.setSelectionRange(start + prefix.length, end + prefix.length);
-    }, 50);
-  };
-
-  // File upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      await uploadAttachment(file, note.id);
-      toast.success('แนบไฟล์สำเร็จ');
-    } catch (err) {
-      toast.error('อัปโหลดไฟล์ไม่สำเร็จ');
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+  const handleTextColorSelect = (tc: string) => {
+    setTextColor(tc);
+    handleAutoSave({ textColor: tc });
   };
 
   const handleCopyNote = () => {
-    const fullText = `${title}\n\n${content}`;
+    const textContent = editor ? editor.getText() : stripHtmlTags(content);
+    const fullText = `${title}\n\n${textContent}`;
     navigator.clipboard.writeText(fullText);
     setIsCopied(true);
     toast.success('คัดลอกข้อความโน้ตแล้ว');
@@ -208,7 +208,8 @@ export default function FullscreenNoteModal({
   };
 
   const handleDownloadTxt = () => {
-    const fullText = `${title}\n\n${content}`;
+    const textContent = editor ? editor.getText() : stripHtmlTags(content);
+    const fullText = `${title}\n\n${textContent}`;
     const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -219,38 +220,58 @@ export default function FullscreenNoteModal({
     toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        await uploadAttachment(files[i], note.id);
+      }
+      toast.success('อัปโหลดไฟล์แนบแล้ว');
+    } catch (err) {
+      toast.error('อัปโหลดไฟล์ไม่สำเร็จ');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const getFontFamilyClass = () => {
     switch (fontFamily) {
       case 'handwriting':
-        return 'font-handwriting text-2xl leading-relaxed';
+        return 'font-handwriting text-lg';
       case 'serif':
-        return 'font-serif-note text-lg leading-relaxed';
+        return 'font-serif-note';
       case 'mono':
-        return 'font-mono-note text-sm leading-relaxed';
-      case 'sans':
+        return 'font-mono-note';
       default:
-        return 'font-sans-note text-base leading-relaxed';
+        return 'font-sans-note';
     }
   };
 
   const getFontSizeClass = () => {
     switch (fontSize) {
       case 'small':
-        return 'text-sm';
+        return 'text-xs sm:text-sm';
       case 'large':
-        return 'text-xl';
+        return 'text-base sm:text-lg';
       default:
-        return 'text-base';
+        return 'text-sm sm:text-base';
     }
   };
 
-  const apiHost = typeof window !== 'undefined'
-    ? `${window.location.protocol}//${window.location.hostname}:5000`
-    : 'http://localhost:5000';
+  const apiHost =
+    typeof window !== 'undefined'
+      ? `${window.location.protocol}//${window.location.hostname}:5000`
+      : 'http://localhost:5000';
 
   const attachments = note.attachments || [];
-  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
-  const charCount = content.length;
+  const wordCount = editor
+    ? editor.getText().trim().split(/\s+/).filter(Boolean).length
+    : content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0;
+  const charCount = editor ? editor.getText().length : content.length;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in">
@@ -269,10 +290,17 @@ export default function FullscreenNoteModal({
             : 'w-full max-w-5xl h-[92vh] rounded-3xl'
         }`}
       >
-        {/* ── RICH NOTE TOOLBAR (Reference Replica) ── */}
+        {/* ── RICH NOTE TOOLBAR ── */}
         <NoteRichToolbar
           content={content}
-          onContentChange={(val) => handleContentChange(val)}
+          onContentChange={(val) => {
+            setContent(val);
+            if (editor && editor.getHTML() !== val) {
+              editor.commands.setContent(val, { emitUpdate: false });
+            }
+            handleAutoSave({ content: val });
+          }}
+          editor={editor}
           color={color}
           onColorChange={(newColor) => handleColorSelect(newColor)}
           textColor={textColor}
@@ -283,7 +311,6 @@ export default function FullscreenNoteModal({
           }}
           isBorderless={isBorderless}
           onToggleBorderless={() => setIsBorderless(!isBorderless)}
-          textareaRef={textareaRef}
           zoomLevel={zoomLevel}
           onZoomChange={(z) => setZoomLevel(z)}
           onAttachFile={() => fileInputRef.current?.click()}
@@ -292,7 +319,8 @@ export default function FullscreenNoteModal({
           onDownloadTxt={handleDownloadTxt}
           onDownloadMd={() => {
             const filename = `${(title || 'note').replace(/[^a-zA-Z0-9ก-๙_-]/g, '_')}.md`;
-            const blob = new Blob([`# ${title || 'ไม่มีชื่อบันทึก'}\n\n${content}`], {
+            const textContent = editor ? editor.getText() : stripHtmlTags(content);
+            const blob = new Blob([`# ${title || 'ไม่มีชื่อบันทึก'}\n\n${textContent}`], {
               type: 'text/markdown;charset=utf-8',
             });
             const url = URL.createObjectURL(blob);
@@ -305,8 +333,9 @@ export default function FullscreenNoteModal({
           }}
           onPrint={() => window.print()}
           onShare={() => {
+            const textContent = editor ? editor.getText() : stripHtmlTags(content);
             if (typeof navigator !== 'undefined' && navigator.share) {
-              navigator.share({ title, text: content }).catch(() => {});
+              navigator.share({ title, text: textContent }).catch(() => {});
             } else {
               handleCopyNote();
             }
@@ -412,28 +441,34 @@ export default function FullscreenNoteModal({
             </div>
           )}
 
-          {/* Large Note Content Textarea */}
-          <div className="flex-1 min-h-[350px]">
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              placeholder="เขียนรายละเอียดเนื้อหาโน้ตของคุณที่นี่ได้อย่างเต็มที่..."
-              className={`w-full h-full min-h-[400px] bg-transparent resize-none focus:outline-none placeholder-black/30 ${getFontFamilyClass()} ${getFontSizeClass()}`}
-              style={{
-                color: textColor,
-                fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
-              }}
-            />
+          {/* Large Note Content TipTap Editor */}
+          <div
+            className="flex-1 min-h-[350px] cursor-text"
+            onClick={() => {
+              if (editor && !editor.isFocused) {
+                editor.commands.focus();
+              }
+            }}
+            style={{
+              fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
+            }}
+          >
+            <EditorContent editor={editor} />
           </div>
         </div>
 
         {/* ── FOOTER STATUS & ACTION BAR ── */}
         <div className="p-3 px-6 border-t border-black/10 flex items-center justify-between text-xs opacity-90 bg-black/5 shrink-0 flex-wrap gap-2">
           <div className="flex items-center gap-3 opacity-75">
-            <span>จำนวนคำ: <b>{wordCount}</b> คำ</span>
-            <span>ความยาว: <b>{charCount}</b> ตัวอักษร</span>
-            <span>ซูม: <b>{zoomLevel}%</b></span>
+            <span>
+              จำนวนคำ: <b>{wordCount}</b> คำ
+            </span>
+            <span>
+              ความยาว: <b>{charCount}</b> ตัวอักษร
+            </span>
+            <span>
+              ซูม: <b>{zoomLevel}%</b>
+            </span>
             {note.notebook && <span>📁 {note.notebook.name}</span>}
           </div>
 
