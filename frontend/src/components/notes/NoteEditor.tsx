@@ -17,6 +17,12 @@ import {
   Palette,
   CheckCircle2,
   RefreshCw,
+  Star,
+  Paperclip,
+  Mic,
+  Upload,
+  Plus,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -33,13 +39,15 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import Image from '@tiptap/extension-image';
 
-import { Note, Notebook, Label } from '@/types';
+import { Note, Notebook, Label, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import MasterPasswordModal from './MasterPasswordModal';
 import api from '@/utils/api';
 import NoteRichToolbar from './NoteRichToolbar';
+import AudioRecorderModal from './AudioRecorderModal';
+import NoteAttachmentDrawer from './NoteAttachmentDrawer';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 const COLORS = [
@@ -59,7 +67,7 @@ interface NoteEditorProps {
 
 export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const router = useRouter();
-  const { notebooks, labels, createNote, updateNote, deleteNote, duplicateNote } = useNoteStore();
+  const { notebooks, labels, createNote, updateNote, deleteNote, duplicateNote, createLabel } = useNoteStore();
   const { isVaultUnlocked } = useAuthStore();
 
   const [title, setTitle] = useState('');
@@ -68,6 +76,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [textColor, setTextColor] = useState('#0F172A');
   const [isLocked, setIsLocked] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
+  const [isAttachmentDrawerOpen, setIsAttachmentDrawerOpen] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
   const [isBorderless, setIsBorderless] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [notebookId, setNotebookId] = useState<string | null>(null);
@@ -149,6 +164,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         setTextColor(n.textColor || '#0F172A');
         setIsLocked(n.isLocked);
         setIsPinned(n.isPinned);
+        setIsFavorite(!!n.isFavorite);
+        setAttachments(n.attachments || []);
         setNotebookId(n.notebookId || null);
         setSelectedLabelIds(n.labels?.map((l) => l.id) || []);
 
@@ -242,6 +259,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           textColor,
           isLocked,
           isPinned,
+          isFavorite,
           notebookId,
           labelIds: selectedLabelIds,
           iv,
@@ -256,6 +274,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           textColor,
           isLocked,
           isPinned,
+          isFavorite,
           notebookId,
           labelIds: selectedLabelIds,
           iv,
@@ -320,6 +339,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           textColor,
           isLocked,
           isPinned,
+          isFavorite,
           notebookId,
           labelIds: selectedLabelIds,
           iv,
@@ -333,6 +353,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           textColor,
           isLocked,
           isPinned,
+          isFavorite,
           notebookId,
           labelIds: selectedLabelIds,
           iv,
@@ -359,6 +380,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     color,
     textColor,
     isPinned,
+    isFavorite,
     notebookId,
     selectedLabelIds,
     updateNote,
@@ -387,7 +409,126 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [title, content, color, textColor, notebookId, selectedLabelIds, isPinned, isLoaded, triggerAutoSave]);
+  }, [title, content, color, textColor, notebookId, selectedLabelIds, isPinned, isFavorite, isLoaded, triggerAutoSave]);
+
+  const handleUploadFile = async (file: File) => {
+    try {
+      let targetNoteId = noteIdRef.current;
+      if (!targetNoteId) {
+        const currentHtml = editor ? editor.getHTML() : content;
+        const created = await createNote({
+          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          content: currentHtml,
+          color,
+          textColor,
+          isLocked,
+          isPinned,
+          isFavorite,
+          notebookId,
+          labelIds: selectedLabelIds,
+        });
+        noteIdRef.current = created.id;
+        targetNoteId = created.id;
+        router.replace(`/notes/${created.id}`);
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('noteId', targetNoteId);
+
+      const res = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (res.data.attachment) {
+        setAttachments((prev) => [...prev, res.data.attachment]);
+      }
+      toast.success(`แนบไฟล์ ${file.name} สำเร็จ`);
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      toast.error('อัปโหลดไฟล์ไม่สำเร็จ');
+    }
+  };
+
+  const handleDeleteAttachment = async (id: string) => {
+    try {
+      await api.delete(`/upload/attachment/${id}`);
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
+      toast.success('ลบไฟล์แนบแล้ว');
+    } catch (err) {
+      toast.error('ลบไฟล์แนบไม่สำเร็จ');
+    }
+  };
+
+  const handleInsertAttachmentIntoEditor = (att: FileAttachment) => {
+    if (!editor) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const fullUrl = att.url.startsWith('http') ? att.url : `${apiUrl}${att.url}`;
+
+    if (att.mimeType.startsWith('image/')) {
+      editor.chain().focus().setImage({ src: fullUrl, alt: att.originalName }).run();
+      toast.success('แทรกรูปภาพลงในโน้ตแล้ว');
+    } else if (att.mimeType.startsWith('audio/')) {
+      editor.chain().focus().insertContent(`<p><audio controls src="${fullUrl}"></audio></p>`).run();
+      toast.success('แทรกไฟล์เสียงลงในโน้ตแล้ว');
+    } else {
+      editor.chain().focus().insertContent(`<p><a href="${fullUrl}" target="_blank" rel="noopener noreferrer">📎 ${att.originalName}</a></p>`).run();
+      toast.success('แทรกลิงก์ดาวน์โหลดแล้ว');
+    }
+    setIsAttachmentDrawerOpen(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          if (editor) {
+            editor.chain().focus().setImage({ src: base64, alt: file.name }).run();
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        await handleUploadFile(file);
+      }
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    try {
+      const tagColors = ['#6366F1', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'];
+      const randomColor = tagColors[Math.floor(Math.random() * tagColors.length)];
+      const created = await createLabel({ name: newTagName.trim(), color: randomColor });
+      setSelectedLabelIds((prev) => [...prev, created.id]);
+      setNewTagName('');
+      setIsAddingTag(false);
+      toast.success(`สร้างป้าย #${created.name} เรียบร้อย`);
+    } catch (err) {
+      toast.error('สร้างป้ายกำกับไม่สำเร็จ');
+    }
+  };
 
   // Keyboard shortcut Ctrl+S
   useEffect(() => {
@@ -508,6 +649,42 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <Pin size={17} className={isPinned ? 'fill-current' : ''} />
           </button>
 
+          {/* Favorite Button */}
+          <button
+            onClick={() => setIsFavorite(!isFavorite)}
+            className={`p-2 rounded-xl transition ${
+              isFavorite
+                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 ring-1 ring-amber-500/20'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title={isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด (Favorite)'}
+          >
+            <Star size={17} className={isFavorite ? 'fill-current' : ''} />
+          </button>
+
+          {/* Attachment Drawer Toggle */}
+          <button
+            onClick={() => setIsAttachmentDrawerOpen(true)}
+            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition relative"
+            title={`ไฟล์แนบ (${attachments.length} รายการ)`}
+          >
+            <Paperclip size={17} />
+            {attachments.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+                {attachments.length}
+              </span>
+            )}
+          </button>
+
+          {/* Voice Memo Button */}
+          <button
+            onClick={() => setIsAudioModalOpen(true)}
+            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
+            title="อัดเสียงพูด (Voice Memo)"
+          >
+            <Mic size={17} />
+          </button>
+
           {/* Preview Toggle */}
           <button
             onClick={() => setIsPreview(!isPreview)}
@@ -597,42 +774,97 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           </div>
         </div>
 
-        {/* Labels multi-selector */}
-        {labels.length > 0 && (
-          <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex-wrap">
-            <Tag size={15} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">ป้ายกำกับ:</span>
-            <div className="flex gap-1.5 flex-wrap">
-              {labels.map((lbl) => {
-                const isSelected = selectedLabelIds.includes(lbl.id);
-                return (
-                  <button
-                    key={lbl.id}
-                    type="button"
-                    onClick={() => toggleLabel(lbl.id)}
-                    className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition ${
-                      isSelected ? 'ring-1 font-bold' : 'opacity-50 hover:opacity-80'
-                    }`}
-                    style={{
-                      backgroundColor: `${lbl.color}20`,
-                      color: lbl.color,
-                      borderColor: isSelected ? lbl.color : 'transparent',
-                    }}
-                  >
-                    #{lbl.name}
-                  </button>
-                );
-              })}
-            </div>
+        {/* Labels multi-selector with Add Tag button */}
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex-wrap">
+          <Tag size={15} className="text-slate-400" />
+          <span className="text-xs font-semibold text-slate-500">ป้ายกำกับ:</span>
+          <div className="flex gap-1.5 flex-wrap items-center">
+            {labels.map((lbl) => {
+              const isSelected = selectedLabelIds.includes(lbl.id);
+              return (
+                <button
+                  key={lbl.id}
+                  type="button"
+                  onClick={() => toggleLabel(lbl.id)}
+                  className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition ${
+                    isSelected ? 'ring-1 font-bold shadow-xs' : 'opacity-50 hover:opacity-80'
+                  }`}
+                  style={{
+                    backgroundColor: `${lbl.color}20`,
+                    color: lbl.color,
+                    borderColor: isSelected ? lbl.color : 'transparent',
+                  }}
+                >
+                  #{lbl.name}
+                </button>
+              );
+            })}
+
+            {isAddingTag ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  placeholder="ชื่อป้าย..."
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateTag();
+                    }
+                  }}
+                  className="px-2 py-0.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-24"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateTag}
+                  className="p-1 rounded bg-indigo-600 text-white text-[10px] font-bold"
+                >
+                  เพิ่ม
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingTag(false);
+                    setNewTagName('');
+                  }}
+                  className="p-1 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAddingTag(true)}
+                className="text-[11px] font-semibold px-2 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 text-slate-500 hover:text-indigo-600 transition flex items-center gap-1"
+              >
+                <Plus size={12} />
+                <span>สร้างป้ายใหม่</span>
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Editor Body */}
+      {/* Editor Body with Drag & Drop */}
       <div
-        className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col min-h-[550px]"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`relative bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col min-h-[550px] transition-all ${
+          isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
+        }`}
         style={{ borderTop: `6px solid ${color}` }}
       >
+        {isDraggingOver && (
+          <div className="absolute inset-0 z-40 bg-indigo-50/90 dark:bg-slate-900/90 backdrop-blur-xs border-2 border-dashed border-indigo-500 rounded-3xl flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400 pointer-events-none animate-fade-in">
+            <Upload size={44} className="animate-bounce mb-2" />
+            <p className="font-bold text-base">ปล่อยไฟล์ที่นี่เพื่อแนบหรือแทรกลงในโน้ต</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">รองรับรูปภาพ, เสียง, เอกสาร PDF, ZIP ฯลฯ</p>
+          </div>
+        )}
         {/* Title Input */}
         <div className="p-6 pb-3 border-b border-slate-100 dark:border-slate-800/80">
           <input
@@ -664,6 +896,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           onToggleBorderless={() => setIsBorderless(!isBorderless)}
           zoomLevel={zoomLevel}
           onZoomChange={(z) => setZoomLevel(z)}
+          onRecordAudio={() => setIsAudioModalOpen(true)}
+          onAttachFile={() => setIsAttachmentDrawerOpen(true)}
+          attachmentsCount={attachments.length}
           onCopyNote={() => {
             const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
             navigator.clipboard.writeText(fullText);
@@ -748,6 +983,33 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             }
           }
         }}
+      />
+      {/* Audio Recorder Modal */}
+      <AudioRecorderModal
+        isOpen={isAudioModalOpen}
+        onClose={() => setIsAudioModalOpen(false)}
+        noteId={noteIdRef.current}
+        onAudioSaved={(audioUrl, originalName) => {
+          if (editor) {
+            editor.chain().focus().insertContent(`<p><audio controls src="${audioUrl}"></audio></p>`).run();
+          }
+          if (noteIdRef.current) {
+            api.get(`/notes/${noteIdRef.current}`).then((res) => {
+              if (res.data.attachments) setAttachments(res.data.attachments);
+            });
+          }
+        }}
+      />
+
+      {/* Attachment Drawer */}
+      <NoteAttachmentDrawer
+        isOpen={isAttachmentDrawerOpen}
+        onClose={() => setIsAttachmentDrawerOpen(false)}
+        noteId={noteIdRef.current}
+        attachments={attachments}
+        onUploadFile={handleUploadFile}
+        onDeleteAttachment={handleDeleteAttachment}
+        onInsertIntoEditor={handleInsertAttachmentIntoEditor}
       />
     </div>
   );

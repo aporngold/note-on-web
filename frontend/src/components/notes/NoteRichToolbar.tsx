@@ -42,6 +42,8 @@ import {
   X,
   Type,
   Highlighter,
+  Mic,
+  Quote as QuoteIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -92,6 +94,7 @@ interface NoteRichToolbarProps {
   zoomLevel: number;
   onZoomChange: (zoom: number) => void;
   onAttachFile?: () => void;
+  onRecordAudio?: () => void;
   attachmentsCount?: number;
   onCopyNote?: () => void;
   onDownloadTxt?: () => void;
@@ -123,6 +126,7 @@ export default function NoteRichToolbar({
   zoomLevel,
   onZoomChange,
   onAttachFile,
+  onRecordAudio,
   attachmentsCount = 0,
   onCopyNote,
   onDownloadTxt,
@@ -142,6 +146,8 @@ export default function NoteRichToolbar({
   const [isParagraphMenuOpen, setIsParagraphMenuOpen] = useState(false);
   const [isTextColorMenuOpen, setIsTextColorMenuOpen] = useState(false);
   const [isHighlightMenuOpen, setIsHighlightMenuOpen] = useState(false);
+  const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
+  const [isImageMenuOpen, setIsImageMenuOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [historyStack, setHistoryStack] = useState<string[]>([content]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -158,6 +164,8 @@ export default function NoteRichToolbar({
         setIsParagraphMenuOpen(false);
         setIsTextColorMenuOpen(false);
         setIsHighlightMenuOpen(false);
+        setIsTableMenuOpen(false);
+        setIsImageMenuOpen(false);
         setIsMoreMenuOpen(false);
       }
     };
@@ -407,6 +415,7 @@ export default function NoteRichToolbar({
     if (editor) {
       editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
       setActiveMenu(null);
+      setIsTableMenuOpen(false);
       toast.success(`แทรกตาราง ${rows}x${cols} เรียบร้อย`);
       return;
     }
@@ -420,7 +429,68 @@ export default function NoteRichToolbar({
 
     insertFormatting(tableMd);
     setActiveMenu(null);
+    setIsTableMenuOpen(false);
     toast.success(`แทรกตาราง ${rows}x${cols} เรียบร้อย`);
+  };
+
+  const handleAddRow = () => {
+    if (editor) {
+      editor.chain().focus().addRowAfter().run();
+      toast.success('เพิ่มแถวด้านล่างแล้ว');
+    }
+  };
+
+  const handleDeleteRow = () => {
+    if (editor) {
+      editor.chain().focus().deleteRow().run();
+      toast.success('ลบแถวแล้ว');
+    }
+  };
+
+  const handleAddColumn = () => {
+    if (editor) {
+      editor.chain().focus().addColumnAfter().run();
+      toast.success('เพิ่มคอลัมน์ด้านขวาแล้ว');
+    }
+  };
+
+  const handleDeleteColumn = () => {
+    if (editor) {
+      editor.chain().focus().deleteColumn().run();
+      toast.success('ลบคอลัมน์แล้ว');
+    }
+  };
+
+  const handleDeleteTable = () => {
+    if (editor) {
+      editor.chain().focus().deleteTable().run();
+      toast.success('ลบตารางแล้ว');
+    }
+  };
+
+  const handleResizeImage = (sizeClass: string, label: string) => {
+    if (!editor) return;
+    const attrs = editor.getAttributes('image');
+    if (attrs.src) {
+      editor.chain().focus().updateAttributes('image', { class: sizeClass }).run();
+      toast.success(`ปรับขนาดภาพเป็น ${label}`);
+    } else {
+      toast('กรุณาคลิกเลือกรูปภาพก่อนปรับขนาด', { icon: '🖼️' });
+    }
+  };
+
+  const handleSetImageCaption = () => {
+    if (!editor) return;
+    const attrs = editor.getAttributes('image');
+    if (attrs.src) {
+      const caption = window.prompt('ใส่คำบรรยายใต้ภาพ (Image Caption):', attrs.title || attrs.alt || '');
+      if (caption !== null) {
+        editor.chain().focus().updateAttributes('image', { title: caption, alt: caption }).run();
+        toast.success('บันทึกคำบรรยายภาพแล้ว');
+      }
+    } else {
+      toast('กรุณาคลิกเลือกรูปภาพก่อนใส่คำบรรยาย', { icon: '🖼️' });
+    }
   };
 
   const handleInsertDate = () => {
@@ -506,6 +576,9 @@ export default function NoteRichToolbar({
   const isTaskListActive = editor?.isActive('taskList') ?? false;
   const isCodeBlockActive = editor?.isActive('codeBlock') ?? false;
   const isLinkActive = editor?.isActive('link') ?? false;
+  const isBlockquoteActive = editor?.isActive('blockquote') ?? false;
+  const isTableActive = editor?.isActive('table') ?? false;
+  const isImageActive = editor?.isActive('image') ?? false;
   const isAlignLeftActive = editor?.isActive({ textAlign: 'left' }) ?? false;
   const isAlignCenterActive = editor?.isActive({ textAlign: 'center' }) ?? false;
   const isAlignRightActive = editor?.isActive({ textAlign: 'right' }) ?? false;
@@ -1467,15 +1540,202 @@ export default function NoteRichToolbar({
           <CheckSquare size={16} />
         </button>
 
-        {/* Image */}
+        {/* Quote */}
         <button
           type="button"
-          onClick={handleInsertImageClick}
-          className={getToolBtnClass(false)}
-          title="แทรกรูปภาพ (เลือกไฟล์รูปภาพจากเครื่อง)"
+          onClick={handleQuote}
+          className={getToolBtnClass(isBlockquoteActive)}
+          title="กล่องข้อความอ้างอิง (Quote)"
         >
-          <ImageIcon size={16} />
+          <QuoteIcon size={16} />
         </button>
+
+        {/* Divider (Horizontal Rule) */}
+        <button
+          type="button"
+          onClick={handleHorizontalRule}
+          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+          title="แทรกเส้นแบ่งบรรทัด (Divider)"
+        >
+          <Minus size={16} />
+        </button>
+
+        {/* Table Dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
+            className={getToolBtnClass(isTableActive)}
+            title="จัดการตาราง (Table)"
+          >
+            <TableIcon size={16} />
+          </button>
+          {isTableMenuOpen && (
+            <div className="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 z-50 animate-fade-in text-xs divide-y divide-slate-100 dark:divide-slate-700">
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={() => handleInsertTable(3, 3)}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
+                >
+                  <span>แทรกตาราง 3x3</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInsertTable(2, 2)}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
+                >
+                  <span>แทรกตาราง 2x2</span>
+                </button>
+              </div>
+              {isTableActive && (
+                <div className="py-1 space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddRow();
+                      setIsTableMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    + เพิ่มแถวด้านล่าง
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDeleteRow();
+                      setIsTableMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-rose-500"
+                  >
+                    - ลบแถวนี้
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAddColumn();
+                      setIsTableMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                    + เพิ่มคอลัมน์ด้านขวา
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDeleteColumn();
+                      setIsTableMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-rose-500"
+                  >
+                    - ลบคอลัมน์นี้
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDeleteTable();
+                      setIsTableMenuOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 font-bold"
+                  >
+                    ลบตารางทั้งหมด
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Audio / Voice Memo */}
+        {onRecordAudio && (
+          <button
+            type="button"
+            onClick={onRecordAudio}
+            className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg transition font-medium flex items-center gap-1"
+            title="อัดเสียง / บันทึกเสียงพูด (Voice Memo)"
+          >
+            <Mic size={16} />
+          </button>
+        )}
+
+        {/* Image with Resize & Caption */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsImageMenuOpen(!isImageMenuOpen)}
+            className={getToolBtnClass(isImageActive)}
+            title="จัดการรูปภาพและคำบรรยาย (Image Resize & Caption)"
+          >
+            <ImageIcon size={16} />
+          </button>
+          {isImageMenuOpen && (
+            <div className="absolute left-0 top-full mt-1 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50 animate-fade-in text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-700 dark:text-slate-200">แทรกรูปภาพ:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleInsertImageClick();
+                    setIsImageMenuOpen(false);
+                  }}
+                  className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 text-[11px] font-semibold"
+                >
+                  เลือกไฟล์
+                </button>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-slate-700 pt-1.5">
+                <span className="text-[11px] text-slate-400 font-semibold block mb-1">
+                  ปรับขนาดภาพ (คลิกเลือกภาพก่อน):
+                </span>
+                <div className="grid grid-cols-4 gap-1 text-[11px] font-medium text-center">
+                  <button
+                    type="button"
+                    onClick={() => handleResizeImage('img-w-25', '25%')}
+                    className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  >
+                    25%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeImage('img-w-50', '50%')}
+                    className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  >
+                    50%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeImage('img-w-75', '75%')}
+                    className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  >
+                    75%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleResizeImage('img-w-100', '100%')}
+                    className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  >
+                    100%
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-slate-700 pt-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSetImageCaption();
+                    setIsImageMenuOpen(false);
+                  }}
+                  className="w-full py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-left flex items-center justify-between text-[11px]"
+                >
+                  <span>ใส่คำบรรยายภาพ (Caption)</span>
+                  <FileText size={13} className="text-slate-400" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* More Options (...) */}
         <div className="relative">

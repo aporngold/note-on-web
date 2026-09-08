@@ -2,7 +2,7 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { Pin, Trash2, Copy, Lock, Book, Tag } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -16,7 +16,7 @@ interface NoteCardProps {
 
 export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
   const router = useRouter();
-  const { deleteNote, duplicateNote, togglePin } = useNoteStore();
+  const { deleteNote, duplicateNote, togglePin, toggleFavorite, setSelectedLabel } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
 
   // Content preview logic
@@ -83,23 +83,53 @@ export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
                 {note.notebook.name}
               </span>
             )}
+
+            {note.attachments && note.attachments.length > 0 && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                title={`มีไฟล์แนบ ${note.attachments.length} รายการ`}
+              >
+                <Paperclip size={11} />
+                {note.attachments.length}
+              </span>
+            )}
           </div>
 
-          {/* Pin Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePin(note.id);
-            }}
-            className={`p-1.5 rounded-lg transition ${
-              note.isPinned
-                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50'
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-            title={note.isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ต'}
-          >
-            <Pin size={15} className={note.isPinned ? 'fill-current' : ''} />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Favorite Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(note.id);
+              }}
+              className={`p-1.5 rounded-lg transition ${
+                note.isFavorite
+                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50'
+                  : 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+              title={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
+            >
+              <Star size={15} className={note.isFavorite ? 'fill-current' : ''} />
+            </button>
+
+            {/* Pin Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePin(note.id);
+              }}
+              className={`p-1.5 rounded-lg transition ${
+                note.isPinned
+                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+              title={note.isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ต'}
+            >
+              <Pin size={15} className={note.isPinned ? 'fill-current' : ''} />
+            </button>
+          </div>
         </div>
 
         {/* Title */}
@@ -122,17 +152,23 @@ export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
         {note.labels && note.labels.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3 pt-2">
             {note.labels.map((lbl) => (
-              <span
+              <button
                 key={lbl.id}
-                className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedLabel(lbl.id);
+                }}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md hover:scale-105 transition"
                 style={{
                   backgroundColor: `${lbl.color}15`,
                   color: lbl.color,
                 }}
+                title={`กรองตามป้าย #${lbl.name}`}
               >
                 <Tag size={9} />
                 {lbl.name}
-              </span>
+              </button>
             ))}
           </div>
         )}

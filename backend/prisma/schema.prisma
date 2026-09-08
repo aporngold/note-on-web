@@ -49,6 +49,7 @@ model Note {
   isArchived    Boolean      @default(false)
   isLocked      Boolean      @default(false)
   isPinned      Boolean      @default(false)
+  isFavorite    Boolean      @default(false)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   

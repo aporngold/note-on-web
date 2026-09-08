@@ -93,6 +93,7 @@ export interface Note {
   isArchived: boolean;
   isLocked: boolean;
   isPinned: boolean;
+  isFavorite?: boolean;
   iv?: string | null;
   salt?: string | null;
   notebookId?: string | null;

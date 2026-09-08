@@ -17,6 +17,7 @@ import {
   Download,
   X,
   File,
+  Star,
 } from 'lucide-react';
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -94,6 +95,7 @@ export default function StickyNoteItem({
     updateNote,
     deleteNote,
     togglePin,
+    toggleFavorite,
     boards,
     fetchNotes,
     uploadAttachment,
@@ -416,6 +418,17 @@ export default function StickyNoteItem({
               title={note.isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดบนบอร์ด'}
             >
               <Pin size={12} className={note.isPinned ? 'fill-current' : ''} />
+            </button>
+
+            {/* Favorite toggle */}
+            <button
+              onClick={() => toggleFavorite(note.id)}
+              className={`p-1 rounded hover:bg-black/10 transition ${
+                note.isFavorite ? 'text-amber-500' : 'opacity-40 hover:opacity-100'
+              }`}
+              title={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
+            >
+              <Star size={12} className={note.isFavorite ? 'fill-current' : ''} />
             </button>
 
             {/* Connect Note button */}

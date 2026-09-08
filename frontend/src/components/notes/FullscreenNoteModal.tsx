@@ -22,6 +22,7 @@ import {
   Code,
   Save,
   Share2,
+  Upload,
 } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -41,6 +42,7 @@ import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import toast from 'react-hot-toast';
 import NoteRichToolbar from './NoteRichToolbar';
+import AudioRecorderModal from './AudioRecorderModal';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 interface FullscreenNoteModalProps {
@@ -96,6 +98,8 @@ export default function FullscreenNoteModal({
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isCopied, setIsCopied] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -232,20 +236,55 @@ export default function FullscreenNoteModal({
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     setIsUploading(true);
     try {
-      for (let i = 0; i < files.length; i++) {
-        await uploadAttachment(files[i], note.id);
-      }
+      await uploadAttachment(file, note.id);
       toast.success('อัปโหลดไฟล์แนบแล้ว');
-    } catch (err) {
-      toast.error('อัปโหลดไฟล์ไม่สำเร็จ');
+    } catch (error) {
+      toast.error('อัปโหลดไฟล์ล้มเหลว');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          if (editor) {
+            editor.chain().focus().setImage({ src: base64, alt: file.name }).run();
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        await uploadAttachment(file, note.id);
+      }
     }
   };
 
@@ -324,6 +363,7 @@ export default function FullscreenNoteModal({
           onToggleBorderless={() => setIsBorderless(!isBorderless)}
           zoomLevel={zoomLevel}
           onZoomChange={(z) => setZoomLevel(z)}
+          onRecordAudio={() => setIsAudioModalOpen(true)}
           onAttachFile={() => fileInputRef.current?.click()}
           attachmentsCount={attachments.length}
           onCopyNote={handleCopyNote}
@@ -367,8 +407,21 @@ export default function FullscreenNoteModal({
           }}
         />
 
-        {/* ── MAIN READING & EDITING BODY ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4">
+        {/* ── MAIN READING & EDITING BODY WITH DRAG & DROP ── */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`relative flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 transition-all ${
+            isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
+          }`}
+        >
+          {isDraggingOver && (
+            <div className="absolute inset-0 z-40 bg-indigo-50/90 dark:bg-slate-900/90 backdrop-blur-xs border-2 border-dashed border-indigo-500 rounded-2xl flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400 pointer-events-none animate-fade-in">
+              <Upload size={44} className="animate-bounce mb-2" />
+              <p className="font-bold text-base">ปล่อยไฟล์ที่นี่เพื่อแนบหรือแทรกลงในโน้ต</p>
+            </div>
+          )}
           {/* Note Title Input */}
           <div>
             <input
@@ -531,6 +584,17 @@ export default function FullscreenNoteModal({
           </div>
         </div>
       )}
+      {/* Audio Recorder Modal */}
+      <AudioRecorderModal
+        isOpen={isAudioModalOpen}
+        onClose={() => setIsAudioModalOpen(false)}
+        noteId={note.id}
+        onAudioSaved={(audioUrl, originalName) => {
+          if (editor) {
+            editor.chain().focus().insertContent(`<p><audio controls src="${audioUrl}"></audio></p>`).run();
+          }
+        }}
+      />
     </div>
   );
 }

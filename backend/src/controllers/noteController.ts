@@ -17,6 +17,7 @@ const createNoteSchema = z.object({
   height: z.number().optional().default(240),
   isLocked: z.boolean().optional().default(false),
   isPinned: z.boolean().optional().default(false),
+  isFavorite: z.boolean().optional().default(false),
   notebookId: z.string().nullable().optional(),
   boardId: z.string().nullable().optional(),
   labelIds: z.array(z.string()).optional().default([]),
@@ -38,6 +39,7 @@ const updateNoteSchema = z.object({
   height: z.number().optional(),
   isLocked: z.boolean().optional(),
   isPinned: z.boolean().optional(),
+  isFavorite: z.boolean().optional(),
   isArchived: z.boolean().optional(),
   notebookId: z.string().nullable().optional(),
   boardId: z.string().nullable().optional(),
@@ -56,6 +58,7 @@ export class NoteController {
         labelId,
         isArchived,
         isPinned,
+        isFavorite,
         isLocked,
         color,
         boardId,
@@ -83,6 +86,11 @@ export class NoteController {
       // Pin filter
       if (isPinned !== undefined) {
         where.isPinned = isPinned === 'true';
+      }
+
+      // Favorite filter
+      if (isFavorite !== undefined) {
+        where.isFavorite = isFavorite === 'true';
       }
 
       // Notebook filter
@@ -219,6 +227,7 @@ export class NoteController {
         height,
         isLocked,
         isPinned,
+        isFavorite,
         notebookId,
         boardId,
         labelIds,
@@ -251,6 +260,7 @@ export class NoteController {
           height: height !== undefined ? height : 240,
           isLocked: !!isLocked,
           isPinned: !!isPinned,
+          isFavorite: !!isFavorite,
           iv: iv || null,
           salt: salt || null,
           userId,
@@ -318,6 +328,7 @@ export class NoteController {
         height,
         isLocked,
         isPinned,
+        isFavorite,
         isArchived,
         notebookId,
         boardId,
@@ -349,6 +360,7 @@ export class NoteController {
           ...(height !== undefined && { height }),
           ...(isLocked !== undefined && { isLocked }),
           ...(isPinned !== undefined && { isPinned }),
+          ...(isFavorite !== undefined && { isFavorite }),
           ...(isArchived !== undefined && { isArchived }),
           ...(notebookId !== undefined && { notebookId }),
           ...(boardId !== undefined && { boardId }),
@@ -459,6 +471,7 @@ export class NoteController {
           color: original.color,
           isLocked: original.isLocked,
           isPinned: false,
+          isFavorite: original.isFavorite,
           iv: original.iv,
           salt: original.salt,
           userId,
@@ -510,6 +523,33 @@ export class NoteController {
       });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to toggle pin' });
+    }
+  }
+
+  static async toggleFavorite(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.userId!;
+      const { id } = req.params;
+
+      const note = await prisma.note.findFirst({
+        where: { id, userId },
+      });
+
+      if (!note) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
+
+      const updated = await prisma.note.update({
+        where: { id },
+        data: { isFavorite: !note.isFavorite },
+      });
+
+      return res.json({
+        message: updated.isFavorite ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว',
+        isFavorite: updated.isFavorite,
+      });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to toggle favorite' });
     }
   }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Plus, Pin, Filter, X, Sparkles, BookOpen } from 'lucide-react';
+import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteList from '@/components/notes/NoteList';
@@ -32,6 +32,7 @@ export default function Dashboard() {
   } = useNoteStore();
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites'>('all');
 
   useEffect(() => {
     if (user) {
@@ -40,8 +41,10 @@ export default function Dashboard() {
     }
   }, [user, selectedNotebook, selectedLabel, selectedColor, fetchNotes, fetchBoards]);
 
-  // Client-side search filtering
+  // Client-side search and tab filtering
   const filteredNotes = notes.filter((n) => {
+    if (activeTab === 'pinned' && !n.isPinned) return false;
+    if (activeTab === 'favorites' && !n.isFavorite) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const titleMatch = n.title?.toLowerCase().includes(q);
@@ -61,12 +64,13 @@ export default function Dashboard() {
   const activeNotebook = notebooks.find((nb) => nb.id === selectedNotebook);
   const activeLabel = labels.find((lbl) => lbl.id === selectedLabel);
 
-  const hasActiveFilter = selectedNotebook || selectedLabel || selectedColor || searchQuery;
+  const hasActiveFilter = selectedNotebook || selectedLabel || selectedColor || searchQuery || activeTab !== 'all';
 
   const clearAllFilters = () => {
     setSelectedNotebook(null);
     setSelectedLabel(null);
     setSelectedColor(null);
+    setActiveTab('all');
   };
 
   return (
@@ -87,6 +91,42 @@ export default function Dashboard() {
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {activeNotebook?.description || 'บันทึกความคิด ไอเดีย และข้อมูลสำคัญของคุณ'}
               </p>
+            </div>
+
+            {/* Quick Filter Tabs (All, Pinned, Favorites) */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold self-start sm:self-auto shadow-xs">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-3 py-1.5 rounded-xl transition ${
+                  activeTab === 'all'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                ทั้งหมด ({notes.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('pinned')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
+                  activeTab === 'pinned'
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Pin size={13} className="fill-current" />
+                <span>ปักหมุด ({notes.filter((n) => n.isPinned).length})</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('favorites')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
+                  activeTab === 'favorites'
+                    ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <Star size={13} className="fill-current" />
+                <span>รายการโปรด ({notes.filter((n) => n.isFavorite).length})</span>
+              </button>
             </div>
           </div>
         )}

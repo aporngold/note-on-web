@@ -44,6 +44,7 @@ interface NoteState {
   restoreNote: (id: string) => Promise<void>;
   duplicateNote: (id: string) => Promise<void>;
   togglePin: (id: string) => Promise<void>;
+  toggleFavorite: (id: string) => Promise<void>;
   emptyTrash: () => Promise<void>;
 
   uploadAttachment: (file: File, noteId?: string) => Promise<any>;
@@ -344,6 +345,16 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       notes: state.notes
         .map((n) => (n.id === id ? { ...n, isPinned: res.data.isPinned } : n))
         .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0)),
+    }));
+    toast.success(res.data.message);
+  },
+
+  toggleFavorite: async (id) => {
+    const res = await api.post(`/notes/${id}/favorite`);
+    set((state) => ({
+      notes: state.notes.map((n) =>
+        n.id === id ? { ...n, isFavorite: res.data.isFavorite } : n
+      ),
     }));
     toast.success(res.data.message);
   },

@@ -18,5 +18,6 @@ router.delete('/:id', NoteController.deleteNote);
 router.post('/:id/restore', NoteController.restoreNote);
 router.post('/:id/duplicate', NoteController.duplicateNote);
 router.post('/:id/pin', NoteController.togglePin);
+router.post('/:id/favorite', NoteController.toggleFavorite);
 
 export default router;
