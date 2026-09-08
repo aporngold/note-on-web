@@ -154,6 +154,7 @@ interface ShaderPlaneProps {
   hoverRepulsionRadius: number;
   hoverRepulsionStrength: number;
   enableMouseInteraction: boolean;
+  blending?: 'additive' | 'normal';
 }
 
 const ShaderPlane = ({
@@ -169,6 +170,7 @@ const ShaderPlane = ({
   hoverRepulsionRadius,
   hoverRepulsionStrength,
   enableMouseInteraction,
+  blending = 'additive',
 }: ShaderPlaneProps) => {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const gl = useThree((s) => s.gl);
@@ -311,7 +313,7 @@ const ShaderPlane = ({
         depthWrite={false}
         depthTest={false}
         transparent={true}
-        blending={THREE.AdditiveBlending}
+        blending={blending === 'normal' ? THREE.NormalBlending : THREE.AdditiveBlending}
       />
       {/* eslint-enable react/no-unknown-property */}
     </mesh>
@@ -344,6 +346,8 @@ export interface GridBloomProps {
   hoverRepulsionStrength?: number;
   /** Whether mouse hover interaction (light aura + repulsion) is enabled. Default: true. */
   enableMouseInteraction?: boolean;
+  /** Blending mode: 'additive' for dark background, 'normal' for light background */
+  blending?: 'additive' | 'normal';
 }
 
 export default function GridBloom({
@@ -360,6 +364,7 @@ export default function GridBloom({
   hoverRepulsionRadius = 1.0,
   hoverRepulsionStrength = 0.6,
   enableMouseInteraction = true,
+  blending = 'additive',
 }: GridBloomProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -403,6 +408,7 @@ export default function GridBloom({
           hoverRepulsionRadius={hoverRepulsionRadius}
           hoverRepulsionStrength={hoverRepulsionStrength}
           enableMouseInteraction={enableMouseInteraction}
+          blending={blending}
         />
       </Canvas>
     </div>

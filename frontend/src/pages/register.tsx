@@ -61,6 +61,20 @@ export default function RegisterPage() {
       <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full bg-[#a7f3d0]/25 blur-[90px] pointer-events-none" />
       <div className="absolute -bottom-24 left-1/4 w-96 h-96 rounded-full bg-[#fbcfe8]/25 blur-[90px] pointer-events-none" />
 
+      {/* 3D Animated Grid Bloom Background Effect (Light Pastel Mode, Normal Blending) */}
+      <GridBloom
+        className="opacity-40 pointer-events-none"
+        color="#86efac"
+        speed={0.4}
+        gridScale={15.0}
+        fadeFalloff={7.0}
+        distortionAmount={0.025}
+        hoverLightRadius={0.7}
+        hoverRepulsionRadius={1.2}
+        hoverRepulsionStrength={0.4}
+        blending="normal"
+      />
+
       {/* Light Glassmorphic Card (Translucent, Bright, Airy, Soothing) */}
       <div className="relative z-10 w-full max-w-[450px] p-8 sm:p-11 bg-white/75 backdrop-blur-2xl border border-white/80 rounded-[28px] shadow-[0_20px_50px_rgba(180,162,216,0.12)] space-y-7 animate-fade-in">
         {/* Header */}
