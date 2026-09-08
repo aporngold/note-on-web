@@ -49,38 +49,44 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-[#070b14] overflow-hidden p-4 select-none">
-      {/* 3D Animated Grid Bloom Background - Soothing Sky Blue */}
+    <div className="relative min-h-screen flex items-center justify-center bg-[#0d1117] overflow-hidden p-6 sm:p-10 select-none font-inter">
+      {/* Subtle Pastel Ambient Orbs (Mauve/Lavender → Mint Green → Blush Pink) */}
+      <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#c4b5fd]/15 blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full bg-[#a7f3d0]/12 blur-[100px] pointer-events-none" />
+      <div className="absolute -bottom-24 left-1/4 w-96 h-96 rounded-full bg-[#fbcfe8]/12 blur-[100px] pointer-events-none" />
+
+      {/* 3D Animated Grid Bloom Background - Ethereal, Thin & Subtle Pastel Mint */}
       <GridBloom
-        color="#38bdf8"
-        speed={0.5}
-        gridScale={15.0}
-        fadeFalloff={9.0}
-        distortionAmount={0.03}
-        hoverLightRadius={0.65}
-        hoverRepulsionRadius={1.1}
-        hoverRepulsionStrength={0.4}
+        className="opacity-30 pointer-events-none"
+        color="#a7f3d0"
+        speed={0.3}
+        gridScale={16.0}
+        fadeFalloff={6.5}
+        distortionAmount={0.02}
+        hoverLightRadius={0.6}
+        hoverRepulsionRadius={1.0}
+        hoverRepulsionStrength={0.3}
       />
 
-      {/* Translucent Glassmorphic Card */}
-      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-slate-900/45 backdrop-blur-2xl border border-white/10 dark:border-slate-700/50 rounded-3xl shadow-2xl shadow-sky-500/5 space-y-7 animate-fade-in">
+      {/* Glassmorphism Card (Trend 2025: Translucent, Soft, Airy Spacing) */}
+      <div className="relative z-10 w-full max-w-[440px] p-8 sm:p-11 bg-white/[0.04] dark:bg-slate-900/[0.35] backdrop-blur-2xl border border-white/[0.12] dark:border-white/[0.08] rounded-[28px] shadow-[0_16px_40px_rgba(0,0,0,0.25)] space-y-8 animate-fade-in">
         {/* Header Branding */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-sky-500 to-teal-500 text-white shadow-lg shadow-sky-500/20 mb-1">
-            <ShieldCheck size={34} />
+        <div className="text-center space-y-3">
+          <div className="inline-flex p-3.5 rounded-2xl bg-gradient-to-tr from-[#b4a2d8] via-[#a7f3d0] to-[#f9a8d4] text-slate-800 shadow-lg shadow-purple-900/10 mb-1">
+            <ShieldCheck size={32} className="stroke-[2.2]" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">
+          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">
             เข้าสู่ระบบ SecureNote
           </h1>
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-slate-400 font-normal leading-relaxed">
             ระบบจดบันทึกความปลอดภัยสูง ป้องกันข้อมูลลับของคุณ
           </p>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-slate-300 tracking-wide">
               อีเมล หรือ ชื่อผู้ใช้
             </label>
             <div className="relative">
@@ -89,18 +95,18 @@ export default function LoginPage() {
                 type="text"
                 autoComplete="email"
                 placeholder="name@example.com หรือ username"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-700/80 bg-slate-950/40 backdrop-blur-sm text-white placeholder-slate-400 text-sm focus:ring-2 focus:ring-sky-500/40 focus:border-sky-400 focus:outline-none transition"
+                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-white/[0.1] bg-white/[0.03] dark:bg-slate-950/[0.3] backdrop-blur-md text-slate-100 placeholder-slate-500 text-sm focus:ring-2 focus:ring-[#a7f3d0]/40 focus:border-[#a7f3d0]/60 focus:outline-none transition-all duration-200"
               />
-              <Mail size={17} className="absolute left-3.5 top-3 text-slate-400" />
+              <Mail size={17} className="absolute left-4 top-3.5 text-slate-400" />
             </div>
             {errors.email && (
-              <p className="mt-1 text-xs text-rose-400 font-medium">{errors.email.message}</p>
+              <p className="text-xs text-rose-400/90 font-normal pl-1">{errors.email.message}</p>
             )}
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-medium text-slate-300 tracking-wide">
                 รหัสผ่าน
               </label>
             </div>
@@ -110,30 +116,31 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700/80 bg-slate-950/40 backdrop-blur-sm text-white placeholder-slate-400 text-sm focus:ring-2 focus:ring-sky-500/40 focus:border-sky-400 focus:outline-none transition"
+                className="w-full pl-11 pr-11 py-3 rounded-2xl border border-white/[0.1] bg-white/[0.03] dark:bg-slate-950/[0.3] backdrop-blur-md text-slate-100 placeholder-slate-500 text-sm focus:ring-2 focus:ring-[#a7f3d0]/40 focus:border-[#a7f3d0]/60 focus:outline-none transition-all duration-200"
               />
-              <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
+              <Lock size={17} className="absolute left-4 top-3.5 text-slate-400" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-200 transition"
+                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-200 transition-colors"
               >
                 {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
             {errors.password && (
-              <p className="mt-1 text-xs text-rose-400 font-medium">{errors.password.message}</p>
+              <p className="text-xs text-rose-400/90 font-normal pl-1">{errors.password.message}</p>
             )}
           </div>
 
+          {/* Pastel Button: Mauve/Lavender → Mint Green → Blush Pink */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-400 hover:to-teal-400 text-white rounded-xl font-semibold shadow-lg shadow-sky-500/20 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-2"
+            className="w-full py-3.5 mt-2 bg-gradient-to-r from-[#b4a2d8] via-[#a7f3d0] to-[#f9a8d4] hover:opacity-90 active:scale-[0.99] text-slate-800 font-semibold rounded-2xl shadow-md shadow-slate-900/10 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 text-sm tracking-wide"
           >
             {isLoading ? (
               <>
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 size={18} className="animate-spin text-slate-800" />
                 <span>กำลังเข้าสู่ระบบ...</span>
               </>
             ) : (
@@ -143,12 +150,12 @@ export default function LoginPage() {
         </form>
 
         {/* Footer info */}
-        <div className="text-center pt-2 border-t border-white/10">
-          <p className="text-xs text-slate-300">
+        <div className="text-center pt-3 border-t border-white/[0.08]">
+          <p className="text-xs text-slate-400">
             ยังไม่มีบัญชีใช้งาน?{' '}
             <Link
               href="/register"
-              className="text-sky-400 font-semibold hover:text-sky-300 hover:underline transition"
+              className="text-[#a7f3d0] hover:text-[#f9a8d4] font-medium transition-colors duration-200"
             >
               สมัครสมาชิกใหม่
             </Link>
