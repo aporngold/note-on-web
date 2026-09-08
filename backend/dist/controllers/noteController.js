@@ -59,6 +59,8 @@ class NoteController {
             else {
                 where.isArchived = false; // Default: show active notes only
             }
+            // If viewing trash, show all archived notes for the user (don't hide notes created under other boards/notebooks)
+            const isViewingTrash = isArchived === 'true';
             // Vault / Locked filter
             if (isLocked !== undefined) {
                 where.isLocked = isLocked === 'true';
@@ -68,19 +70,19 @@ class NoteController {
                 where.isPinned = isPinned === 'true';
             }
             // Notebook filter
-            if (notebookId) {
+            if (notebookId && !isViewingTrash) {
                 where.notebookId = String(notebookId);
             }
             // Board filter
-            if (boardId) {
+            if (boardId && !isViewingTrash) {
                 where.boardId = String(boardId);
             }
             // Color filter
-            if (color) {
+            if (color && !isViewingTrash) {
                 where.color = String(color);
             }
             // Label filter
-            if (labelId) {
+            if (labelId && !isViewingTrash) {
                 where.labels = {
                     some: {
                         labelId: String(labelId),

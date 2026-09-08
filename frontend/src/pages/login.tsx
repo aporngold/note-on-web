@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Loader2, ShieldCheck, Lock, Mail } from 'lucide-react';
+import { FcGoogle } from 'react-icons/fc';
 import { useAuthStore } from '@/store/authStore';
 
 const GridBloom = dynamic(() => import('@/components/ui/grid-bloom'), {
@@ -46,6 +47,22 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query.error === 'google_oauth_not_configured') {
+      toast.error('ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID และ GOOGLE_CLIENT_SECRET ใน backend/.env');
+    } else if (router.query.error === 'authorization_denied') {
+      toast('ยกเลิกการเข้าสู่ระบบด้วย Google แล้ว', { icon: 'ℹ️' });
+    } else if (router.query.error) {
+      toast.error('การเข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    }
+  }, [router.isReady, router.query.error]);
+
+  const handleGoogleSignIn = () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    window.location.href = `${apiUrl}/auth/google`;
   };
 
   return (
@@ -142,6 +159,24 @@ export default function LoginPage() {
             )}
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="relative flex items-center justify-center my-1">
+          <div className="border-t border-slate-300/80 w-full" />
+          <span className="bg-white/90 backdrop-blur-md px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider absolute rounded-full border border-slate-200/60 shadow-xs">
+            หรือ
+          </span>
+        </div>
+
+        {/* Google Sign In Button */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          className="w-full py-2.5 px-4 bg-white/90 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-300/90 hover:border-slate-400 rounded-xl font-medium text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-3 active:scale-[0.99]"
+        >
+          <FcGoogle size={20} />
+          <span>เข้าสู่ระบบด้วย Google</span>
+        </button>
 
         {/* Footer info */}
         <div className="text-center pt-2 border-t border-slate-200/60">

@@ -216,4 +216,153 @@ export class AuthController {
       return res.status(500).json({ error: 'Failed to change password' });
     }
   }
+
+  static async googleAuth(req: Request, res: Response) {
+    try {
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+      if (!clientId || clientId.trim() === '') {
+        return res.redirect(`${frontendUrl}/login?error=google_oauth_not_configured`);
+      }
+
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: callbackUrl,
+        response_type: 'code',
+        scope: 'openid email profile',
+        access_type: 'offline',
+        prompt: 'select_account',
+      });
+
+      return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+    } catch (error) {
+      console.error('Google auth error:', error);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+    }
+  }
+
+  static async googleCallback(req: Request, res: Response) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    try {
+      const { code, error } = req.query;
+
+      if (error || !code) {
+        return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(String(error || 'authorization_denied'))}`);
+      }
+
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+
+      if (!clientId || !clientSecret || clientId.trim() === '' || clientSecret.trim() === '') {
+        return res.redirect(`${frontendUrl}/login?error=google_oauth_not_configured`);
+      }
+
+      // 1. Exchange code for access & ID tokens
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: String(code),
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: callbackUrl,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      const tokenData: any = await tokenResponse.json();
+      if (!tokenResponse.ok || !tokenData.access_token) {
+        console.error('Google token exchange error:', tokenData);
+        return res.redirect(`${frontendUrl}/login?error=google_token_exchange_failed`);
+      }
+
+      // 2. Fetch user profile from Google
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      const profile: any = await userInfoResponse.json();
+      if (!userInfoResponse.ok || !profile.email) {
+        console.error('Google userinfo error:', profile);
+        return res.redirect(`${frontendUrl}/login?error=google_user_info_failed`);
+      }
+
+      const email = profile.email.toLowerCase().trim();
+      let user = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        // Generate a unique clean username
+        let baseUsername = (profile.name || email.split('@')[0])
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, '_')
+          .slice(0, 20);
+        if (baseUsername.length < 3) baseUsername = 'user_' + baseUsername;
+
+        let username = baseUsername;
+        let counter = 1;
+        while (await prisma.user.findUnique({ where: { username } })) {
+          username = `${baseUsername.slice(0, 15)}_${counter}`;
+          counter++;
+        }
+
+        const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(randomPassword, salt);
+
+        user = await prisma.user.create({
+          data: {
+            email,
+            username,
+            passwordHash,
+          },
+        });
+
+        // Create default notebook
+        await prisma.notebook.create({
+          data: {
+            name: 'My Notes',
+            description: 'สมุดบันทึกหลักของคุณ',
+            color: '#6366F1',
+            isDefault: true,
+            userId: user.id,
+          },
+        });
+
+        // Create starter labels
+        await prisma.label.createMany({
+          data: [
+            { name: 'สำคัญ', color: '#EF4444', userId: user.id },
+            { name: 'ไอเดีย', color: '#10B981', userId: user.id },
+            { name: 'งาน', color: '#3B82F6', userId: user.id },
+          ],
+        });
+      }
+
+      const token = jwt.sign(
+        { userId: user.id },
+        process.env.JWT_SECRET || 'secret',
+        { expiresIn: '7d' }
+      );
+
+      await prisma.session.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const userJson = encodeURIComponent(JSON.stringify({ id: user.id, email: user.email, username: user.username }));
+      return res.redirect(`${frontendUrl}/auth/callback?token=${token}&user=${userJson}`);
+    } catch (error) {
+      console.error('Google callback error:', error);
+      return res.redirect(`${frontendUrl}/login?error=google_callback_failed`);
+    }
+  }
 }

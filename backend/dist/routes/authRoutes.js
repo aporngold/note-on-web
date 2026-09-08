@@ -9,4 +9,7 @@ router.post('/login', authController_1.AuthController.login);
 router.post('/logout', auth_1.authenticate, authController_1.AuthController.logout);
 router.get('/me', auth_1.authenticate, authController_1.AuthController.me);
 router.post('/change-password', auth_1.authenticate, authController_1.AuthController.changePassword);
+// Google OAuth Routes
+router.get('/google', authController_1.AuthController.googleAuth);
+router.get('/google/callback', authController_1.AuthController.googleCallback);
 exports.default = router;
