@@ -63,11 +63,11 @@ export default function LoginPage() {
         blending="additive"
       />
 
-      {/* Login Card: Bright, Easy to Read, Soothing Light Glassmorphic Form */}
-      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-white/90 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-2xl shadow-indigo-950/50 space-y-7 animate-fade-in">
+      {/* Login Card: Bright, Eye-Pleasing (สบายตา), 30% Transparent Glassmorphic Form */}
+      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-white/70 backdrop-blur-2xl border border-white/50 rounded-3xl shadow-2xl shadow-slate-950/20 space-y-7 animate-fade-in">
         {/* Header Branding */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-xl shadow-indigo-500/25 mb-1">
+          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-teal-500 to-sky-500 text-white shadow-xl shadow-teal-500/20 mb-1">
             <ShieldCheck size={34} />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -90,7 +90,7 @@ export default function LoginPage() {
                 type="text"
                 autoComplete="email"
                 placeholder="name@example.com หรือ username"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:outline-none transition shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300/80 bg-white/60 backdrop-blur-sm text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition shadow-sm"
               />
               <Mail size={17} className="absolute left-3.5 top-3 text-slate-400" />
             </div>
@@ -111,7 +111,7 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:outline-none transition shadow-sm"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300/80 bg-white/60 backdrop-blur-sm text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition shadow-sm"
               />
               <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
               <button
@@ -130,7 +130,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/25 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-2"
+            className="w-full py-3 bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-600 hover:to-sky-600 text-white rounded-xl font-semibold shadow-lg shadow-teal-500/20 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-2"
           >
             {isLoading ? (
               <>
@@ -144,12 +144,12 @@ export default function LoginPage() {
         </form>
 
         {/* Footer info */}
-        <div className="text-center pt-2 border-t border-slate-100">
+        <div className="text-center pt-2 border-t border-slate-200/60">
           <p className="text-xs text-slate-600">
             ยังไม่มีบัญชีใช้งาน?{' '}
             <Link
               href="/register"
-              className="text-indigo-600 font-semibold hover:underline"
+              className="text-teal-600 hover:text-sky-600 font-semibold hover:underline transition-colors"
             >
               สมัครสมาชิกใหม่
             </Link>
