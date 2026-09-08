@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Loader2, ShieldCheck, Lock, Mail } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+
+const GridBloom = dynamic(() => import('@/components/ui/grid-bloom'), {
+  ssr: false,
+});
 
 const loginSchema = z.object({
   email: z.string().min(1, 'กรุณากรอกอีเมลหรือชื่อผู้ใช้'),
@@ -44,8 +49,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-slate-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950 p-4 select-none">
-      <div className="w-full max-w-md p-8 sm:p-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-2xl space-y-7 animate-fade-in">
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-950 overflow-hidden p-4 select-none">
+      {/* 3D Animated Grid Bloom Background */}
+      <GridBloom
+        color="#818cf8"
+        speed={0.8}
+        gridScale={14.0}
+        fadeFalloff={8.0}
+        distortionAmount={0.06}
+        hoverLightRadius={0.7}
+        hoverRepulsionRadius={1.2}
+        hoverRepulsionStrength={0.5}
+      />
+
+      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/20 dark:border-slate-800 rounded-3xl shadow-2xl shadow-indigo-500/10 space-y-7 animate-fade-in">
         {/* Header Branding */}
         <div className="text-center space-y-2">
           <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-xl shadow-indigo-500/25 mb-1">
