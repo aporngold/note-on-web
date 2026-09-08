@@ -11,7 +11,9 @@ const zod_1 = require("zod");
 const registerSchema = zod_1.z.object({
     email: zod_1.z.string().email('Invalid email address'),
     username: zod_1.z.string().min(3, 'Username must be at least 3 characters').max(30),
-    password: zod_1.z.string().min(6, 'Password must be at least 6 characters'),
+    password: zod_1.z
+        .string()
+        .min(13, 'รหัสผ่านต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล'),
 });
 const loginSchema = zod_1.z.object({
     email: zod_1.z.string().min(1, 'Email or username is required'),
@@ -19,7 +21,9 @@ const loginSchema = zod_1.z.object({
 });
 const changePasswordSchema = zod_1.z.object({
     oldPassword: zod_1.z.string().min(1),
-    newPassword: zod_1.z.string().min(6, 'New password must be at least 6 characters'),
+    newPassword: zod_1.z
+        .string()
+        .min(13, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล'),
 });
 class AuthController {
     static async register(req, res) {

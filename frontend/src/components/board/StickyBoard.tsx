@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus,
   LayoutGrid,
@@ -81,6 +81,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Interactive Note Connection Mode state
   const [connectingSourceId, setConnectingSourceId] = useState<string | null>(null);
+
+  // Canvas scroll container ref
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+
+  // Automatically scroll to top-left when board changes
+  useEffect(() => {
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }
+  }, [activeBoardId]);
 
   // Handle drag and drop coordinates saving
   const handleDragEnd = async (id: string, x: number, y: number) => {
@@ -443,9 +453,30 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         </div>
       ) : (
         <div
+          ref={canvasContainerRef}
           style={getBoardStyle()}
           className="flex-1 w-full h-full overflow-auto relative p-8 cursor-default pt-28"
         >
+          {/* Empty Board State: Centered at Top of Viewport so it is immediately visible */}
+          {notes.length === 0 && (
+            <div className="fixed left-1/2 top-36 sm:top-40 -translate-x-1/2 z-20 pointer-events-auto text-center p-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl shadow-2xl max-w-sm w-full mx-4 border border-slate-200/80 dark:border-slate-800 space-y-3 animate-fade-in">
+              <span className="text-4xl select-none">📌</span>
+              <h3 className="font-bold text-slate-800 dark:text-white text-base">
+                บอร์ด {activeBoard ? `"${activeBoard.name}"` : ''} ยังว่างเปล่า
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                กดปุ่ม &quot;+ แปะโน้ต&quot; ด้านบน เพื่อสร้างโน้ตใหม่ ลากวางตำแหน่ง เชื่อมต่อโน้ต หรือแนบไฟล์รูปภาพ/PDF ได้อย่างอิสระ!
+              </p>
+              <button
+                onClick={() => handleQuickAdd('#FEF08A')}
+                className="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5 mx-auto"
+              >
+                <Plus size={15} />
+                <span>+ แปะโน้ตแรกในบอร์ดนี้</span>
+              </button>
+            </div>
+          )}
+
           <div className="min-w-[2200px] min-h-[1600px] relative">
             {/* SVG Visual Connection Lines Canvas */}
             <NoteConnectionCanvas
@@ -454,24 +485,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             />
 
             {/* Sticky Notes */}
-            {notes.length === 0 ? (
-              <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 text-center p-8 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl shadow-xl max-w-sm border border-slate-200 dark:border-slate-800 space-y-3">
-                <span className="text-4xl">📌</span>
-                <h3 className="font-bold text-slate-800 dark:text-white">
-                  บอร์ด {activeBoard ? `"${activeBoard.name}"` : ''} ยังว่างเปล่า
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  กดปุ่ม &quot;+ แปะโน้ต&quot; ด้านบน เพื่อสร้างโน้ตใหม่ ลากวางตำแหน่ง เชื่อมต่อโน้ต หรือแนบไฟล์รูปภาพ/PDF ได้อย่างอิสระ!
-                </p>
-                <button
-                  onClick={() => handleQuickAdd('#FEF08A')}
-                  className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-xs rounded-xl shadow transition"
-                >
-                  + แปะโน้ตแรกในบอร์ดนี้
-                </button>
-              </div>
-            ) : (
-              notes.map((note, idx) => (
+            {notes.map((note, idx) => (
                 <StickyNoteItem
                   key={note.id}
                   note={note}
@@ -483,8 +497,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                   isConnectingSource={connectingSourceId === note.id}
                   isConnectingMode={!!connectingSourceId}
                 />
-              ))
-            )}
+              ))}
           </div>
         </div>
       )}

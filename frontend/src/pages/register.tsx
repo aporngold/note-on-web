@@ -18,8 +18,14 @@ const registerSchema = z
   .object({
     email: z.string().email('รูปแบบอีเมลไม่ถูกต้อง'),
     username: z.string().min(3, 'ชื่อผู้ใช้ต้องมีความยาวอย่างน้อย 3 ตัวอักษร'),
-    password: z.string().min(6, 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร'),
-    confirmPassword: z.string().min(6, 'กรุณายืนยันรหัสผ่าน'),
+    password: z
+      .string()
+      .min(13, 'รหัสผ่านต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล')
+      .regex(/[a-z]/, 'ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว')
+      .regex(/[A-Z]/, 'ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว')
+      .regex(/[0-9]/, 'ต้องมีตัวเลขอย่างน้อย 1 ตัว')
+      .regex(/[^A-Za-z0-9]/, 'ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (!@#$%^&*...)'),
+    confirmPassword: z.string().min(13, 'กรุณายืนยันรหัสผ่านอย่างน้อย 13 ตัวอักษร'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'รหัสผ่านทั้งสองช่องไม่ตรงกัน',
@@ -37,10 +43,18 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
   });
+
+  const pwdValue = watch('password') || '';
+  const isMinLength = pwdValue.length >= 13;
+  const hasLower = /[a-z]/.test(pwdValue);
+  const hasUpper = /[A-Z]/.test(pwdValue);
+  const hasNumber = /[0-9]/.test(pwdValue);
+  const hasSpecial = /[^A-Za-z0-9]/.test(pwdValue);
 
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
@@ -130,13 +144,13 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              รหัสผ่าน
+              รหัสผ่าน (มาตรฐานสากล 13+ ตัวอักษร)
             </label>
             <div className="relative">
               <input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
-                placeholder="อย่างน้อย 6 ตัวอักษร"
+                placeholder="อย่างน้อย 13 ตัวอักษร (A-Z, a-z, 0-9, !@#)"
                 className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300/80 bg-white/60 backdrop-blur-sm text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition shadow-sm"
               />
               <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
@@ -148,6 +162,32 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
+
+            {/* Live Security Requirements Checklist */}
+            <div className="mt-2 p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60 space-y-1">
+              <p className="text-[11px] font-semibold text-slate-600 mb-1">
+                มาตรฐานความปลอดภัยสากล:
+              </p>
+              <div className="grid grid-cols-2 gap-1 text-[11px]">
+                <span className={`flex items-center gap-1.5 ${isMinLength ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                  <span>{isMinLength ? '✓' : '○'}</span>
+                  <span>ความยาว 13+ ตัว ({pwdValue.length}/13)</span>
+                </span>
+                <span className={`flex items-center gap-1.5 ${hasUpper ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                  <span>{hasUpper ? '✓' : '○'}</span>
+                  <span>ตัวพิมพ์ใหญ่ (A-Z)</span>
+                </span>
+                <span className={`flex items-center gap-1.5 ${hasLower ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                  <span>{hasLower ? '✓' : '○'}</span>
+                  <span>ตัวพิมพ์เล็ก (a-z)</span>
+                </span>
+                <span className={`flex items-center gap-1.5 ${hasNumber && hasSpecial ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                  <span>{hasNumber && hasSpecial ? '✓' : '○'}</span>
+                  <span>ตัวเลข & สัญลักษณ์พิเศษ</span>
+                </span>
+              </div>
+            </div>
+
             {errors.password && (
               <p className="mt-1 text-xs text-rose-500 font-medium">{errors.password.message}</p>
             )}
@@ -161,7 +201,7 @@ export default function RegisterPage() {
               <input
                 {...register('confirmPassword')}
                 type={showPassword ? 'text' : 'password'}
-                placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง"
+                placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง (อย่างน้อย 13 ตัวอักษร)"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300/80 bg-white/60 backdrop-blur-sm text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition shadow-sm"
               />
               <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
