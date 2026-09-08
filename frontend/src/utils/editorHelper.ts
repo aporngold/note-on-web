@@ -71,14 +71,28 @@ export function convertLegacyContentToHtml(raw: string): string {
 }
 
 export function stripHtmlTags(html: string): string {
-  if (!html) return '';
+  if (!html || typeof html !== 'string') return '';
   return html
-    .replace(/<[^>]*>?/gm, ' ')
+    // Format checklist items with readable checkboxes
+    .replace(/<li[^>]*data-checked="true"[^>]*>/gi, '☑ ')
+    .replace(/<li[^>]*data-checked="false"[^>]*>/gi, '☐ ')
+    // Convert block closures to line breaks
+    .replace(/<\/(p|li|h[1-6]|tr|div|blockquote)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    // Remove all remaining HTML tags
+    .replace(/<[^>]*>?/gm, '')
+    // Decode HTML entities
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Clean markdown remnants if any
     .replace(/[#*`_~]/g, '')
-    .replace(/\s+/g, ' ')
+    // Normalize spaces and clean up blank lines
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }

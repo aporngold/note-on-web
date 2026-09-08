@@ -21,6 +21,7 @@ import NoteConnectionCanvas from '@/components/board/NoteConnectionCanvas';
 import FullscreenNoteModal from '@/components/notes/FullscreenNoteModal';
 import { Note, Board, NoteConnection } from '@/types';
 import toast from 'react-hot-toast';
+import { stripHtmlTags } from '@/utils/editorHelper';
 
 export default function SharedBoardPage() {
   const router = useRouter();
@@ -229,7 +230,7 @@ export default function SharedBoardPage() {
                       </div>
                       {note.content && (
                         <p className="text-xs whitespace-pre-wrap leading-relaxed opacity-85 mb-2">
-                          {note.content}
+                          {stripHtmlTags(note.content)}
                         </p>
                       )}
 
@@ -326,7 +327,7 @@ export default function SharedBoardPage() {
                           </div>
                           {note.content && (
                             <p className="text-[11px] opacity-80 line-clamp-3 leading-relaxed">
-                              {note.content}
+                              {stripHtmlTags(note.content)}
                             </p>
                           )}
                         </div>

@@ -5,6 +5,7 @@ import Layout from '@/components/layout/Layout';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { formatDistanceToNow } from 'date-fns';
+import { stripHtmlTags } from '@/utils/editorHelper';
 
 export default function TrashPage() {
   const router = useRouter();
@@ -154,7 +155,7 @@ export default function TrashPage() {
                     )}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                    {note.content?.replace(/<[^>]*>?/gm, ' ') || 'ไม่มีเนื้อหา'}
+                    {stripHtmlTags(note.content || '') || 'ไม่มีเนื้อหา'}
                   </p>
                   <span className="text-[11px] text-slate-400 mt-1 block">
                     {safeFormatDate(note.updatedAt)}

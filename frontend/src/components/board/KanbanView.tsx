@@ -16,6 +16,9 @@ import {
 import { useRouter } from 'next/router';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
+import { EncryptionService } from '@/utils/encryption';
+import { stripHtmlTags } from '@/utils/editorHelper';
 
 interface KanbanViewProps {
   notes: Note[];
@@ -51,6 +54,7 @@ const COLUMNS = [
 export default function KanbanView({ notes }: KanbanViewProps) {
   const router = useRouter();
   const { updateNote, deleteNote, createNote, activeBoardId, togglePin } = useNoteStore();
+  const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
 
@@ -146,6 +150,25 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                 ) : (
                   colNotes.map((note) => {
                     const attachments = note.attachments || [];
+
+                    // Handle encryption & strip HTML tags for clean preview
+                    let previewText = note.content || '';
+                    if (note.isLocked) {
+                      if (isVaultUnlocked) {
+                        try {
+                          const parsed = JSON.parse(note.content);
+                          if (parsed.encrypted && parsed.iv) {
+                            previewText = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+                          }
+                        } catch (e) {
+                          // ignore
+                        }
+                      } else {
+                        previewText = '🔒 เนื้อหานี้ถูกเข้ารหัสลับ';
+                      }
+                    }
+                    const cleanPreview = stripHtmlTags(previewText);
+
                     return (
                       <div
                         key={note.id}
@@ -189,9 +212,9 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                           </div>
                         </div>
 
-                        {note.content && (
+                        {cleanPreview && (
                           <p className="text-xs opacity-80 line-clamp-3 mb-2 whitespace-pre-wrap leading-relaxed">
-                            {note.content}
+                            {cleanPreview}
                           </p>
                         )}
 
