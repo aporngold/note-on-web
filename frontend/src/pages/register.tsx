@@ -55,45 +55,39 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-[#f5f3ff] via-[#f0fdf4] to-[#fdf2f8] overflow-hidden p-6 sm:p-10 select-none font-inter">
-      {/* Soft Ambient Pastel Glows (Mauve/Lavender → Mint Green → Blush Pink) */}
-      <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#c4b5fd]/25 blur-[90px] pointer-events-none" />
-      <div className="absolute top-1/3 -right-24 w-96 h-96 rounded-full bg-[#a7f3d0]/25 blur-[90px] pointer-events-none" />
-      <div className="absolute -bottom-24 left-1/4 w-96 h-96 rounded-full bg-[#fbcfe8]/25 blur-[90px] pointer-events-none" />
-
-      {/* 3D Animated Grid Bloom Background Effect (Light Pastel Mode, Normal Blending) */}
+    <div className="relative min-h-screen flex items-center justify-center bg-slate-950 overflow-hidden p-4 sm:p-6 select-none font-inter">
+      {/* 3D Animated Grid Bloom Background - Original First Effect */}
       <GridBloom
-        className="opacity-40 pointer-events-none"
-        color="#86efac"
-        speed={0.4}
-        gridScale={15.0}
-        fadeFalloff={7.0}
-        distortionAmount={0.025}
+        color="#c084fc"
+        speed={0.8}
+        gridScale={14.0}
+        fadeFalloff={8.0}
+        distortionAmount={0.06}
         hoverLightRadius={0.7}
         hoverRepulsionRadius={1.2}
-        hoverRepulsionStrength={0.4}
-        blending="normal"
+        hoverRepulsionStrength={0.5}
+        blending="additive"
       />
 
-      {/* Light Glassmorphic Card (Translucent, Bright, Airy, Soothing) */}
-      <div className="relative z-10 w-full max-w-[450px] p-8 sm:p-11 bg-white/75 backdrop-blur-2xl border border-white/80 rounded-[28px] shadow-[0_20px_50px_rgba(180,162,216,0.12)] space-y-7 animate-fade-in">
+      {/* Register Card: Bright, Easy to Read, Soothing Light Glassmorphic Form */}
+      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-white/90 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-2xl shadow-purple-950/50 space-y-6 animate-fade-in">
         {/* Header */}
-        <div className="text-center space-y-2.5">
-          <div className="inline-flex p-3.5 rounded-2xl bg-gradient-to-tr from-[#b4a2d8] via-[#a7f3d0] to-[#f9a8d4] text-slate-800 shadow-md shadow-purple-100 mb-1">
-            <ShieldCheck size={32} className="stroke-[2.2]" />
+        <div className="text-center space-y-2">
+          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-xl shadow-indigo-500/25 mb-1">
+            <ShieldCheck size={34} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
             สร้างบัญชี SecureNote
           </h1>
-          <p className="text-xs text-slate-500 font-normal leading-relaxed">
+          <p className="text-xs text-slate-500 font-normal">
             เริ่มใช้งานสมุดบันทึกที่ปลอดภัย พร้อมระบบ E2EE Vault ฟรี
           </p>
         </div>
 
         {/* Register Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600 tracking-wide">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
               อีเมล
             </label>
             <div className="relative">
@@ -101,17 +95,17 @@ export default function RegisterPage() {
                 {...register('email')}
                 type="email"
                 placeholder="name@example.com"
-                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-md text-slate-800 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-[#a7f3d0] focus:border-[#a7f3d0] focus:outline-none transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:outline-none transition shadow-sm"
               />
-              <Mail size={17} className="absolute left-4 top-3.5 text-slate-400" />
+              <Mail size={17} className="absolute left-3.5 top-3 text-slate-400" />
             </div>
             {errors.email && (
-              <p className="text-xs text-rose-500 font-medium pl-1">{errors.email.message}</p>
+              <p className="mt-1 text-xs text-rose-500 font-medium">{errors.email.message}</p>
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600 tracking-wide">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
               ชื่อผู้ใช้ (Username)
             </label>
             <div className="relative">
@@ -119,17 +113,17 @@ export default function RegisterPage() {
                 {...register('username')}
                 type="text"
                 placeholder="john_doe"
-                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-md text-slate-800 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-[#a7f3d0] focus:border-[#a7f3d0] focus:outline-none transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:outline-none transition shadow-sm"
               />
-              <User size={17} className="absolute left-4 top-3.5 text-slate-400" />
+              <User size={17} className="absolute left-3.5 top-3 text-slate-400" />
             </div>
             {errors.username && (
-              <p className="text-xs text-rose-500 font-medium pl-1">{errors.username.message}</p>
+              <p className="mt-1 text-xs text-rose-500 font-medium">{errors.username.message}</p>
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600 tracking-wide">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
               รหัสผ่าน
             </label>
             <div className="relative">
@@ -137,24 +131,24 @@ export default function RegisterPage() {
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="อย่างน้อย 6 ตัวอักษร"
-                className="w-full pl-11 pr-11 py-3 rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-md text-slate-800 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-[#a7f3d0] focus:border-[#a7f3d0] focus:outline-none transition-all shadow-sm"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:outline-none transition shadow-sm"
               />
-              <Lock size={17} className="absolute left-4 top-3.5 text-slate-400" />
+              <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
               >
                 {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
             {errors.password && (
-              <p className="text-xs text-rose-500 font-medium pl-1">{errors.password.message}</p>
+              <p className="mt-1 text-xs text-rose-500 font-medium">{errors.password.message}</p>
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-600 tracking-wide">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
               ยืนยันรหัสผ่าน
             </label>
             <div className="relative">
@@ -162,24 +156,23 @@ export default function RegisterPage() {
                 {...register('confirmPassword')}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง"
-                className="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-md text-slate-800 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-[#a7f3d0] focus:border-[#a7f3d0] focus:outline-none transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 bg-slate-50/80 text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 focus:outline-none transition shadow-sm"
               />
-              <Lock size={17} className="absolute left-4 top-3.5 text-slate-400" />
+              <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
             </div>
             {errors.confirmPassword && (
-              <p className="text-xs text-rose-500 font-medium pl-1">{errors.confirmPassword.message}</p>
+              <p className="mt-1 text-xs text-rose-500 font-medium">{errors.confirmPassword.message}</p>
             )}
           </div>
 
-          {/* Pastel Button: Mauve/Lavender → Mint Green → Blush Pink */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 mt-2 bg-gradient-to-r from-[#b4a2d8] via-[#a7f3d0] to-[#f9a8d4] hover:opacity-90 active:scale-[0.99] text-slate-800 font-semibold rounded-2xl shadow-md shadow-emerald-100/60 transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 text-sm tracking-wide"
+            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-500/25 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-3"
           >
             {isLoading ? (
               <>
-                <Loader2 size={18} className="animate-spin text-slate-800" />
+                <Loader2 size={18} className="animate-spin" />
                 <span>กำลังสร้างบัญชี...</span>
               </>
             ) : (
@@ -188,12 +181,12 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div className="text-center pt-3 border-t border-slate-100">
-          <p className="text-xs text-slate-500">
+        <div className="text-center pt-2 border-t border-slate-100">
+          <p className="text-xs text-slate-600">
             มีบัญชีผู้ใช้อยู่แล้ว?{' '}
             <Link
               href="/login"
-              className="text-teal-600 hover:text-pink-500 font-semibold transition-colors duration-200"
+              className="text-indigo-600 font-semibold hover:underline"
             >
               เข้าสู่ระบบที่นี่
             </Link>
