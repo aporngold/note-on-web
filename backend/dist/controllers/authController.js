@@ -237,7 +237,8 @@ class AuthController {
             const tokenData = await tokenResponse.json();
             if (!tokenResponse.ok || !tokenData.access_token) {
                 console.error('Google token exchange error:', tokenData);
-                return res.redirect(`${frontendUrl}/login?error=google_token_exchange_failed`);
+                const errDetail = encodeURIComponent(tokenData.error_description || tokenData.error || 'token_exchange_failed');
+                return res.redirect(`${frontendUrl}/login?error=google_token_exchange_failed&details=${errDetail}`);
             }
             // 2. Fetch user profile from Google
             const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -308,7 +309,8 @@ class AuthController {
         }
         catch (error) {
             console.error('Google callback error:', error);
-            return res.redirect(`${frontendUrl}/login?error=google_callback_failed`);
+            const detail = encodeURIComponent(error?.message || 'unknown');
+            return res.redirect(`${frontendUrl}/login?error=google_callback_failed&details=${detail}`);
         }
     }
 }

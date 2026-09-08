@@ -52,13 +52,14 @@ export default function LoginPage() {
   useEffect(() => {
     if (!router.isReady) return;
     if (router.query.error === 'google_oauth_not_configured') {
-      toast.error('ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID และ GOOGLE_CLIENT_SECRET ใน backend/.env');
+      toast.error('ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID และ GOOGLE_CLIENT_SECRET ในระบบ');
     } else if (router.query.error === 'authorization_denied') {
       toast('ยกเลิกการเข้าสู่ระบบด้วย Google แล้ว', { icon: 'ℹ️' });
     } else if (router.query.error) {
-      toast.error('การเข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      const details = router.query.details ? ` (${router.query.details})` : '';
+      toast.error(`การเข้าสู่ระบบด้วย Google ไม่สำเร็จ${details} กรุณาลองใหม่อีกครั้ง`);
     }
-  }, [router.isReady, router.query.error]);
+  }, [router.isReady, router.query.error, router.query.details]);
 
   const handleGoogleSignIn = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';

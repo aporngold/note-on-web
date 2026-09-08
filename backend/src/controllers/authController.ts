@@ -277,7 +277,8 @@ export class AuthController {
       const tokenData: any = await tokenResponse.json();
       if (!tokenResponse.ok || !tokenData.access_token) {
         console.error('Google token exchange error:', tokenData);
-        return res.redirect(`${frontendUrl}/login?error=google_token_exchange_failed`);
+        const errDetail = encodeURIComponent(tokenData.error_description || tokenData.error || 'token_exchange_failed');
+        return res.redirect(`${frontendUrl}/login?error=google_token_exchange_failed&details=${errDetail}`);
       }
 
       // 2. Fetch user profile from Google
@@ -360,9 +361,10 @@ export class AuthController {
 
       const userJson = encodeURIComponent(JSON.stringify({ id: user.id, email: user.email, username: user.username }));
       return res.redirect(`${frontendUrl}/auth/callback?token=${token}&user=${userJson}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google callback error:', error);
-      return res.redirect(`${frontendUrl}/login?error=google_callback_failed`);
+      const detail = encodeURIComponent(error?.message || 'unknown');
+      return res.redirect(`${frontendUrl}/login?error=google_callback_failed&details=${detail}`);
     }
   }
 }
