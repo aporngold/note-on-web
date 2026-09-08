@@ -2,7 +2,7 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music, Maximize2 } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -12,9 +12,10 @@ import { stripHtmlTags } from '@/utils/editorHelper';
 interface NoteCardProps {
   note: Note;
   onUnlockRequest?: () => void;
+  onOpenFullscreen?: (note: Note) => void;
 }
 
-export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
+export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: NoteCardProps) {
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin, toggleFavorite, setSelectedLabel } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
@@ -53,6 +54,10 @@ export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
   return (
     <div
       onClick={handleClick}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        if (onOpenFullscreen) onOpenFullscreen(note);
+      }}
       className={`group relative bg-white dark:bg-slate-800/90 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden ${
         note.isPinned ? 'ring-2 ring-indigo-500/30' : ''
       }`}
@@ -129,6 +134,23 @@ export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
             >
               <Pin size={15} className={note.isPinned ? 'fill-current' : ''} />
             </button>
+
+            {/* Fullscreen Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onOpenFullscreen) {
+                  onOpenFullscreen(note);
+                } else {
+                  router.push(`/notes/${note.id}`);
+                }
+              }}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
+            >
+              <Maximize2 size={15} />
+            </button>
           </div>
         </div>
 
@@ -184,6 +206,20 @@ export default function NoteCard({ note, onUnlockRequest }: NoteCardProps) {
 
         {/* Action icons on hover */}
         <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onOpenFullscreen) {
+                onOpenFullscreen(note);
+              } else {
+                router.push(`/notes/${note.id}`);
+              }
+            }}
+            className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+            title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ"
+          >
+            <Maximize2 size={14} />
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();

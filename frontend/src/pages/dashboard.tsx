@@ -7,8 +7,10 @@ import NoteList from '@/components/notes/NoteList';
 import StickyBoard from '@/components/board/StickyBoard';
 import KanbanView from '@/components/board/KanbanView';
 import MasterPasswordModal from '@/components/notes/MasterPasswordModal';
+import FullscreenNoteModal from '@/components/notes/FullscreenNoteModal';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
+import { Note } from '@/types';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -32,6 +34,7 @@ export default function Dashboard() {
   } = useNoteStore();
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites'>('all');
 
   useEffect(() => {
@@ -238,6 +241,7 @@ export default function Dashboard() {
                       key={note.id}
                       note={note}
                       onUnlockRequest={() => setIsVaultModalOpen(true)}
+                      onOpenFullscreen={(n) => setFullscreenNote(n)}
                     />
                   ))}
                 </div>
@@ -258,6 +262,7 @@ export default function Dashboard() {
                       key={note.id}
                       note={note}
                       onUnlockRequest={() => setIsVaultModalOpen(true)}
+                      onOpenFullscreen={(n) => setFullscreenNote(n)}
                     />
                   ))}
                 </div>
@@ -269,6 +274,7 @@ export default function Dashboard() {
           <NoteList
             notes={filteredNotes}
             onUnlockRequest={() => setIsVaultModalOpen(true)}
+            onOpenFullscreen={(n) => setFullscreenNote(n)}
           />
         )}
       </div>
@@ -278,6 +284,18 @@ export default function Dashboard() {
         onClose={() => setIsVaultModalOpen(false)}
         onSuccess={() => fetchNotes({ isArchived: false })}
       />
+
+      {/* Fullscreen Note Focus Modal (เหมือนหน้าคัมบัง ทุกโหมด Grid, List, Kanban, Sticky Board) */}
+      {fullscreenNote && (
+        <FullscreenNoteModal
+          note={fullscreenNote}
+          isOpen={!!fullscreenNote}
+          onClose={() => {
+            setFullscreenNote(null);
+            fetchNotes({ isArchived: false });
+          }}
+        />
+      )}
     </Layout>
   );
 }

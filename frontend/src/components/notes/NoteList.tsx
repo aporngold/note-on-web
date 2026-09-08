@@ -1,7 +1,7 @@
 import React from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
-import { Pin, Trash2, Copy, Lock, Book, Tag } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Book, Tag, Maximize2 } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -9,9 +9,10 @@ import { useAuthStore } from '@/store/authStore';
 interface NoteListProps {
   notes: Note[];
   onUnlockRequest?: () => void;
+  onOpenFullscreen?: (note: Note) => void;
 }
 
-export default function NoteList({ notes, onUnlockRequest }: NoteListProps) {
+export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: NoteListProps) {
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
@@ -28,6 +29,10 @@ export default function NoteList({ notes, onUnlockRequest }: NoteListProps) {
                 return;
               }
               router.push(`/notes/${note.id}`);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (onOpenFullscreen) onOpenFullscreen(note);
             }}
             className="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition cursor-pointer group"
           >
@@ -77,6 +82,20 @@ export default function NoteList({ notes, onUnlockRequest }: NoteListProps) {
             </div>
 
             <div className="flex items-center gap-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onOpenFullscreen) {
+                    onOpenFullscreen(note);
+                  } else {
+                    router.push(`/notes/${note.id}`);
+                  }
+                }}
+                className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
+                title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
+              >
+                <Maximize2 size={15} />
+              </button>
               <button
                 onClick={(e) => {
                   e.stopPropagation();

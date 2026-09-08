@@ -4,14 +4,17 @@ import { Lock, Unlock, ShieldAlert, KeyRound, Plus, ShieldCheck, AlertCircle } f
 import Layout from '@/components/layout/Layout';
 import NoteCard from '@/components/notes/NoteCard';
 import MasterPasswordModal from '@/components/notes/MasterPasswordModal';
+import FullscreenNoteModal from '@/components/notes/FullscreenNoteModal';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
+import { Note } from '@/types';
 
 export default function VaultPage() {
   const router = useRouter();
   const { user, isVaultUnlocked, lockVault, unlockVault } = useAuthStore();
   const { notes, fetchNotes } = useNoteStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [error, setError] = useState('');
 
@@ -167,7 +170,11 @@ export default function VaultPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {vaultNotes.map((note) => (
-                  <NoteCard key={note.id} note={note} />
+                  <NoteCard
+                    key={note.id}
+                    note={note}
+                    onOpenFullscreen={(n) => setFullscreenNote(n)}
+                  />
                 ))}
               </div>
             )}
@@ -180,6 +187,18 @@ export default function VaultPage() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => fetchNotes({ isArchived: false, isLocked: true })}
       />
+
+      {/* Fullscreen Note Focus Modal */}
+      {fullscreenNote && (
+        <FullscreenNoteModal
+          note={fullscreenNote}
+          isOpen={!!fullscreenNote}
+          onClose={() => {
+            setFullscreenNote(null);
+            fetchNotes({ isArchived: false, isLocked: true });
+          }}
+        />
+      )}
     </Layout>
   );
 }
