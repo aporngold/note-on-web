@@ -716,10 +716,11 @@ export default function NoteRichToolbar({
             <button
               type="button"
               onClick={onToggleTrulyFullscreen}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-              title={isTrulyFullscreen ? 'ย่อเป็นกรอบปกติ' : 'ขยายเต็มจอ (Fullscreen)'}
+              className="p-1.5 px-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 rounded-xl transition flex items-center gap-1.5 font-bold text-xs border border-indigo-200 dark:border-indigo-800 shadow-xs"
+              title="ยกเลิกโหมดเต็มจอ (กลับไปหน้าโน้ตปกติ)"
             >
-              {isTrulyFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              <Minimize2 size={15} />
+              <span>ยกเลิกเต็มจอ</span>
             </button>
           )}
 
@@ -784,6 +785,18 @@ export default function NoteRichToolbar({
               title="ย้ายลงถังขยะ"
             >
               <Trash2 size={16} />
+            </button>
+          )}
+
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="p-1.5 px-2.5 bg-slate-100 hover:bg-rose-100 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-900/40 rounded-xl transition text-slate-600 dark:text-slate-300 flex items-center gap-1 text-xs font-semibold ml-1 border border-slate-200/80 dark:border-slate-700"
+              title="ปิดหน้าต่าง / ยกเลิกโหมดเต็มจอ (Esc)"
+            >
+              <X size={15} />
+              <span className="hidden sm:inline">ปิด</span>
             </button>
           )}
         </div>
@@ -1057,9 +1070,10 @@ export default function NoteRichToolbar({
                   onToggleTrulyFullscreen();
                   setActiveMenu(null);
                 }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between text-indigo-600 dark:text-indigo-400 font-medium"
               >
-                {isTrulyFullscreen ? 'ย่อกรอบปกติ' : 'เต็มหน้าจอ 100%'}
+                <span>ยกเลิกโหมดเต็มจอ</span>
+                <Minimize2 size={13} />
               </button>
             )}
             <button

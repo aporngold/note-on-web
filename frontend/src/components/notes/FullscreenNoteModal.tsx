@@ -48,6 +48,7 @@ import VersionHistoryDrawer from './VersionHistoryDrawer';
 import ImageOcrModal from './ImageOcrModal';
 import AIAssistantModal from './AIAssistantModal';
 import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
+import ViewportPortal from '../ui/ViewportPortal';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 interface FullscreenNoteModalProps {
@@ -333,98 +334,93 @@ export default function FullscreenNoteModal({
   const charCount = editor ? editor.getText().length : content.length;
 
   return (
-    <div
-      className={`fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center animate-fade-in ${
-        isTrulyFullscreen ? 'p-0' : 'p-2 sm:p-4'
-      }`}
-    >
-      <div
-        style={{
-          backgroundColor: color,
-          color: textColor,
-        }}
-        className={`flex flex-col transition-all duration-200 relative overflow-hidden ${
-          isBorderless
-            ? 'shadow-none border-0'
-            : 'shadow-2xl border-t-4 border-black/20'
-        } ${
-          isTrulyFullscreen
-            ? 'w-screen h-screen max-w-none rounded-none'
-            : 'w-full max-w-5xl h-[92vh] rounded-3xl'
-        }`}
-      >
-        {/* ── RICH NOTE TOOLBAR ── */}
-        <NoteRichToolbar
-          content={content}
-          onContentChange={(val) => {
-            setContent(val);
-            if (editor && editor.getHTML() !== val) {
-              editor.commands.setContent(val, { emitUpdate: false });
-            }
-            handleAutoSave({ content: val });
-          }}
-          editor={editor}
-          color={color}
-          onColorChange={(newColor) => handleColorSelect(newColor)}
-          textColor={textColor}
-          onTextColorChange={(tc) => handleTextColorSelect(tc)}
-          isPinned={note.isPinned || false}
-          onTogglePin={async () => {
-            await togglePin(note.id);
-          }}
-          isBorderless={isBorderless}
-          onToggleBorderless={() => setIsBorderless(!isBorderless)}
-          zoomLevel={zoomLevel}
-          onZoomChange={(z) => setZoomLevel(z)}
-          onRecordAudio={() => setIsAudioModalOpen(true)}
-          onAttachFile={() => fileInputRef.current?.click()}
-          attachmentsCount={attachments.length}
-          onCopyNote={handleCopyNote}
-          onDownloadTxt={handleDownloadTxt}
-          onDownloadMd={() => {
-            const filename = `${(title || 'note').replace(/[^a-zA-Z0-9ก-๙_-]/g, '_')}.md`;
-            const textContent = editor ? editor.getText() : stripHtmlTags(content);
-            const blob = new Blob([`# ${title || 'ไม่มีชื่อบันทึก'}\n\n${textContent}`], {
-              type: 'text/markdown;charset=utf-8',
-            });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(url);
-            toast.success('ดาวน์โหลดไฟล์ Markdown แล้ว');
-          }}
-          onPrint={() => window.print()}
-          onShare={() => setIsShareModalOpen(true)}
-          onOpenVersionHistory={() => setIsVersionDrawerOpen(true)}
-          onOpenOcr={() => setIsOcrModalOpen(true)}
-          onOpenAiAssistant={() => setIsAiModalOpen(true)}
-          onDelete={() => {
-            if (confirm('ต้องการย้ายโน้ตนี้ไปที่ถังขยะหรือไม่?')) {
-              deleteNote(note.id);
-              onClose();
-            }
-          }}
-          isTrulyFullscreen={isTrulyFullscreen}
-          onToggleTrulyFullscreen={() => setIsTrulyFullscreen(!isTrulyFullscreen)}
-          onCancel={onClose}
-          onAccept={async () => {
-            await handleAutoSave({ title, content, color, textColor });
-            toast.success('บันทึกเรียบร้อย');
-            onClose();
-          }}
-        />
-
-        {/* ── MAIN READING & EDITING BODY WITH DRAG & DROP ── */}
+    <ViewportPortal>
+      <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fade-in">
         <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`relative flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 transition-all ${
-            isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
+          style={{
+            backgroundColor: color,
+            color: textColor,
+          }}
+          className={`flex flex-col w-full h-full relative overflow-hidden transition-all duration-200 ${
+            isBorderless
+              ? 'shadow-none border-0'
+              : 'shadow-2xl'
           }`}
         >
+          {/* ── RICH NOTE TOOLBAR ── */}
+          <div className="shrink-0 z-30">
+            <NoteRichToolbar
+              content={content}
+              onContentChange={(val) => {
+                setContent(val);
+                if (editor && editor.getHTML() !== val) {
+                  editor.commands.setContent(val, { emitUpdate: false });
+                }
+                handleAutoSave({ content: val });
+              }}
+              editor={editor}
+              color={color}
+              onColorChange={(newColor) => handleColorSelect(newColor)}
+              textColor={textColor}
+              onTextColorChange={(tc) => handleTextColorSelect(tc)}
+              isPinned={note.isPinned || false}
+              onTogglePin={async () => {
+                await togglePin(note.id);
+              }}
+              isBorderless={isBorderless}
+              onToggleBorderless={() => setIsBorderless(!isBorderless)}
+              zoomLevel={zoomLevel}
+              onZoomChange={(z) => setZoomLevel(z)}
+              onRecordAudio={() => setIsAudioModalOpen(true)}
+              onAttachFile={() => fileInputRef.current?.click()}
+              attachmentsCount={attachments.length}
+              onCopyNote={handleCopyNote}
+              onDownloadTxt={handleDownloadTxt}
+              onDownloadMd={() => {
+                const filename = `${(title || 'note').replace(/[^a-zA-Z0-9ก-๙_-]/g, '_')}.md`;
+                const textContent = editor ? editor.getText() : stripHtmlTags(content);
+                const blob = new Blob([`# ${title || 'ไม่มีชื่อบันทึก'}\n\n${textContent}`], {
+                  type: 'text/markdown;charset=utf-8',
+                });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+                toast.success('ดาวน์โหลดไฟล์ Markdown แล้ว');
+              }}
+              onPrint={() => window.print()}
+              onShare={() => setIsShareModalOpen(true)}
+              onOpenVersionHistory={() => setIsVersionDrawerOpen(true)}
+              onOpenOcr={() => setIsOcrModalOpen(true)}
+              onOpenAiAssistant={() => setIsAiModalOpen(true)}
+              onDelete={() => {
+                if (confirm('ต้องการย้ายโน้ตนี้ไปที่ถังขยะหรือไม่?')) {
+                  deleteNote(note.id);
+                  onClose();
+                }
+              }}
+              isTrulyFullscreen={true}
+              onToggleTrulyFullscreen={onClose}
+              onCancel={onClose}
+              onAccept={async () => {
+                await handleAutoSave({ title, content, color, textColor });
+                toast.success('บันทึกเรียบร้อย');
+                onClose();
+              }}
+            />
+          </div>
+
+          {/* ── MAIN READING & EDITING BODY WITH DRAG & DROP ── */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`relative flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 transition-all ${
+              isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
+            }`}
+          >
           {isDraggingOver && (
             <div className="absolute inset-0 z-40 bg-indigo-50/90 dark:bg-slate-900/90 backdrop-blur-xs border-2 border-dashed border-indigo-500 rounded-2xl flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400 pointer-events-none animate-fade-in">
               <Upload size={44} className="animate-bounce mb-2" />
@@ -658,6 +654,7 @@ export default function FullscreenNoteModal({
           }
         }}
       />
-    </div>
+      </div>
+    </ViewportPortal>
   );
 }
