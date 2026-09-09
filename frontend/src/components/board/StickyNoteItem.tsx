@@ -171,6 +171,7 @@ export default function StickyNoteItem({
 
   const [isRotating, setIsRotating] = useState(false);
   const currentRotationRef = useRef<number>(rotation);
+  const lastClickTimeRef = useRef<number>(0);
   const rotateStartRef = useRef<{ startY: number; startRotation: number; hasMoved: boolean }>({
     startY: 0,
     startRotation: 0,
@@ -324,12 +325,23 @@ export default function StickyNoteItem({
         if (rotateStartRef.current.hasMoved) {
           updateNote(note.id, { rotation: currentRotationRef.current });
         } else {
-          // If clicked without dragging, rotate +5°
-          let nextAngle = Math.round(currentRotationRef.current + 5);
-          if (nextAngle > 180) nextAngle = -175;
-          currentRotationRef.current = nextAngle;
-          setRotation(nextAngle);
-          updateNote(note.id, { rotation: nextAngle });
+          const now = Date.now();
+          if (now - lastClickTimeRef.current < 320) {
+            // Double click: reset rotation to 0°
+            lastClickTimeRef.current = 0;
+            currentRotationRef.current = 0;
+            setRotation(0);
+            updateNote(note.id, { rotation: 0 });
+            toast.success('รีเซ็ตการหมุนเป็น 0° แล้ว');
+          } else {
+            // Single click: rotate +5°
+            lastClickTimeRef.current = now;
+            let nextAngle = Math.round(currentRotationRef.current + 5);
+            if (nextAngle > 180) nextAngle = -175;
+            currentRotationRef.current = nextAngle;
+            setRotation(nextAngle);
+            updateNote(note.id, { rotation: nextAngle });
+          }
         }
       }
       if (isDragging) {
@@ -469,6 +481,15 @@ export default function StickyNoteItem({
         onMouseDown={handleMouseDown}
         onDoubleClick={(e) => {
           e.stopPropagation();
+          // Never open fullscreen when double-clicking on buttons, controls, inputs, or .no-drag elements
+          if (
+            (e.target as HTMLElement).closest('button') ||
+            (e.target as HTMLElement).closest('.no-drag') ||
+            (e.target as HTMLElement).closest('input') ||
+            (e.target as HTMLElement).closest('textarea')
+          ) {
+            return;
+          }
           if (onOpenFullscreen) onOpenFullscreen(note);
         }}
         onContextMenu={(e) => {
@@ -505,7 +526,14 @@ export default function StickyNoteItem({
             <button
               type="button"
               onMouseDown={handleRotateMouseDown}
-              onDoubleClick={handleResetRotation}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleResetRotation(e);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
               className={`p-1 rounded hover:bg-black/15 transition flex items-center gap-0.5 cursor-ns-resize ${
                 isRotating
                   ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-100/70 dark:bg-indigo-950/70 ring-2 ring-indigo-500 scale-105'
