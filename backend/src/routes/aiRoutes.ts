@@ -8,6 +8,7 @@ router.use(authenticate);
 
 router.post('/summarize', AiController.summarize);
 router.post('/rewrite', AiController.rewrite);
+router.post('/format', AiController.format);
 router.get('/search', AiController.search);
 
 export default router;

@@ -143,6 +143,12 @@ export interface AIRewriteResult {
   rewritten: string;
 }
 
+export interface AIFormatResult {
+  engine: string;
+  formattedHtml: string;
+  template: string;
+}
+
 export interface AISearchResult {
   total: number;
   query: string;

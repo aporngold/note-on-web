@@ -644,9 +644,13 @@ export default function FullscreenNoteModal({
         onClose={() => setIsAiModalOpen(false)}
         noteTitle={title}
         noteContent={editor ? editor.getHTML() : content}
-        onInsertContent={(html) => {
+        onInsertContent={(html, mode = 'insert') => {
           if (editor) {
-            editor.chain().focus().insertContent(html).run();
+            if (mode === 'replace') {
+              editor.commands.setContent(html);
+            } else {
+              editor.chain().focus().insertContent(html).run();
+            }
           }
         }}
       />
