@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const versionController_1 = require("../controllers/versionController");
+const auth_1 = require("../middleware/auth");
+const router = (0, express_1.Router)({ mergeParams: true });
+router.use(auth_1.authenticate);
+router.get('/:noteId/versions', versionController_1.VersionController.getVersions);
+router.post('/:noteId/versions', versionController_1.VersionController.createVersion);
+router.post('/:noteId/versions/:versionId/restore', versionController_1.VersionController.restoreVersion);
+exports.default = router;

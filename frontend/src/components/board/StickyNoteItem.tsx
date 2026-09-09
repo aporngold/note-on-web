@@ -24,6 +24,8 @@ import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import toast from 'react-hot-toast';
+import ViewportPopover from '../ui/ViewportPopover';
+import ViewportContextMenu from '../ui/ViewportContextMenu';
 
 interface StickyNoteItemProps {
   note: Note;
@@ -108,8 +110,17 @@ export default function StickyNoteItem({
   const [isKanbanStatusOpen, setIsKanbanStatusOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const paperColorBtnRef = useRef<HTMLButtonElement>(null);
+  const textColorBtnRef = useRef<HTMLButtonElement>(null);
+  const fontFamilyBtnRef = useRef<HTMLButtonElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const kanbanBtnRef = useRef<HTMLButtonElement>(null);
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+  });
 
   // Position state
   const [pos, setPos] = useState({
@@ -386,6 +397,11 @@ export default function StickyNoteItem({
           e.stopPropagation();
           if (onOpenFullscreen) onOpenFullscreen(note);
         }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY });
+        }}
       >
         {/* ── Tape (when not pinned) ── */}
         {!note.isPinned && (
@@ -490,6 +506,7 @@ export default function StickyNoteItem({
             {!isCompact && (
               <div className="relative">
                 <button
+                  ref={fontFamilyBtnRef}
                   onClick={() => {
                     setIsFontFamilyOpen(!isFontFamilyOpen);
                     setIsColorPickerOpen(false);
@@ -504,7 +521,14 @@ export default function StickyNoteItem({
                 </button>
 
                 {isFontFamilyOpen && (
-                  <div className="absolute right-0 top-6 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 shadow-xl w-28 animate-fade-in text-slate-800 dark:text-slate-100">
+                  <ViewportPopover
+                    isOpen={isFontFamilyOpen}
+                    onClose={() => setIsFontFamilyOpen(false)}
+                    triggerRef={fontFamilyBtnRef}
+                    placement="bottom-end"
+                    offset={4}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 shadow-xl w-28 animate-fade-in text-slate-800 dark:text-slate-100"
+                  >
                     <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">แบบอักษร:</p>
                     {FONT_FAMILIES.map((ff) => (
                       <button
@@ -520,7 +544,7 @@ export default function StickyNoteItem({
                         {fontFamily === ff.value && <Check size={11} />}
                       </button>
                     ))}
-                  </div>
+                  </ViewportPopover>
                 )}
               </div>
             )}
@@ -528,6 +552,7 @@ export default function StickyNoteItem({
             {/* Paper Color button */}
             <div className="relative">
               <button
+                ref={paperColorBtnRef}
                 onClick={() => {
                   setIsColorPickerOpen(!isColorPickerOpen);
                   setIsTextColorOpen(false);
@@ -542,7 +567,14 @@ export default function StickyNoteItem({
               </button>
 
               {isColorPickerOpen && (
-                <div className="absolute right-0 top-6 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-xl flex gap-1.5 flex-wrap w-36 animate-fade-in text-slate-800 dark:text-slate-100">
+                <ViewportPopover
+                  isOpen={isColorPickerOpen}
+                  onClose={() => setIsColorPickerOpen(false)}
+                  triggerRef={paperColorBtnRef}
+                  placement="bottom-end"
+                  offset={4}
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-xl flex gap-1.5 flex-wrap w-36 animate-fade-in text-slate-800 dark:text-slate-100"
+                >
                   <p className="w-full text-[10px] font-bold text-slate-400 mb-1 px-1">สีกระดาษ:</p>
                   {PAPER_COLORS.map((c) => (
                     <button
@@ -555,7 +587,7 @@ export default function StickyNoteItem({
                       {paperColor === c.bg && <Check size={10} className="text-slate-800" />}
                     </button>
                   ))}
-                </div>
+                </ViewportPopover>
               )}
             </div>
 
@@ -563,6 +595,7 @@ export default function StickyNoteItem({
             {!isNarrow && (
               <div className="relative">
                 <button
+                  ref={textColorBtnRef}
                   onClick={() => {
                     setIsTextColorOpen(!isTextColorOpen);
                     setIsColorPickerOpen(false);
@@ -577,7 +610,14 @@ export default function StickyNoteItem({
                 </button>
 
                 {isTextColorOpen && (
-                  <div className="absolute right-0 top-6 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-xl flex gap-1.5 flex-wrap w-36 animate-fade-in text-slate-800 dark:text-slate-100">
+                  <ViewportPopover
+                    isOpen={isTextColorOpen}
+                    onClose={() => setIsTextColorOpen(false)}
+                    triggerRef={textColorBtnRef}
+                    placement="bottom-end"
+                    offset={4}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 shadow-xl flex gap-1.5 flex-wrap w-36 animate-fade-in text-slate-800 dark:text-slate-100"
+                  >
                     <p className="w-full text-[10px] font-bold text-slate-400 mb-1 px-1">สีหมึกตัวอักษร:</p>
                     {TEXT_COLORS.map((tc) => (
                       <button
@@ -590,7 +630,7 @@ export default function StickyNoteItem({
                         {textColor === tc.color && <Check size={10} className={tc.color === '#F8FAFC' ? 'text-slate-800' : 'text-white'} />}
                       </button>
                     ))}
-                  </div>
+                  </ViewportPopover>
                 )}
               </div>
             )}
@@ -615,6 +655,7 @@ export default function StickyNoteItem({
             {/* More Menu (Move board, font sizes in compact mode, etc.) */}
             <div className="relative">
               <button
+                ref={moreBtnRef}
                 onClick={() => {
                   setIsMoveBoardOpen(!isMoveBoardOpen);
                   setIsColorPickerOpen(false);
@@ -629,7 +670,14 @@ export default function StickyNoteItem({
               </button>
 
               {isMoveBoardOpen && (
-                <div className="absolute right-0 top-full mt-1 p-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 min-w-[160px] animate-fade-in text-slate-800 dark:text-slate-100 space-y-2">
+                <ViewportPopover
+                  isOpen={isMoveBoardOpen}
+                  onClose={() => setIsMoveBoardOpen(false)}
+                  triggerRef={moreBtnRef}
+                  placement="bottom-end"
+                  offset={4}
+                  className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 min-w-[170px] animate-fade-in text-slate-800 dark:text-slate-100 space-y-2"
+                >
                   {/* Compact Mode: Font Size Selector */}
                   {isCompact && (
                     <div className="border-b border-slate-100 dark:border-slate-700 pb-2">
@@ -683,7 +731,7 @@ export default function StickyNoteItem({
                           <button
                             key={tc.name}
                             onClick={() => handleTextColorChange(tc.color)}
-                            className="w-4 h-4 rounded-full border border-slate-300 shadow-xs"
+                            className="w-4 h-4 rounded-full border border-slate-300 shadow-sm"
                             style={{ backgroundColor: tc.color }}
                             title={tc.name}
                           />
@@ -761,7 +809,7 @@ export default function StickyNoteItem({
                       <span>ย้ายโน้ตไปที่ถังขยะ</span>
                     </button>
                   </div>
-                </div>
+                </ViewportPopover>
               )}
             </div>
 
@@ -799,6 +847,7 @@ export default function StickyNoteItem({
         <div className="flex items-center justify-between mb-1 no-drag">
           <div className="relative">
             <button
+              ref={kanbanBtnRef}
               onClick={() => setIsKanbanStatusOpen(!isKanbanStatusOpen)}
               className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 transition ${currentKanbanObj.color}`}
             >
@@ -807,7 +856,14 @@ export default function StickyNoteItem({
             </button>
 
             {isKanbanStatusOpen && (
-              <div className="absolute left-0 top-5 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-lg w-28 text-slate-800 dark:text-slate-100 animate-fade-in">
+              <ViewportPopover
+                isOpen={isKanbanStatusOpen}
+                onClose={() => setIsKanbanStatusOpen(false)}
+                triggerRef={kanbanBtnRef}
+                placement="bottom-start"
+                offset={4}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-lg w-28 text-slate-800 dark:text-slate-100 animate-fade-in"
+              >
                 {KANBAN_STATUSES.map((k) => (
                   <button
                     key={k.value}
@@ -820,7 +876,7 @@ export default function StickyNoteItem({
                     {kanbanStatus === k.value && <Check size={11} />}
                   </button>
                 ))}
-              </div>
+              </ViewportPopover>
             )}
           </div>
 
@@ -1025,6 +1081,62 @@ export default function StickyNoteItem({
           </div>
         </div>
       )}
+
+      {/* Context Menu with Viewport Collision Detection */}
+      <ViewportContextMenu
+        isOpen={contextMenu.isOpen}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        onClose={() => setContextMenu({ isOpen: false, x: 0, y: 0 })}
+      >
+        <div className="space-y-0.5 min-w-[160px]">
+          <button
+            type="button"
+            onClick={() => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              if (onOpenFullscreen) onOpenFullscreen(note);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition"
+          >
+            <Maximize2 size={13} className="text-indigo-500" />
+            <span>เปิดดูเต็มจอ</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              togglePin(note.id);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition"
+          >
+            <Pin size={13} className={note.isPinned ? 'fill-current text-indigo-600' : 'text-slate-400'} />
+            <span>{note.isPinned ? 'ถอดหมุด' : 'ปักหมุด'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              toggleFavorite(note.id);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition"
+          >
+            <Star size={13} className={note.isFavorite ? 'fill-current text-amber-500' : 'text-slate-400'} />
+            <span>{note.isFavorite ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}</span>
+          </button>
+          <hr className="my-1 border-slate-100 dark:border-slate-800" />
+          <button
+            type="button"
+            onClick={() => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              deleteNote(note.id);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 text-left font-medium text-xs transition"
+          >
+            <Trash2 size={13} />
+            <span>ย้ายไปถังขยะ</span>
+          </button>
+        </div>
+      </ViewportContextMenu>
     </>
   );
 }

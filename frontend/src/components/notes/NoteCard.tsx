@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music, Maximize2, Share2 } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music, Maximize2, Share2, MoreVertical, Edit3 } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import { stripHtmlTags } from '@/utils/editorHelper';
+import ViewportContextMenu, { ViewportMenuItem } from '../ui/ViewportContextMenu';
+import ViewportPopover from '../ui/ViewportPopover';
 
 interface NoteCardProps {
   note: Note;
@@ -43,6 +45,14 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
   // Strip markdown/html tags for clean preview
   const cleanPreview = stripHtmlTags(previewText);
 
+  const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+  });
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+
   const handleClick = () => {
     if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {
       onUnlockRequest();
@@ -55,6 +65,16 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
     router.push(`/notes/${note.id}`);
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
   return (
     <div
       onClick={handleClick}
@@ -62,6 +82,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
         e.stopPropagation();
         if (onOpenFullscreen) onOpenFullscreen(note);
       }}
+      onContextMenu={handleContextMenu}
       className={`group relative bg-white dark:bg-slate-800/90 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden ${
         note.isPinned ? 'ring-2 ring-indigo-500/30' : ''
       }`}
@@ -254,8 +275,137 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
           >
             <Trash2 size={14} />
           </button>
+
+          {/* More options button with Viewport Collision Detection */}
+          <div className="relative">
+            <button
+              ref={moreBtnRef}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMoreOpen(!isMoreOpen);
+              }}
+              className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+              title="เมนูตัวเลือก"
+            >
+              <MoreVertical size={14} />
+            </button>
+            <ViewportPopover
+              triggerRef={moreBtnRef}
+              isOpen={isMoreOpen}
+              onClose={() => setIsMoreOpen(false)}
+              className="w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 text-xs divide-y divide-slate-100 dark:divide-slate-700"
+            >
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
+                    if (onOpenFullscreen) onOpenFullscreen(note);
+                    else router.push(`/notes/${note.id}`);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                  <Maximize2 size={13} />
+                  <span>ดูแบบเต็มจอ</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
+                    toggleFavorite(note.id);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                  <Star size={13} className={note.isFavorite ? 'fill-amber-500 text-amber-500' : ''} />
+                  <span>{note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
+                    togglePin(note.id);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                  <Pin size={13} className={note.isPinned ? 'fill-indigo-500 text-indigo-500' : ''} />
+                  <span>{note.isPinned ? 'ยกเลิกปักหมุด' : 'ปักหมุด'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
+                    duplicateNote(note.id);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                  <Copy size={13} />
+                  <span>คัดลอกโน้ต</span>
+                </button>
+              </div>
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
+                    deleteNote(note.id);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 text-rose-600 font-medium"
+                >
+                  <Trash2 size={13} />
+                  <span>ย้ายไปถังขยะ</span>
+                </button>
+              </div>
+            </ViewportPopover>
+          </div>
         </div>
       </div>
+
+      {/* Right-click Viewport Collision-Aware Context Menu */}
+      <ViewportContextMenu
+        isOpen={contextMenu.isOpen}
+        x={contextMenu.x}
+        y={contextMenu.y}
+        onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
+      >
+        <div className="py-1">
+          <ViewportMenuItem
+            icon={<Maximize2 size={14} />}
+            label="เปิดดู / แก้ไขแบบเต็มจอ"
+            onClick={() => {
+              if (onOpenFullscreen) onOpenFullscreen(note);
+              else router.push(`/notes/${note.id}`);
+            }}
+          />
+          <ViewportMenuItem
+            icon={<Star size={14} className={note.isFavorite ? 'fill-amber-500 text-amber-500' : ''} />}
+            label={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
+            onClick={() => toggleFavorite(note.id)}
+          />
+          <ViewportMenuItem
+            icon={<Pin size={14} className={note.isPinned ? 'fill-indigo-500 text-indigo-500' : ''} />}
+            label={note.isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ต'}
+            onClick={() => togglePin(note.id)}
+          />
+          <ViewportMenuItem
+            icon={<Copy size={14} />}
+            label="คัดลอกโน้ตนี้"
+            onClick={() => duplicateNote(note.id)}
+          />
+        </div>
+        <div className="py-1 border-t border-slate-100 dark:border-slate-800">
+          <ViewportMenuItem
+            icon={<Trash2 size={14} />}
+            label="ย้ายไปถังขยะ"
+            danger
+            onClick={() => deleteNote(note.id)}
+          />
+        </div>
+      </ViewportContextMenu>
     </div>
   );
 }

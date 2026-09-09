@@ -17,6 +17,7 @@ const createNoteSchema = zod_1.z.object({
     height: zod_1.z.number().optional().default(240),
     isLocked: zod_1.z.boolean().optional().default(false),
     isPinned: zod_1.z.boolean().optional().default(false),
+    isFavorite: zod_1.z.boolean().optional().default(false),
     notebookId: zod_1.z.string().nullable().optional(),
     boardId: zod_1.z.string().nullable().optional(),
     labelIds: zod_1.z.array(zod_1.z.string()).optional().default([]),
@@ -37,6 +38,7 @@ const updateNoteSchema = zod_1.z.object({
     height: zod_1.z.number().optional(),
     isLocked: zod_1.z.boolean().optional(),
     isPinned: zod_1.z.boolean().optional(),
+    isFavorite: zod_1.z.boolean().optional(),
     isArchived: zod_1.z.boolean().optional(),
     notebookId: zod_1.z.string().nullable().optional(),
     boardId: zod_1.z.string().nullable().optional(),
@@ -48,7 +50,7 @@ class NoteController {
     static async getNotes(req, res) {
         try {
             const userId = req.userId;
-            const { search, notebookId, labelId, isArchived, isPinned, isLocked, color, boardId, } = req.query;
+            const { search, notebookId, labelId, isArchived, isPinned, isFavorite, isLocked, color, boardId, } = req.query;
             const where = {
                 userId,
             };
@@ -68,6 +70,10 @@ class NoteController {
             // Pin filter
             if (isPinned !== undefined) {
                 where.isPinned = isPinned === 'true';
+            }
+            // Favorite filter
+            if (isFavorite !== undefined) {
+                where.isFavorite = isFavorite === 'true';
             }
             // Notebook filter
             if (notebookId && !isViewingTrash) {
@@ -178,7 +184,7 @@ class NoteController {
             if (!parsed.success) {
                 return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Invalid note data' });
             }
-            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, posX, posY, width, height, isLocked, isPinned, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
+            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, posX, posY, width, height, isLocked, isPinned, isFavorite, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
             // Verify notebook ownership if provided
             if (notebookId) {
                 const nb = await database_1.prisma.notebook.findFirst({
@@ -203,6 +209,7 @@ class NoteController {
                     height: height !== undefined ? height : 240,
                     isLocked: !!isLocked,
                     isPinned: !!isPinned,
+                    isFavorite: !!isFavorite,
                     iv: iv || null,
                     salt: salt || null,
                     userId,
@@ -251,7 +258,7 @@ class NoteController {
             if (!note) {
                 return res.status(404).json({ error: 'Note not found' });
             }
-            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, posX, posY, width, height, isLocked, isPinned, isArchived, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
+            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, posX, posY, width, height, isLocked, isPinned, isFavorite, isArchived, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
             // Handle label relations update if provided
             if (labelIds !== undefined) {
                 await database_1.prisma.labelNote.deleteMany({
@@ -274,6 +281,7 @@ class NoteController {
                     ...(height !== undefined && { height }),
                     ...(isLocked !== undefined && { isLocked }),
                     ...(isPinned !== undefined && { isPinned }),
+                    ...(isFavorite !== undefined && { isFavorite }),
                     ...(isArchived !== undefined && { isArchived }),
                     ...(notebookId !== undefined && { notebookId }),
                     ...(boardId !== undefined && { boardId }),
@@ -374,6 +382,7 @@ class NoteController {
                     color: original.color,
                     isLocked: original.isLocked,
                     isPinned: false,
+                    isFavorite: original.isFavorite,
                     iv: original.iv,
                     salt: original.salt,
                     userId,
@@ -421,6 +430,29 @@ class NoteController {
         }
         catch (error) {
             return res.status(500).json({ error: 'Failed to toggle pin' });
+        }
+    }
+    static async toggleFavorite(req, res) {
+        try {
+            const userId = req.userId;
+            const { id } = req.params;
+            const note = await database_1.prisma.note.findFirst({
+                where: { id, userId },
+            });
+            if (!note) {
+                return res.status(404).json({ error: 'Note not found' });
+            }
+            const updated = await database_1.prisma.note.update({
+                where: { id },
+                data: { isFavorite: !note.isFavorite },
+            });
+            return res.json({
+                message: updated.isFavorite ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว',
+                isFavorite: updated.isFavorite,
+            });
+        }
+        catch (error) {
+            return res.status(500).json({ error: 'Failed to toggle favorite' });
         }
     }
     static async emptyTrash(req, res) {
