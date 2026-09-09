@@ -8,6 +8,7 @@ import StickyBoard from '@/components/board/StickyBoard';
 import KanbanView from '@/components/board/KanbanView';
 import MasterPasswordModal from '@/components/notes/MasterPasswordModal';
 import FullscreenNoteModal from '@/components/notes/FullscreenNoteModal';
+import AISearchModal from '@/components/dashboard/AISearchModal';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { Note } from '@/types';
@@ -36,6 +37,7 @@ export default function Dashboard() {
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites'>('all');
+  const [isAiSearchOpen, setIsAiSearchOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -129,6 +131,17 @@ export default function Dashboard() {
               >
                 <Star size={13} className="fill-current" />
                 <span>รายการโปรด ({notes.filter((n) => n.isFavorite).length})</span>
+              </button>
+
+              {/* AI Search Trigger Button */}
+              <button
+                type="button"
+                onClick={() => setIsAiSearchOpen(true)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-sm transition"
+                title="ค้นหาโน้ตตามความหมายด้วย AI (ฟรี 100%)"
+              >
+                <Sparkles size={13} />
+                <span>ค้นหา AI</span>
               </button>
             </div>
           </div>
@@ -296,6 +309,13 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      {/* Semantic AI Search Modal */}
+      <AISearchModal
+        isOpen={isAiSearchOpen}
+        onClose={() => setIsAiSearchOpen(false)}
+        onSelectNote={(note) => setFullscreenNote(note)}
+      />
     </Layout>
   );
 }

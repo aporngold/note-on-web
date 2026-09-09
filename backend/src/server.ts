@@ -13,6 +13,9 @@ import noteRoutes from './routes/noteRoutes';
 import notebookRoutes from './routes/notebookRoutes';
 import labelRoutes from './routes/labelRoutes';
 import boardRoutes from './routes/boardRoutes';
+import versionRoutes from './routes/versionRoutes';
+import shareRoutes from './routes/shareRoutes';
+import aiRoutes from './routes/aiRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -119,24 +122,78 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', noteRoutes);
+app.use('/api/notes', versionRoutes);
+app.use('/api/share', shareRoutes);
+app.use('/api/ai', aiRoutes);
 app.use('/api/notebooks', notebookRoutes);
 app.use('/api/labels', labelRoutes);
 app.use('/api/boards', boardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/connections', connectionRoutes);
 
+// Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
+const notePresenceMap = new Map<string, Map<string, { userId: string; username: string; color?: string }>>();
+
+const PRESENCE_COLORS = [
+  '#6366F1', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#14B8A6'
+];
+
 // Socket.io for real-time collaboration / live notes sync
 io.on('connection', (socket) => {
-  socket.on('join-note', (noteId: string) => {
+  socket.on('join-note', (data: string | { noteId: string; userId?: string; username?: string }) => {
+    const noteId = typeof data === 'string' ? data : data.noteId;
+    const userId = typeof data === 'object' ? data.userId : undefined;
+    const username = typeof data === 'object' ? data.username : undefined;
+
     socket.join(`note:${noteId}`);
+
+    if (noteId && username) {
+      if (!notePresenceMap.has(noteId)) {
+        notePresenceMap.set(noteId, new Map());
+      }
+      const roomUsers = notePresenceMap.get(noteId)!;
+      const color = PRESENCE_COLORS[roomUsers.size % PRESENCE_COLORS.length];
+      roomUsers.set(socket.id, { userId: userId || socket.id, username, color });
+
+      // Broadcast active user list to room
+      const activeList = Array.from(roomUsers.values());
+      io.to(`note:${noteId}`).emit('note-presence-updated', activeList);
+    }
   });
 
   socket.on('leave-note', (noteId: string) => {
     socket.leave(`note:${noteId}`);
+    if (notePresenceMap.has(noteId)) {
+      const roomUsers = notePresenceMap.get(noteId)!;
+      roomUsers.delete(socket.id);
+      if (roomUsers.size === 0) {
+        notePresenceMap.delete(noteId);
+      } else {
+        io.to(`note:${noteId}`).emit('note-presence-updated', Array.from(roomUsers.values()));
+      }
+    }
+  });
+
+  socket.on('note-cursor', (data: { noteId: string; username: string; color?: string; pos?: number }) => {
+    socket.to(`note:${data.noteId}`).emit('remote-note-cursor', data);
   });
 
   socket.on('note-update', (data: { noteId: string; [key: string]: any }) => {
     socket.to(`note:${data.noteId}`).emit('note-updated', data);
+  });
+
+  // Handle disconnect to clean up presence
+  socket.on('disconnect', () => {
+    notePresenceMap.forEach((roomUsers, noteId) => {
+      if (roomUsers.has(socket.id)) {
+        roomUsers.delete(socket.id);
+        if (roomUsers.size === 0) {
+          notePresenceMap.delete(noteId);
+        } else {
+          io.to(`note:${noteId}`).emit('note-presence-updated', Array.from(roomUsers.values()));
+        }
+      }
+    });
   });
 
   // Real-time board collaboration

@@ -2,7 +2,7 @@ import React from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music, Maximize2 } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music, Maximize2, Share2 } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -100,6 +100,16 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               >
                 <Paperclip size={11} />
                 {note.attachments.length}
+              </span>
+            )}
+
+            {note.shareCode && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                title="แชร์สาธารณะอยู่"
+              >
+                <Share2 size={11} />
+                <span>แชร์</span>
               </span>
             )}
           </div>

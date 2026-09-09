@@ -50,12 +50,16 @@ model Note {
   isLocked      Boolean      @default(false)
   isPinned      Boolean      @default(false)
   isFavorite    Boolean      @default(false)
+  shareCode     String?      @unique
+  sharePassword String?
+  sharePermission String     @default("read") // 'read' | 'edit'
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   
   labels        LabelNote[]
   shares        SharedNote[]
   attachments   FileAttachment[]
+  versions      NoteVersion[]
   outgoingLinks NoteConnection[] @relation("SourceNote")
   incomingLinks NoteConnection[] @relation("TargetNote")
 }
@@ -163,4 +167,14 @@ model Session {
   token         String       @unique
   expiresAt     DateTime
   createdAt     DateTime     @default(now())
+}
+
+model NoteVersion {
+  id        String   @id @default(cuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  title     String?
+  content   String
+  userId    String
+  createdAt DateTime @default(now())
 }

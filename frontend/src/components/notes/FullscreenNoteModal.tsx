@@ -43,6 +43,11 @@ import { useNoteStore } from '@/store/noteStore';
 import toast from 'react-hot-toast';
 import NoteRichToolbar from './NoteRichToolbar';
 import AudioRecorderModal from './AudioRecorderModal';
+import ShareNoteModal from './ShareNoteModal';
+import VersionHistoryDrawer from './VersionHistoryDrawer';
+import ImageOcrModal from './ImageOcrModal';
+import AIAssistantModal from './AIAssistantModal';
+import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 interface FullscreenNoteModalProps {
@@ -99,6 +104,10 @@ export default function FullscreenNoteModal({
   const [isCopied, setIsCopied] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isVersionDrawerOpen, setIsVersionDrawerOpen] = useState(false);
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -383,14 +392,10 @@ export default function FullscreenNoteModal({
             toast.success('ดาวน์โหลดไฟล์ Markdown แล้ว');
           }}
           onPrint={() => window.print()}
-          onShare={() => {
-            const textContent = editor ? editor.getText() : stripHtmlTags(content);
-            if (typeof navigator !== 'undefined' && navigator.share) {
-              navigator.share({ title, text: textContent }).catch(() => {});
-            } else {
-              handleCopyNote();
-            }
-          }}
+          onShare={() => setIsShareModalOpen(true)}
+          onOpenVersionHistory={() => setIsVersionDrawerOpen(true)}
+          onOpenOcr={() => setIsOcrModalOpen(true)}
+          onOpenAiAssistant={() => setIsAiModalOpen(true)}
           onDelete={() => {
             if (confirm('ต้องการย้ายโน้ตนี้ไปที่ถังขยะหรือไม่?')) {
               deleteNote(note.id);
@@ -536,6 +541,8 @@ export default function FullscreenNoteModal({
             {note.notebook && <span>📁 {note.notebook.name}</span>}
           </div>
 
+          <ActiveCollaboratorsBar noteId={note.id} />
+
           <div className="flex items-center gap-2">
             <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1 mr-2 hidden sm:flex">
               <Check size={14} />
@@ -592,6 +599,54 @@ export default function FullscreenNoteModal({
         onAudioSaved={(audioUrl, originalName) => {
           if (editor) {
             editor.chain().focus().insertContent(`<p><audio controls src="${audioUrl}"></audio></p>`).run();
+          }
+        }}
+      />
+
+      {/* Share Note Modal */}
+      <ShareNoteModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        noteId={note.id}
+        noteTitle={title}
+      />
+
+      {/* Version History Drawer */}
+      <VersionHistoryDrawer
+        isOpen={isVersionDrawerOpen}
+        onClose={() => setIsVersionDrawerOpen(false)}
+        noteId={note.id}
+        currentTitle={title}
+        currentContent={content}
+        onRestore={(restored) => {
+          setTitle(restored.title || '');
+          setContent(restored.content || '');
+          if (editor) {
+            editor.commands.setContent(restored.content || '', { emitUpdate: false });
+          }
+        }}
+      />
+
+      {/* Image OCR Modal */}
+      <ImageOcrModal
+        isOpen={isOcrModalOpen}
+        onClose={() => setIsOcrModalOpen(false)}
+        onInsertText={(text) => {
+          if (editor) {
+            editor.chain().focus().insertContent(`<p>${text.replace(/\n/g, '<br/>')}</p>`).run();
+          }
+        }}
+      />
+
+      {/* AI Assistant Modal */}
+      <AIAssistantModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        noteTitle={title}
+        noteContent={editor ? editor.getHTML() : content}
+        onInsertContent={(html) => {
+          if (editor) {
+            editor.chain().focus().insertContent(html).run();
           }
         }}
       />

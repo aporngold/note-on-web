@@ -24,6 +24,10 @@ import {
   Plus,
   X,
   Maximize2,
+  Share2,
+  History,
+  ScanText,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -50,6 +54,12 @@ import NoteRichToolbar from './NoteRichToolbar';
 import AudioRecorderModal from './AudioRecorderModal';
 import NoteAttachmentDrawer from './NoteAttachmentDrawer';
 import FullscreenNoteModal from './FullscreenNoteModal';
+import ShareNoteModal from './ShareNoteModal';
+import VersionHistoryDrawer from './VersionHistoryDrawer';
+import ImageOcrModal from './ImageOcrModal';
+import AIAssistantModal from './AIAssistantModal';
+import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
+import SpeechToTextButton from './SpeechToTextButton';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 const COLORS = [
@@ -82,6 +92,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isAttachmentDrawerOpen, setIsAttachmentDrawerOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isVersionDrawerOpen, setIsVersionDrawerOpen] = useState(false);
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isFullscreenModalOpen, setIsFullscreenModalOpen] = useState(false);
   const [activeNoteForModal, setActiveNoteForModal] = useState<Note | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -689,6 +703,54 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <Mic size={17} />
           </button>
 
+          {/* Speech-to-Text Live Dictation */}
+          <SpeechToTextButton editor={editor || null} />
+
+          {/* OCR Image Button */}
+          <button
+            onClick={() => setIsOcrModalOpen(true)}
+            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
+            title="สแกนข้อความจากรูปภาพ (Free OCR)"
+          >
+            <ScanText size={17} />
+            <span className="hidden md:inline">OCR</span>
+          </button>
+
+          {/* AI Assistant Button */}
+          <button
+            onClick={() => setIsAiModalOpen(true)}
+            className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center gap-1 text-xs font-bold shadow-sm"
+            title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
+          >
+            <Sparkles size={14} />
+            <span className="hidden md:inline">AI ผู้ช่วย</span>
+          </button>
+
+          {/* Version History Button */}
+          {initialNoteId && (
+            <button
+              onClick={() => setIsVersionDrawerOpen(true)}
+              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              title="ประวัติเวอร์ชัน (Version History)"
+            >
+              <History size={17} />
+            </button>
+          )}
+
+          {/* Share Button */}
+          {initialNoteId && (
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              title="แชร์โน้ตนี้"
+            >
+              <Share2 size={17} />
+            </button>
+          )}
+
+          {/* Active Collaborators presence */}
+          {initialNoteId && <ActiveCollaboratorsBar noteId={initialNoteId} />}
+
           {/* Preview Toggle */}
           <button
             onClick={() => setIsPreview(!isPreview)}
@@ -1102,6 +1164,58 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           }}
         />
       )}
+
+      {/* Share Note Modal */}
+      {initialNoteId && (
+        <ShareNoteModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          noteId={initialNoteId}
+          noteTitle={title}
+        />
+      )}
+
+      {/* Version History Drawer */}
+      {initialNoteId && (
+        <VersionHistoryDrawer
+          isOpen={isVersionDrawerOpen}
+          onClose={() => setIsVersionDrawerOpen(false)}
+          noteId={initialNoteId}
+          currentTitle={title}
+          currentContent={content}
+          onRestore={(restored) => {
+            setTitle(restored.title || '');
+            setContent(restored.content || '');
+            if (editor) {
+              editor.commands.setContent(restored.content || '', { emitUpdate: false });
+            }
+          }}
+        />
+      )}
+
+      {/* Image OCR Modal */}
+      <ImageOcrModal
+        isOpen={isOcrModalOpen}
+        onClose={() => setIsOcrModalOpen(false)}
+        onInsertText={(text) => {
+          if (editor) {
+            editor.chain().focus().insertContent(`<p>${text.replace(/\n/g, '<br/>')}</p>`).run();
+          }
+        }}
+      />
+
+      {/* AI Assistant Modal */}
+      <AIAssistantModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        noteTitle={title}
+        noteContent={editor ? editor.getHTML() : content}
+        onInsertContent={(html) => {
+          if (editor) {
+            editor.chain().focus().insertContent(html).run();
+          }
+        }}
+      />
     </div>
   );
 }

@@ -102,8 +102,51 @@ export interface Note {
   board?: Board | null;
   labels?: Label[];
   attachments?: FileAttachment[];
+  shareCode?: string | null;
+  sharePermission?: 'read' | 'edit';
+  hasPassword?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface NoteVersion {
+  id: string;
+  noteId: string;
+  title?: string | null;
+  content: string;
+  userId: string;
+  createdAt: string;
+}
+
+export interface ShareSettings {
+  isShared: boolean;
+  shareCode?: string | null;
+  sharePermission: 'read' | 'edit';
+  hasPassword: boolean;
+}
+
+export interface ActiveCollaborator {
+  userId: string;
+  username: string;
+  color?: string;
+}
+
+export interface AISummaryResult {
+  engine: string;
+  summary: string;
+  bullets: string[];
+  actionItems: string[];
+}
+
+export interface AIRewriteResult {
+  engine: string;
+  rewritten: string;
+}
+
+export interface AISearchResult {
+  total: number;
+  query: string;
+  results: Array<Note & { matchScore: number; snippet: string }>;
 }
 
 export type ViewMode = 'grid' | 'list' | 'kanban' | 'board';

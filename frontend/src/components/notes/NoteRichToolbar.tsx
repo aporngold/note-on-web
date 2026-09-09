@@ -44,8 +44,12 @@ import {
   Highlighter,
   Mic,
   Quote as QuoteIcon,
+  Sparkles,
+  ScanText,
+  History,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import SpeechToTextButton from './SpeechToTextButton';
 
 export const PASTEL_PALETTE = [
   { name: 'สีขาว', bg: '#FFFFFF', border: '#E2E8F0', text: '#0F172A' },
@@ -101,6 +105,9 @@ interface NoteRichToolbarProps {
   onDownloadMd?: () => void;
   onPrint?: () => void;
   onShare?: () => void;
+  onOpenAiAssistant?: () => void;
+  onOpenOcr?: () => void;
+  onOpenVersionHistory?: () => void;
   onMoveBoard?: () => void;
   onDelete?: () => void;
   isTrulyFullscreen?: boolean;
@@ -133,6 +140,9 @@ export default function NoteRichToolbar({
   onDownloadMd,
   onPrint,
   onShare,
+  onOpenAiAssistant,
+  onOpenOcr,
+  onOpenVersionHistory,
   onMoveBoard,
   onDelete,
   isTrulyFullscreen,
@@ -726,6 +736,17 @@ export default function NoteRichToolbar({
               title="แชร์โน้ตนี้"
             >
               <Share2 size={16} />
+            </button>
+          )}
+
+          {onOpenVersionHistory && (
+            <button
+              type="button"
+              onClick={onOpenVersionHistory}
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+              title="ประวัติเวอร์ชัน (Version History)"
+            >
+              <History size={16} />
             </button>
           )}
 
@@ -1736,6 +1757,38 @@ export default function NoteRichToolbar({
             </div>
           )}
         </div>
+
+        {/* Separator */}
+        <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+
+        {/* Speech to Text Live Dictation */}
+        <SpeechToTextButton editor={editor || null} />
+
+        {/* Image OCR Button */}
+        {onOpenOcr && (
+          <button
+            type="button"
+            onClick={onOpenOcr}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition shadow-xs"
+            title="สแกนข้อความจากรูปภาพ (Free OCR)"
+          >
+            <ScanText size={14} />
+            <span className="hidden sm:inline">OCR</span>
+          </button>
+        )}
+
+        {/* AI Assistant Button */}
+        {onOpenAiAssistant && (
+          <button
+            type="button"
+            onClick={onOpenAiAssistant}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white transition shadow-sm"
+            title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
+          >
+            <Sparkles size={14} />
+            <span>AI ผู้ช่วย</span>
+          </button>
+        )}
 
         {/* More Options (...) */}
         <div className="relative">
