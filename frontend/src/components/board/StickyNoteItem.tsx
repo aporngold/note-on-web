@@ -169,22 +169,44 @@ export default function StickyNoteItem({
     return ((index * 37) % 5) - 2;
   });
 
+  const [isRotating, setIsRotating] = useState(false);
+  const currentRotationRef = useRef<number>(rotation);
+  const rotateStartRef = useRef<{ startY: number; startRotation: number; hasMoved: boolean }>({
+    startY: 0,
+    startRotation: 0,
+    hasMoved: false,
+  });
+
   useEffect(() => {
     if (note.rotation !== undefined && note.rotation !== null) {
       setRotation(note.rotation);
+      currentRotationRef.current = note.rotation;
     }
   }, [note.rotation]);
 
-  const handleRotateNote = (e: React.MouseEvent) => {
+  const handleRotateMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
-    let nextAngle = Math.round(rotation + 5);
+    e.preventDefault();
+    setIsRotating(true);
+    rotateStartRef.current = {
+      startY: e.clientY,
+      startRotation: currentRotationRef.current,
+      hasMoved: false,
+    };
+  };
+
+  const handleRotateNote = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    let nextAngle = Math.round(currentRotationRef.current + 5);
     if (nextAngle > 180) nextAngle = -175;
+    currentRotationRef.current = nextAngle;
     setRotation(nextAngle);
     updateNote(note.id, { rotation: nextAngle });
   };
 
   const handleResetRotation = (e: React.MouseEvent) => {
     e.stopPropagation();
+    currentRotationRef.current = 0;
     setRotation(0);
     updateNote(note.id, { rotation: 0 });
     toast.success('รีเซ็ตการหมุนเป็น 0° แล้ว');
@@ -249,7 +271,19 @@ export default function StickyNoteItem({
   // Window mousemove and mouseup listeners for smooth real-time response
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
+      if (isRotating) {
+        const deltaY = rotateStartRef.current.startY - e.clientY;
+        if (Math.abs(deltaY) > 3) {
+          rotateStartRef.current.hasMoved = true;
+        }
+        // Drag Up (deltaY > 0) -> rotates right (clockwise, +degrees)
+        // Drag Down (deltaY < 0) -> rotates left (counter-clockwise, -degrees)
+        let newAngle = Math.round(rotateStartRef.current.startRotation + deltaY * 0.6);
+        while (newAngle > 180) newAngle -= 360;
+        while (newAngle < -180) newAngle += 360;
+        currentRotationRef.current = newAngle;
+        setRotation(newAngle);
+      } else if (isDragging) {
         const newX = Math.max(0, e.clientX - dragOffset.x);
         const newY = Math.max(0, e.clientY - dragOffset.y);
         setPos({ x: newX, y: newY });
@@ -285,6 +319,19 @@ export default function StickyNoteItem({
     };
 
     const handleMouseUp = () => {
+      if (isRotating) {
+        setIsRotating(false);
+        if (rotateStartRef.current.hasMoved) {
+          updateNote(note.id, { rotation: currentRotationRef.current });
+        } else {
+          // If clicked without dragging, rotate +5°
+          let nextAngle = Math.round(currentRotationRef.current + 5);
+          if (nextAngle > 180) nextAngle = -175;
+          currentRotationRef.current = nextAngle;
+          setRotation(nextAngle);
+          updateNote(note.id, { rotation: nextAngle });
+        }
+      }
       if (isDragging) {
         setIsDragging(false);
         onDragEnd(note.id, pos.x, pos.y);
@@ -300,7 +347,7 @@ export default function StickyNoteItem({
       }
     };
 
-    if (isDragging || resizingDir) {
+    if (isDragging || resizingDir || isRotating) {
       window.addEventListener('mousemove', handleMouseMove, { passive: true });
       window.addEventListener('mouseup', handleMouseUp);
     }
@@ -309,7 +356,7 @@ export default function StickyNoteItem({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, resizingDir, dragOffset, resizeStart, note.id, onDragEnd, pos, size, updateNote]);
+  }, [isDragging, resizingDir, isRotating, dragOffset, resizeStart, note.id, onDragEnd, pos, size, updateNote]);
 
   // Save inline text changes on blur
   const handleBlur = () => {
@@ -454,18 +501,22 @@ export default function StickyNoteItem({
         {/* ── Top Header Controls (Adaptive to Note Width) ── */}
         <div className="flex items-center justify-between gap-1 mb-1.5 no-drag shrink-0 w-full overflow-hidden">
           <div className="flex items-center gap-0.5 shrink-0">
-            {/* Rotate Button (ตรงมุมซ้ายบน) */}
+            {/* Rotate Button (ตรงมุมซ้ายบน - ลากขึ้นหมุนขวา ลากลงหมุนซ้าย) */}
             <button
               type="button"
-              onClick={handleRotateNote}
+              onMouseDown={handleRotateMouseDown}
               onDoubleClick={handleResetRotation}
-              className={`p-1 rounded hover:bg-black/15 transition flex items-center gap-0.5 ${
-                rotation !== 0 ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-black/5' : 'opacity-40 hover:opacity-100'
+              className={`p-1 rounded hover:bg-black/15 transition flex items-center gap-0.5 cursor-ns-resize ${
+                isRotating
+                  ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-100/70 dark:bg-indigo-950/70 ring-2 ring-indigo-500 scale-105'
+                  : rotation !== 0
+                  ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-black/5'
+                  : 'opacity-40 hover:opacity-100'
               }`}
-              title={`หมุนโน้ต (มุมปัจจุบัน: ${rotation}°) คลิกเพื่อหมุนทีละ 5° / ดับเบิลคลิกเพื่อรีเซ็ต 0°`}
+              title={`คลิกค้างแล้วเลื่อนขึ้นเพื่อหมุนขวา / เลื่อนลงเพื่อหมุนซ้าย (ดับเบิลคลิกเพื่อรีเซ็ต 0°)`}
             >
               <RotateCw size={12} className={rotation !== 0 ? 'text-indigo-600' : ''} />
-              {rotation !== 0 && (
+              {(rotation !== 0 || isRotating) && (
                 <span className="text-[9px] font-mono leading-none">{rotation > 0 ? `+${rotation}` : rotation}°</span>
               )}
             </button>
