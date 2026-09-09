@@ -128,7 +128,7 @@ export class AiController {
   static async summarize(req: AuthRequest, res: Response) {
     try {
       const { content, title } = req.body;
-      const apiKey = (req.headers['x-gemini-key'] as string) || process.env.GEMINI_API_KEY || '';
+      const apiKey = process.env.GEMINI_API_KEY || '';
 
       const plainContent = stripHtml(content || '');
 
@@ -189,7 +189,7 @@ ${plainContent}
   static async rewrite(req: AuthRequest, res: Response) {
     try {
       const { content, style } = req.body; // style: 'professional' | 'shorten' | 'expand' | 'bullets' | 'friendly' | 'action_items'
-      const apiKey = (req.headers['x-gemini-key'] as string) || process.env.GEMINI_API_KEY || '';
+      const apiKey = process.env.GEMINI_API_KEY || '';
 
       const plainContent = stripHtml(content || '');
       if (!plainContent) {

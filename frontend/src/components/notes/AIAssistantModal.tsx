@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Sparkles,
@@ -6,14 +6,8 @@ import {
   FileText,
   Check,
   Copy,
-  Plus,
-  RefreshCw,
   Loader2,
-  CheckCircle2,
-  KeyRound,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp,
+  ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/utils/api';
@@ -34,46 +28,23 @@ export default function AIAssistantModal({
   noteContent,
   onInsertContent,
 }: AIAssistantModalProps) {
-  const [activeTab, setActiveTab] = useState<'summarize' | 'rewrite' | 'settings'>('summarize');
+  const [activeTab, setActiveTab] = useState<'summarize' | 'rewrite'>('summarize');
   const [isLoading, setIsLoading] = useState(false);
   const [summaryResult, setSummaryResult] = useState<AISummaryResult | null>(null);
   const [rewrittenText, setRewrittenText] = useState('');
   const [engineUsed, setEngineUsed] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState('professional');
-  const [geminiKey, setGeminiKey] = useState('');
-  const [showKeyInput, setShowKeyInput] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedKey = localStorage.getItem('gemini_free_api_key') || '';
-      setGeminiKey(savedKey);
-    }
-  }, []);
-
   if (!isOpen) return null;
-
-  const handleSaveKey = () => {
-    localStorage.setItem('gemini_free_api_key', geminiKey.trim());
-    toast.success('บันทึก API Key แล้ว (เก็บในเครื่องของคุณอย่างปลอดภัย)');
-  };
 
   const handleSummarize = async () => {
     try {
       setIsLoading(true);
-      const headers: Record<string, string> = {};
-      if (geminiKey.trim()) {
-        headers['x-gemini-key'] = geminiKey.trim();
-      }
-
-      const res = await api.post(
-        '/ai/summarize',
-        {
-          title: noteTitle,
-          content: noteContent,
-        },
-        { headers }
-      );
+      const res = await api.post('/ai/summarize', {
+        title: noteTitle,
+        content: noteContent,
+      });
 
       setSummaryResult(res.data);
       setEngineUsed(res.data.engine);
@@ -88,19 +59,10 @@ export default function AIAssistantModal({
   const handleRewrite = async () => {
     try {
       setIsLoading(true);
-      const headers: Record<string, string> = {};
-      if (geminiKey.trim()) {
-        headers['x-gemini-key'] = geminiKey.trim();
-      }
-
-      const res = await api.post(
-        '/ai/rewrite',
-        {
-          content: noteContent,
-          style: selectedStyle,
-        },
-        { headers }
-      );
+      const res = await api.post('/ai/rewrite', {
+        content: noteContent,
+        style: selectedStyle,
+      });
 
       setRewrittenText(res.data.rewritten);
       setEngineUsed(res.data.engine);
@@ -156,11 +118,12 @@ export default function AIAssistantModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">SecureNote AI Assistant</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
-                  ฟรี 100%
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Gemini Free Tier (Server Secret)</span>
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">ผู้ช่วย AI อัจฉริยะช่วยสรุป เรียบเรียง และต่อยอดเนื้อหา</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">ผู้ช่วย AI อัจฉริยะช่วยสรุป เรียบเรียง และต่อยอดเนื้อหาอย่างปลอดภัย</p>
             </div>
           </div>
           <button
@@ -195,17 +158,6 @@ export default function AIAssistantModal({
           >
             ✍️ ปรับสำนวน (Rewrite)
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('settings')}
-            className={`py-3 px-4 text-xs font-bold border-b-2 transition-all ml-auto ${
-              activeTab === 'settings'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            ⚙️ ตั้งค่า Free API Key
-          </button>
         </div>
 
         {/* Body Content */}
@@ -234,7 +186,7 @@ export default function AIAssistantModal({
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
                       <Bot className="w-3.5 h-3.5" />
-                      <span>ประมวลผลด้วย: {engineUsed === 'gemini-free' ? 'Gemini 2.0 Flash (Free)' : 'Local Smart NLP (ฟรีในเครื่อง)'}</span>
+                      <span>ประมวลผลด้วย: {engineUsed === 'gemini-free' ? 'Gemini 2.0 Flash (Free Tier)' : 'Local Smart NLP (ฟรีในเครื่อง)'}</span>
                     </span>
                     <button
                       type="button"
@@ -341,49 +293,6 @@ export default function AIAssistantModal({
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* TAB 3: Settings */}
-          {activeTab === 'settings' && (
-            <div className="space-y-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 shrink-0">
-                  <KeyRound className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200">Google Gemini Free API Key (ไม่บังคับ)</h4>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    คุณสามารถขอรับ API Key ฟรี 100% ได้จาก Google AI Studio (โควตาฟรี 1,500 ครั้ง/วัน โดยไม่ต้องผูกบัตรเครดิต) หรือหากเว้นว่างไว้ ระบบจะใช้ <strong>Smart NLP Engine ในเครื่อง</strong> ซึ่งฟรี 100% และใช้งานได้ตลอดเวลา
-                  </p>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold hover:underline mt-1.5"
-                  >
-                    <span>ขอรับ Free API Key จาก Google AI Studio ได้ที่นี่</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <input
-                  type="password"
-                  placeholder="AIzaSy..."
-                  value={geminiKey}
-                  onChange={(e) => setGeminiKey(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={handleSaveKey}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow transition-all"
-                >
-                  บันทึกคีย์
-                </button>
-              </div>
             </div>
           )}
         </div>
