@@ -9,6 +9,7 @@ export default function Home() {
   useEffect(() => {
     checkAuth();
     if (localStorage.getItem('secure_note_token')) {
+      const defaultMode = (localStorage.getItem('secure_note_default_view_mode') as any) || 'board';
       router.replace('/dashboard');
     } else {
       router.replace('/login');

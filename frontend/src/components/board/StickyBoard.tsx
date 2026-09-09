@@ -140,10 +140,45 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     setConnectingSourceId(null);
   };
 
+  // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note, aligned on the same level
+  const findNextAvailableSlot = () => {
+    const spacingX = 290;
+    const spacingY = 320;
+    const startX = 60;
+    const startY = 100;
+    const cols = typeof window !== 'undefined' ? Math.max(3, Math.floor((window.innerWidth - 180) / spacingX)) : 4;
+
+    const isSlotOccupied = (candX: number, candY: number) => {
+      return notes.some((n) => {
+        const nx = n.posX ?? startX;
+        const ny = n.posY ?? startY;
+        const nw = n.width ?? 260;
+        const nh = n.height ?? 260;
+        // Collision detection box
+        const horizontalOverlap = Math.abs(nx - candX) < Math.max(nw, 260) - 20;
+        const verticalOverlap = Math.abs(ny - candY) < Math.max(nh, 260) - 20;
+        return horizontalOverlap && verticalOverlap;
+      });
+    };
+
+    // Scan slots left-to-right, row-by-row on the same aligned level
+    for (let slot = 0; slot < notes.length + 100; slot++) {
+      const col = slot % cols;
+      const row = Math.floor(slot / cols);
+      const candX = startX + col * spacingX;
+      const candY = startY + row * spacingY;
+
+      if (!isSlotOccupied(candX, candY)) {
+        return { x: candX, y: candY };
+      }
+    }
+
+    return { x: startX, y: startY };
+  };
+
   // Quick add sticky note directly onto the active board
   const handleQuickAdd = async (color: string = '#FEF08A') => {
-    const x = 140 + ((notes.length * 60) % 650);
-    const y = 140 + (Math.floor(notes.length / 4) * 80) % 320;
+    const { x, y } = findNextAvailableSlot();
 
     await createNote({
       title: 'โน้ตด่วน',
@@ -153,6 +188,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       fontSize: 'normal',
       fontFamily: 'sans',
       kanbanStatus: 'todo',
+      rotation: 0,
       posX: x,
       posY: y,
       isPinned: false,
@@ -162,8 +198,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Quick add sticky note and open in Fullscreen Focus Modal (เหมือนหน้าคัมบัง)
   const handleQuickAddFullscreen = async (color: string = '#FEF08A') => {
-    const x = 140 + ((notes.length * 60) % 650);
-    const y = 140 + (Math.floor(notes.length / 4) * 80) % 320;
+    const { x, y } = findNextAvailableSlot();
 
     const newNote = await createNote({
       title: 'โน้ตใหม่',
@@ -173,6 +208,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       fontSize: 'normal',
       fontFamily: 'sans',
       kanbanStatus: 'todo',
+      rotation: 0,
       posX: x,
       posY: y,
       isPinned: false,

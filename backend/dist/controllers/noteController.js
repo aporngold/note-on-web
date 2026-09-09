@@ -11,6 +11,7 @@ const createNoteSchema = zod_1.z.object({
     fontSize: zod_1.z.string().optional().default('normal'),
     fontFamily: zod_1.z.string().optional().default('sans'),
     kanbanStatus: zod_1.z.string().optional().default('todo'),
+    rotation: zod_1.z.number().optional().default(0),
     posX: zod_1.z.number().optional().default(100),
     posY: zod_1.z.number().optional().default(100),
     width: zod_1.z.number().optional().default(260),
@@ -32,6 +33,7 @@ const updateNoteSchema = zod_1.z.object({
     fontSize: zod_1.z.string().optional(),
     fontFamily: zod_1.z.string().optional(),
     kanbanStatus: zod_1.z.string().optional(),
+    rotation: zod_1.z.number().optional(),
     posX: zod_1.z.number().optional(),
     posY: zod_1.z.number().optional(),
     width: zod_1.z.number().optional(),
@@ -184,7 +186,7 @@ class NoteController {
             if (!parsed.success) {
                 return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Invalid note data' });
             }
-            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, posX, posY, width, height, isLocked, isPinned, isFavorite, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
+            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, rotation, posX, posY, width, height, isLocked, isPinned, isFavorite, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
             // Verify notebook ownership if provided
             if (notebookId) {
                 const nb = await database_1.prisma.notebook.findFirst({
@@ -203,6 +205,7 @@ class NoteController {
                     fontSize: fontSize || 'normal',
                     fontFamily: fontFamily || 'sans',
                     kanbanStatus: kanbanStatus || 'todo',
+                    rotation: rotation !== undefined ? rotation : 0,
                     posX: posX !== undefined ? posX : 100,
                     posY: posY !== undefined ? posY : 100,
                     width: width !== undefined ? width : 260,
@@ -258,7 +261,7 @@ class NoteController {
             if (!note) {
                 return res.status(404).json({ error: 'Note not found' });
             }
-            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, posX, posY, width, height, isLocked, isPinned, isFavorite, isArchived, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
+            const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, rotation, posX, posY, width, height, isLocked, isPinned, isFavorite, isArchived, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
             // Handle label relations update if provided
             if (labelIds !== undefined) {
                 await database_1.prisma.labelNote.deleteMany({
@@ -275,6 +278,7 @@ class NoteController {
                     ...(fontSize !== undefined && { fontSize }),
                     ...(fontFamily !== undefined && { fontFamily }),
                     ...(kanbanStatus !== undefined && { kanbanStatus }),
+                    ...(rotation !== undefined && { rotation }),
                     ...(posX !== undefined && { posX }),
                     ...(posY !== undefined && { posY }),
                     ...(width !== undefined && { width }),

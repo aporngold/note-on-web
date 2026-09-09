@@ -15,6 +15,7 @@ interface NoteState {
   selectedLabel: string | null;
   selectedColor: string | null;
   searchQuery: string;
+  defaultViewMode: ViewMode;
   viewMode: ViewMode;
   boardViewMode: BoardViewMode;
   isLoading: boolean;
@@ -63,6 +64,7 @@ interface NoteState {
 
   setSearchQuery: (q: string) => void;
   setViewMode: (mode: ViewMode) => void;
+  setDefaultViewMode: (mode: ViewMode) => void;
   toggleViewMode: () => void;
   setSelectedNotebook: (id: string | null) => void;
   setSelectedLabel: (id: string | null) => void;
@@ -81,7 +83,8 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   selectedLabel: null,
   selectedColor: null,
   searchQuery: '',
-  viewMode: 'grid',
+  defaultViewMode: (typeof window !== 'undefined' ? (localStorage.getItem('secure_note_default_view_mode') as ViewMode) : null) || 'board',
+  viewMode: (typeof window !== 'undefined' ? (localStorage.getItem('secure_note_default_view_mode') as ViewMode) : null) || 'board',
   boardViewMode: 'freeform',
   isLoading: false,
   isTrashLoading: false,
@@ -470,6 +473,12 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setViewMode: (viewMode) => set({ viewMode }),
+  setDefaultViewMode: (defaultViewMode) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('secure_note_default_view_mode', defaultViewMode);
+    }
+    set({ defaultViewMode, viewMode: defaultViewMode });
+  },
   toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === 'grid' ? 'list' : 'grid' })),
   setSelectedNotebook: (selectedNotebook) => set({ selectedNotebook }),
   setSelectedLabel: (selectedLabel) => set({ selectedLabel }),

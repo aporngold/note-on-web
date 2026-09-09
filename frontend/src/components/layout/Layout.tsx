@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Menu, Search, Plus, Grid, List, Columns, ShieldAlert, PanelLeft, PanelLeftClose, Database } from 'lucide-react';
+import { Menu, Search, Plus, Grid, List, Columns, ShieldAlert, PanelLeft, PanelLeftClose, Database, Star } from 'lucide-react';
 import Sidebar from './Sidebar';
 import BackupModal from '../modals/BackupModal';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
+import toast from 'react-hot-toast';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,8 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
     setSearchQuery,
     viewMode,
     setViewMode,
+    defaultViewMode,
+    setDefaultViewMode,
     boardViewMode,
     setBoardViewMode,
     toggleViewMode,
@@ -163,7 +166,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
 
           <div className="flex items-center gap-1.5">
             {/* View Mode Toggle */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl gap-0.5">
               <button
                 onClick={() => {
                   setViewMode('grid');
@@ -171,7 +174,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                     router.push('/dashboard');
                   }
                 }}
-                className={`p-1.5 rounded-lg transition ${
+                className={`p-1.5 rounded-lg transition relative ${
                   viewMode === 'grid' && router.pathname === '/dashboard'
                     ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
@@ -179,6 +182,9 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 title="มุมมองการ์ด (Grid)"
               >
                 <Grid size={17} />
+                {defaultViewMode === 'grid' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                )}
               </button>
               <button
                 onClick={() => {
@@ -187,7 +193,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                     router.push('/dashboard');
                   }
                 }}
-                className={`p-1.5 rounded-lg transition ${
+                className={`p-1.5 rounded-lg transition relative ${
                   viewMode === 'list' && router.pathname === '/dashboard'
                     ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
@@ -195,6 +201,9 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 title="มุมมองรายการ (List)"
               >
                 <List size={17} />
+                {defaultViewMode === 'list' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                )}
               </button>
               <button
                 onClick={() => {
@@ -204,7 +213,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                     router.push('/dashboard');
                   }
                 }}
-                className={`p-1.5 rounded-lg transition flex items-center gap-1 ${
+                className={`p-1.5 rounded-lg transition flex items-center gap-1 relative ${
                   viewMode === 'kanban' || (viewMode === 'board' && boardViewMode === 'kanban')
                     ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
@@ -213,6 +222,9 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               >
                 <Columns size={17} />
                 <span className="hidden md:inline text-[11px] font-bold">คัมบัง</span>
+                {defaultViewMode === 'kanban' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                )}
               </button>
               <button
                 onClick={() => {
@@ -222,7 +234,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                     router.push('/board');
                   }
                 }}
-                className={`p-1.5 rounded-lg transition flex items-center gap-1 text-xs font-bold ${
+                className={`p-1.5 rounded-lg transition flex items-center gap-1 text-xs font-bold relative ${
                   (viewMode === 'board' && boardViewMode === 'freeform') || (router.pathname === '/board' && boardViewMode === 'freeform')
                     ? 'bg-amber-300 text-amber-950 shadow-xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
@@ -231,6 +243,40 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               >
                 <span>📌</span>
                 <span className="hidden md:inline text-[11px]">บอร์ด</span>
+                {defaultViewMode === 'board' && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                )}
+              </button>
+
+              {/* Set as Default View Mode button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const currentMode = (router.pathname === '/board' ? 'board' : viewMode);
+                  setDefaultViewMode(currentMode);
+                  const modeLabels: Record<string, string> = {
+                    board: 'Sticky Board (กระดานโน้ต)',
+                    grid: 'Grid (การ์ด)',
+                    list: 'List (รายการ)',
+                    kanban: 'Kanban (คัมบัง)',
+                  };
+                  toast.success(`ตั้งโหมด ${modeLabels[currentMode] || currentMode} เป็นหน้าหลักเริ่มต้นแล้ว`, { icon: '⭐' });
+                }}
+                className={`p-1.5 rounded-lg transition ml-0.5 flex items-center gap-1 ${
+                  viewMode === defaultViewMode
+                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
+                    : 'text-slate-400 hover:text-amber-500 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                }`}
+                title={
+                  viewMode === defaultViewMode
+                    ? 'โหมดนี้เป็นหน้าหลักเริ่มต้น (Default) อยู่แล้ว'
+                    : 'คลิกเพื่อตั้งโหมดที่เปิดอยู่นี้เป็นหน้าหลักเริ่มต้นเมื่อเปิดแอป'
+                }
+              >
+                <Star size={14} className={viewMode === defaultViewMode ? 'fill-amber-400' : ''} />
+                <span className="text-[10px] font-bold hidden xl:inline">
+                  {viewMode === defaultViewMode ? 'หน้าหลัก' : 'ตั้งเป็นหน้าหลัก'}
+                </span>
               </button>
             </div>
 

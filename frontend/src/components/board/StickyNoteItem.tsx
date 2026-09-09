@@ -18,6 +18,7 @@ import {
   X,
   File,
   Star,
+  RotateCw,
 } from 'lucide-react';
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -160,8 +161,34 @@ export default function StickyNoteItem({
   const fontFamily = note.fontFamily || 'sans';
   const kanbanStatus = note.kanbanStatus || 'todo';
 
-  // Rotation effect (-2deg to +2deg) for real sticky paper look
-  const rotationDegrees = ((index * 37) % 5) - 2;
+  // Rotation state: persistent from note.rotation (defaults to 0, or subtle natural tilt fallback)
+  const [rotation, setRotation] = useState<number>(() => {
+    if (note.rotation !== undefined && note.rotation !== null) {
+      return note.rotation;
+    }
+    return ((index * 37) % 5) - 2;
+  });
+
+  useEffect(() => {
+    if (note.rotation !== undefined && note.rotation !== null) {
+      setRotation(note.rotation);
+    }
+  }, [note.rotation]);
+
+  const handleRotateNote = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    let nextAngle = Math.round(rotation + 5);
+    if (nextAngle > 180) nextAngle = -175;
+    setRotation(nextAngle);
+    updateNote(note.id, { rotation: nextAngle });
+  };
+
+  const handleResetRotation = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRotation(0);
+    updateNote(note.id, { rotation: 0 });
+    toast.success('รีเซ็ตการหมุนเป็น 0° แล้ว');
+  };
 
   // Handle encrypted notes
   let isEncrypted = false;
@@ -380,8 +407,8 @@ export default function StickyNoteItem({
           backgroundColor: paperColor,
           color: textColor,
           transform: isDragging
-            ? `scale(1.03) rotate(0deg)`
-            : `rotate(${rotationDegrees}deg)`,
+            ? `scale(1.03) rotate(${rotation}deg)`
+            : `rotate(${rotation}deg)`,
           zIndex: isDragging || resizingDir ? 50 : isConnectingSource ? 45 : note.isPinned ? 30 : 10,
           boxShadow: isDragging || resizingDir
             ? '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
@@ -427,6 +454,22 @@ export default function StickyNoteItem({
         {/* ── Top Header Controls (Adaptive to Note Width) ── */}
         <div className="flex items-center justify-between gap-1 mb-1.5 no-drag shrink-0 w-full overflow-hidden">
           <div className="flex items-center gap-0.5 shrink-0">
+            {/* Rotate Button (ตรงมุมซ้ายบน) */}
+            <button
+              type="button"
+              onClick={handleRotateNote}
+              onDoubleClick={handleResetRotation}
+              className={`p-1 rounded hover:bg-black/15 transition flex items-center gap-0.5 ${
+                rotation !== 0 ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-black/5' : 'opacity-40 hover:opacity-100'
+              }`}
+              title={`หมุนโน้ต (มุมปัจจุบัน: ${rotation}°) คลิกเพื่อหมุนทีละ 5° / ดับเบิลคลิกเพื่อรีเซ็ต 0°`}
+            >
+              <RotateCw size={12} className={rotation !== 0 ? 'text-indigo-600' : ''} />
+              {rotation !== 0 && (
+                <span className="text-[9px] font-mono leading-none">{rotation > 0 ? `+${rotation}` : rotation}°</span>
+              )}
+            </button>
+
             {note.isLocked && (
               <button
                 onClick={() => {
@@ -1123,6 +1166,29 @@ export default function StickyNoteItem({
             <Star size={13} className={note.isFavorite ? 'fill-current text-amber-500' : 'text-slate-400'} />
             <span>{note.isFavorite ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}</span>
           </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              handleRotateNote(e);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition text-indigo-600 dark:text-indigo-400"
+          >
+            <RotateCw size={13} />
+            <span>หมุนโน้ต (+5°) [ปัจจุบัน: {rotation}°]</span>
+          </button>
+          {rotation !== 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                setContextMenu({ isOpen: false, x: 0, y: 0 });
+                handleResetRotation(e);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition text-slate-500"
+            >
+              <span>↺ รีเซ็ตการหมุน (0°)</span>
+            </button>
+          )}
           <hr className="my-1 border-slate-100 dark:border-slate-800" />
           <button
             type="button"

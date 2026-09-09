@@ -98,7 +98,7 @@ export default function FullscreenNoteModal({
   const [textColor, setTextColor] = useState('#0F172A');
   const [fontFamily, setFontFamily] = useState('sans');
   const [fontSize, setFontSize] = useState('normal');
-  const [isTrulyFullscreen, setIsTrulyFullscreen] = useState(false);
+  const [isTrulyFullscreen, setIsTrulyFullscreen] = useState(true);
   const [isBorderless, setIsBorderless] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isCopied, setIsCopied] = useState(false);
@@ -333,7 +333,11 @@ export default function FullscreenNoteModal({
   const charCount = editor ? editor.getText().length : content.length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in">
+    <div
+      className={`fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center animate-fade-in ${
+        isTrulyFullscreen ? 'p-0' : 'p-2 sm:p-4'
+      }`}
+    >
       <div
         style={{
           backgroundColor: color,
@@ -345,7 +349,7 @@ export default function FullscreenNoteModal({
             : 'shadow-2xl border-t-4 border-black/20'
         } ${
           isTrulyFullscreen
-            ? 'w-full h-full rounded-none'
+            ? 'w-screen h-screen max-w-none rounded-none'
             : 'w-full max-w-5xl h-[92vh] rounded-3xl'
         }`}
       >

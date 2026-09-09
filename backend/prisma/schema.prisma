@@ -39,6 +39,7 @@ model Note {
   fontSize      String?      @default("normal")
   fontFamily    String?      @default("sans")
   kanbanStatus  String?      @default("todo") // 'todo' | 'doing' | 'done'
+  rotation      Float?       @default(0)
   userId        String
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   notebookId    String?

@@ -86,6 +86,7 @@ export interface Note {
   fontSize?: string | null;
   fontFamily?: string | null;
   kanbanStatus?: 'todo' | 'doing' | 'done' | string | null;
+  rotation?: number | null;
   posX?: number | null;
   posY?: number | null;
   width?: number | null;
