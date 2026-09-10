@@ -28,6 +28,41 @@ export default function AudioRecorderModal({
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const chosenMimeTypeRef = useRef<string>('');
+  const chosenExtRef = useRef<string>('webm');
+
+  // Detect supported audio MIME type cross-platform (iOS Safari / iPadOS, Android Chrome, PC/Mac)
+  const getBestSupportedMimeType = (): { mimeType: string; extension: string } => {
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+      return { mimeType: '', extension: 'webm' };
+    }
+
+    const candidateTypes = [
+      // WebM with Opus (Chrome, Firefox, Edge, Android)
+      { mime: 'audio/webm;codecs=opus', ext: 'webm' },
+      { mime: 'audio/webm', ext: 'webm' },
+      // MP4 / AAC (iOS Safari / iPadOS, macOS Safari)
+      { mime: 'audio/mp4;codecs=mp4a.40.2', ext: 'm4a' },
+      { mime: 'audio/mp4', ext: 'mp4' },
+      { mime: 'audio/aac', ext: 'aac' },
+      // Ogg / Opus
+      { mime: 'audio/ogg;codecs=opus', ext: 'ogg' },
+      // WAV
+      { mime: 'audio/wav', ext: 'wav' },
+    ];
+
+    for (const cand of candidateTypes) {
+      try {
+        if (MediaRecorder.isTypeSupported(cand.mime)) {
+          return { mimeType: cand.mime, extension: cand.ext };
+        }
+      } catch (e) {
+        // continue
+      }
+    }
+
+    return { mimeType: '', extension: 'webm' };
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -56,11 +91,16 @@ export default function AudioRecorderModal({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setHasPermission(true);
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
+      const { mimeType, extension } = getBestSupportedMimeType();
+      chosenMimeTypeRef.current = mimeType;
+      chosenExtRef.current = extension;
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const options: MediaRecorderOptions = {};
+      if (mimeType) {
+        options.mimeType = mimeType;
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -71,7 +111,8 @@ export default function AudioRecorderModal({
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const finalType = chosenMimeTypeRef.current || mediaRecorder.mimeType || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type: finalType });
         const url = URL.createObjectURL(blob);
         setAudioBlob(blob);
         setAudioUrl(url);
@@ -117,8 +158,9 @@ export default function AudioRecorderModal({
     setIsUploading(true);
     try {
       const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `voice-memo-${dateStr}.webm`;
-      const file = new File([audioBlob], filename, { type: 'audio/webm' });
+      const ext = chosenExtRef.current || 'webm';
+      const filename = `voice-memo-${dateStr}.${ext}`;
+      const file = new File([audioBlob], filename, { type: audioBlob.type || `audio/${ext}` });
 
       const formData = new FormData();
       formData.append('file', file);

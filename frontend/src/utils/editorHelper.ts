@@ -9,7 +9,7 @@ export function convertLegacyContentToHtml(raw: string): string {
   if (!trimmed) return '';
 
   // If already structured HTML with common tags, return as-is
-  if (/<(p|div|h[1-6]|ul|ol|table|blockquote|span|mark|b|strong|i|em|hr|pre|code|img)[^>]*>/i.test(trimmed)) {
+  if (/<(p|div|h[1-6]|ul|ol|table|blockquote|span|mark|b|strong|i|em|hr|pre|code|img|audio|figure|video)[^>]*>/i.test(trimmed)) {
     return raw;
   }
 

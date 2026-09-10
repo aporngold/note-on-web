@@ -484,7 +484,7 @@ export default function NoteRichToolbar({
     if (!editor) return;
     const attrs = editor.getAttributes('image');
     if (attrs.src) {
-      editor.chain().focus().updateAttributes('image', { class: sizeClass }).run();
+      editor.chain().focus().updateAttributes('image', { class: sizeClass, width: label }).run();
       toast.success(`ปรับขนาดภาพเป็น ${label}`);
     } else {
       toast('กรุณาคลิกเลือกรูปภาพก่อนปรับขนาด', { icon: '🖼️' });

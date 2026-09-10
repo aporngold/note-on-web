@@ -36,7 +36,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import Image from '@tiptap/extension-image';
+import { ResizableImageExtension, AudioExtension } from './editorExtensions';
 
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -160,10 +160,11 @@ export default function FullscreenNoteModal({
       TaskItem.configure({
         nested: true,
       }),
-      Image.configure({
-        inline: true,
+      ResizableImageExtension.configure({
+        inline: false,
         allowBase64: true,
       }),
+      AudioExtension,
     ],
     content: '',
     immediatelyRender: false,
@@ -656,7 +657,9 @@ export default function FullscreenNoteModal({
         noteId={note.id}
         onAudioSaved={(audioUrl, originalName) => {
           if (editor) {
-            editor.chain().focus().insertContent(`<p><audio controls src="${audioUrl}"></audio></p>`).run();
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+            const fullUrl = audioUrl.startsWith('http') ? audioUrl : `${apiUrl}${audioUrl}`;
+            editor.chain().focus().insertContent(`<p><audio controls src="${fullUrl}"></audio></p>`).run();
           }
         }}
       />

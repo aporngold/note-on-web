@@ -19,6 +19,7 @@ import {
   File,
   Star,
   RotateCw,
+  Volume2,
 } from 'lucide-react';
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -1110,6 +1111,7 @@ export default function StickyNoteItem({
             {attachments.map((att) => {
               const isImg = att.mimeType.startsWith('image/');
               const isPdf = att.mimeType.includes('pdf');
+              const isAudio = att.mimeType.startsWith('audio/') || /\.(webm|mp3|wav|m4a|aac|ogg)$/i.test(att.originalName || att.filename);
               const host = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000` : 'http://localhost:5000';
               const fileUrl = `${host}${att.url}`;
 
@@ -1130,6 +1132,10 @@ export default function StickyNoteItem({
                       <span className="p-1.5 bg-rose-500/20 text-rose-700 rounded shrink-0">
                         <FileText size={14} />
                       </span>
+                    ) : isAudio ? (
+                      <span className="p-1.5 bg-violet-500/20 text-violet-700 rounded shrink-0" title="ไฟล์เสียง">
+                        <Volume2 size={14} />
+                      </span>
                     ) : (
                       <span className="p-1.5 bg-indigo-500/20 text-indigo-700 rounded shrink-0">
                         <File size={14} />
@@ -1139,7 +1145,7 @@ export default function StickyNoteItem({
                     <div className="overflow-hidden flex-1">
                       <p className="text-[11px] font-semibold truncate leading-tight">{att.originalName}</p>
                       <span className="text-[9px] opacity-60">
-                        {(att.size / 1024).toFixed(1)} KB {isPdf ? '• PDF' : isImg ? '• รูปภาพ' : ''}
+                        {(att.size / 1024).toFixed(1)} KB {isPdf ? '• PDF' : isImg ? '• รูปภาพ' : isAudio ? '• ไฟล์เสียง' : ''}
                       </span>
                     </div>
                   </div>
