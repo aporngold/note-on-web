@@ -185,6 +185,15 @@ export default function StickyNoteItem({
     }
   }, [note.rotation]);
 
+  useEffect(() => {
+    if (!isDragging && !resizingDir) {
+      setPos({
+        x: note.posX ?? 80 + (index % 5) * 280,
+        y: note.posY ?? 80 + Math.floor(index / 5) * 320,
+      });
+    }
+  }, [note.posX, note.posY, index, isDragging, resizingDir]);
+
   const handleRotateMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -474,8 +483,11 @@ export default function StickyNoteItem({
             : isConnectingSource
             ? '0 0 0 4px #6366F1, 0 10px 25px -5px rgba(99, 102, 241, 0.5)'
             : '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          transition: isDragging || resizingDir
+            ? 'none'
+            : 'left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s, transform 0.2s',
         }}
-        className={`absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 transition-[box-shadow,transform] ${
+        className={`absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 ${
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${isConnectingMode && !isConnectingSource ? 'hover:ring-4 hover:ring-indigo-400 cursor-pointer' : ''}`}
         onMouseDown={handleMouseDown}

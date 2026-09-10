@@ -16,6 +16,7 @@ import {
   Compass,
   Image as ImageIcon,
   Maximize2,
+  Sparkles,
 } from 'lucide-react';
 import StickyNoteItem from './StickyNoteItem';
 import NoteConnectionCanvas from './NoteConnectionCanvas';
@@ -67,6 +68,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [boardTheme, setBoardTheme] = useState<BoardTheme>('cork');
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
+  const [isArranging, setIsArranging] = useState(false);
 
   // Modals for Sharing, Web Sticky, and Backgrounds
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -222,19 +224,56 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Auto-arrange all notes in a neat grid
   const handleAutoArrange = async () => {
+    if (notes.length === 0) {
+      toast('ไม่มีโน้ตบนกระดานให้จัดเรียง', { icon: 'ℹ️' });
+      return;
+    }
+
+    setIsArranging(true);
     const spacingX = 290;
     const spacingY = 320;
     const startX = 60;
-    const startY = 100;
-    const cols = Math.max(3, Math.floor((window.innerWidth - 350) / spacingX));
+    const startY = 40;
+    const containerWidth = canvasContainerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1200);
+    const cols = Math.max(2, Math.floor((containerWidth - 120) / spacingX));
 
-    notes.forEach((n, idx) => {
+    // Sort pinned notes first, then maintain natural order
+    const sortedNotes = [...notes].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return 0;
+    });
+
+    const updates = sortedNotes.map((n, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
       const newX = startX + col * spacingX;
       const newY = startY + row * spacingY;
-      updateNote(n.id, { posX: newX, posY: newY });
+      return { id: n.id, posX: newX, posY: newY };
     });
+
+    // Optimistic local state update for instant, smooth animation
+    useNoteStore.setState((state) => ({
+      notes: state.notes.map((n) => {
+        const match = updates.find((u) => u.id === n.id);
+        return match ? { ...n, posX: match.posX, posY: match.posY } : n;
+      }),
+    }));
+
+    try {
+      await Promise.all(
+        updates.map((u) => updateNote(u.id, { posX: u.posX, posY: u.posY }))
+      );
+      toast.success('จัดเรียงโน้ตทั้งหมดเรียบร้อยแล้ว');
+      if (canvasContainerRef.current) {
+        canvasContainerRef.current.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      }
+    } catch (err) {
+      console.error('Failed to auto-arrange notes:', err);
+      toast.error('จัดเรียงโน้ตไม่สำเร็จ');
+    } finally {
+      setIsArranging(false);
+    }
   };
 
   // Create new board
@@ -477,6 +516,17 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 <span className="hidden sm:inline">แชร์บอร์ด</span>
               </button>
             )}
+
+            {/* Auto Arrange Notes Button */}
+            <button
+              onClick={handleAutoArrange}
+              disabled={isArranging || notes.length === 0}
+              className="px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-slate-200 dark:border-slate-700 transition active:scale-95"
+              title="จัดเรียงโน้ตทั้งหมดบนกระดานให้เป็นระเบียบอัตโนมัติ"
+            >
+              <Sparkles size={14} className={`text-amber-500 ${isArranging ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isArranging ? 'กำลังจัดเรียง...' : 'จัดเรียงอัตโนมัติ'}</span>
+            </button>
 
             {/* Switch to Freeform Canvas Icon Button */}
             <button
