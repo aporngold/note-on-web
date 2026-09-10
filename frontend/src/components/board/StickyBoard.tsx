@@ -111,7 +111,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       if (bottom > maxNoteY) maxNoteY = bottom;
     });
     return {
-      minWidth: `${Math.max(2200, maxNoteX + 500)}px`,
+      minWidth: `${Math.max(2400, maxNoteX + 500)}px`,
       minHeight: `${Math.max(1600, maxNoteY + 500)}px`,
     };
   }, [notes]);
@@ -194,11 +194,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const occupied: Array<{ id: string; x: number; y: number }> = [];
     const needReposition: Array<{ id: string; x: number; y: number }> = [];
 
-    const spacingX = 320;
+    const spacingX = 300;
     const spacingY = 320;
     const startX = 24;
     const startY = 24;
-    const cols = 4;
+    const cols = 7;
 
     notes.forEach((n, idx) => {
       const x = n.posX ?? (startX + (idx % cols) * spacingX);
@@ -276,12 +276,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note with proper spacing
   const findNextAvailableSlot = () => {
-    const spacingX = 320;
+    const spacingX = 300;
     const spacingY = 320;
     const startX = 24;
     const startY = 24;
-    const containerWidth = canvasContainerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1050);
-    const cols = Math.max(2, Math.floor((containerWidth - 48) / spacingX));
+    // Support 7 notes horizontally across the board before going down to the next row
+    const cols = 7;
 
     const isSlotOccupied = (candX: number, candY: number, candW = 260, candH = 260) => {
       const margin = 16;
@@ -384,9 +384,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const spacingY = 320;
     const startX = 40;
     const startY = 40;
-    const canvas = document.getElementById('sticky-board-canvas');
-    const canvasW = canvas ? canvas.clientWidth : 2200;
-    const cols = Math.max(4, Math.floor((canvasW - 120) / spacingX));
+    // Support 7 notes horizontally across the board
+    const cols = 7;
 
     // Sort pinned notes first, then maintain natural order
     const sortedNotes = [...notes].sort((a, b) => {
