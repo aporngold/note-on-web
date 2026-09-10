@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import {
   Plus,
   MoreHorizontal,
@@ -47,6 +48,7 @@ const TAB_COLORS = [
 ];
 
 export default function StickyBoard({ notes }: StickyBoardProps) {
+  const router = useRouter();
   const {
     boards,
     activeBoardId,
@@ -457,11 +459,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <span>ฟ้า</span>
             </button>
 
-            {/* + โน้ตใหม่ directly on Active Board */}
+            {/* + โน้ตใหม่ - Navigate to /notes/new exactly like other pages */}
             <button
-              onClick={() => handleQuickAdd('#FEF08A')}
+              onClick={() => {
+                const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
+                router.push(url);
+              }}
               className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
-              title={`สร้างโน้ตใหม่บนบอร์ด "${activeBoard?.name || 'ปัจจุบัน'}"`}
+              title="สร้างโน้ตใหม่"
             >
               <Plus size={15} />
               <span>โน้ตใหม่</span>
