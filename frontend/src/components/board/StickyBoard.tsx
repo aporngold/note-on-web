@@ -464,7 +464,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               title={`สร้างโน้ตใหม่บนบอร์ด "${activeBoard?.name || 'ปัจจุบัน'}"`}
             >
               <Plus size={15} />
-              <span>+ โน้ตใหม่</span>
+              <span>โน้ตใหม่</span>
             </button>
 
             {/* Web Sticky Simulator Button */}

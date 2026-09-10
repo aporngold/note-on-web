@@ -293,8 +293,8 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               <span className="hidden sm:inline">สำรองข้อมูล</span>
             </button>
 
-            {/* Quick New Note (Hidden on /board since it's already in the StickyBoard toolbar) */}
-            {router.pathname !== '/board' && (
+            {/* Quick New Note (Hidden on Sticky Board since it is placed directly on the StickyBoard toolbar) */}
+            {viewMode !== 'board' && router.pathname !== '/board' && (
               <button
                 onClick={() => {
                   const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
