@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X,
   Minimize2,
@@ -112,6 +112,16 @@ export default function FullscreenNoteModal({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [lastSavedTime, setLastSavedTime] = useState<string>('');
+  const hasUnsavedChangesRef = useRef(false);
+  const latestDataRef = useRef<{ title: string; content: string; color: string; textColor: string }>({
+    title: '',
+    content: '',
+    color: '#FEF08A',
+    textColor: '#0F172A',
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // TipTap Instance for Fullscreen focus modal
@@ -160,9 +170,8 @@ export default function FullscreenNoteModal({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       setContent(html);
-      if (note) {
-        handleAutoSave({ content: html });
-      }
+      latestDataRef.current.content = html;
+      hasUnsavedChangesRef.current = true;
     },
   });
 
@@ -180,8 +189,63 @@ export default function FullscreenNoteModal({
       if (editor) {
         editor.commands.setContent(initialHtml, { emitUpdate: false });
       }
+
+      latestDataRef.current = {
+        title: note.title || '',
+        content: initialHtml,
+        color: note.color || '#FEF08A',
+        textColor: note.textColor || '#0F172A',
+      };
+      hasUnsavedChangesRef.current = false;
     }
   }, [note, editor]);
+
+  const performSave = useCallback(async (customData?: Partial<Note>) => {
+    if (!note) return;
+    try {
+      setIsAutoSaving(true);
+      await updateNote(note.id, {
+        title: latestDataRef.current.title,
+        content: latestDataRef.current.content,
+        color: latestDataRef.current.color,
+        textColor: latestDataRef.current.textColor,
+        ...customData,
+      });
+      hasUnsavedChangesRef.current = false;
+      setLastSavedTime(new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }));
+    } catch (err) {
+      console.error('Auto save error:', err);
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }, [note, updateNote]);
+
+  // Periodic Auto-Save every 15 minutes (15 * 60 * 1000 ms)
+  useEffect(() => {
+    if (!isOpen || !note) return;
+
+    const AUTO_SAVE_INTERVAL_MS = 15 * 60 * 1000;
+    const timer = setInterval(() => {
+      if (hasUnsavedChangesRef.current) {
+        performSave();
+      }
+    }, AUTO_SAVE_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [isOpen, note, performSave]);
+
+  const handleCloseModal = async () => {
+    if (hasUnsavedChangesRef.current && note) {
+      await performSave();
+    }
+    onClose();
+  };
+
+  const handleAcceptModal = async () => {
+    await performSave();
+    toast.success('บันทึกเรียบร้อย');
+    onClose();
+  };
 
   // Handle Escape key to close
   useEffect(() => {
@@ -190,37 +254,32 @@ export default function FullscreenNoteModal({
         if (previewImage) {
           setPreviewImage(null);
         } else {
-          onClose();
+          handleCloseModal();
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, previewImage, onClose]);
+  }, [isOpen, previewImage, handleCloseModal]);
 
   if (!isOpen || !note) return null;
 
-  const handleAutoSave = async (updatedFields: Partial<Note>) => {
-    try {
-      await updateNote(note.id, updatedFields);
-    } catch (err) {
-      console.error('Auto save error:', err);
-    }
-  };
-
   const handleTitleChange = (val: string) => {
     setTitle(val);
-    handleAutoSave({ title: val });
+    latestDataRef.current.title = val;
+    hasUnsavedChangesRef.current = true;
   };
 
   const handleColorSelect = (c: string) => {
     setColor(c);
-    handleAutoSave({ color: c });
+    latestDataRef.current.color = c;
+    hasUnsavedChangesRef.current = true;
   };
 
   const handleTextColorSelect = (tc: string) => {
     setTextColor(tc);
-    handleAutoSave({ textColor: tc });
+    latestDataRef.current.textColor = tc;
+    hasUnsavedChangesRef.current = true;
   };
 
   const handleCopyNote = () => {
@@ -356,7 +415,8 @@ export default function FullscreenNoteModal({
                 if (editor && editor.getHTML() !== val) {
                   editor.commands.setContent(val, { emitUpdate: false });
                 }
-                handleAutoSave({ content: val });
+                latestDataRef.current.content = val;
+                hasUnsavedChangesRef.current = true;
               }}
               editor={editor}
               color={color}
@@ -402,13 +462,9 @@ export default function FullscreenNoteModal({
                 }
               }}
               isTrulyFullscreen={true}
-              onToggleTrulyFullscreen={onClose}
-              onCancel={onClose}
-              onAccept={async () => {
-                await handleAutoSave({ title, content, color, textColor });
-                toast.success('บันทึกเรียบร้อย');
-                onClose();
-              }}
+              onToggleTrulyFullscreen={handleCloseModal}
+              onCancel={handleCloseModal}
+              onAccept={handleAcceptModal}
             />
           </div>
 
@@ -546,22 +602,24 @@ export default function FullscreenNoteModal({
           <div className="flex items-center gap-2">
             <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1 mr-2 hidden sm:flex">
               <Check size={14} />
-              <span>บันทึกอัตโนมัติแล้ว</span>
+              <span>
+                {isAutoSaving
+                  ? 'กำลังบันทึกอัตโนมัติ...'
+                  : lastSavedTime
+                  ? `บันทึกแล้ว: ${lastSavedTime} (ทุก 15 นาที)`
+                  : 'บันทึกอัตโนมัติทุก 15 นาที'}
+              </span>
             </span>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleCloseModal}
               className="px-5 py-2 rounded-xl bg-black/10 hover:bg-black/20 text-slate-800 dark:text-white font-bold transition text-xs shadow-xs"
             >
               CANCEL
             </button>
             <button
               type="button"
-              onClick={async () => {
-                await handleAutoSave({ title, content, color, textColor });
-                toast.success('บันทึกเรียบร้อย');
-                onClose();
-              }}
+              onClick={handleAcceptModal}
               className="px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold transition text-xs shadow-md shadow-emerald-600/20"
             >
               ACCEPT

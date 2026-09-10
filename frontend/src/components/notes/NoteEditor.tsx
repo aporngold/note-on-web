@@ -418,9 +418,11 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
+    // Auto-save every 15 minutes standard (15 * 60 * 1000 ms)
+    const AUTO_SAVE_INTERVAL_MS = 15 * 60 * 1000;
     autoSaveTimerRef.current = setTimeout(() => {
       triggerAutoSave();
-    }, 1500);
+    }, AUTO_SAVE_INTERVAL_MS);
 
     return () => {
       if (autoSaveTimerRef.current) {
@@ -634,9 +636,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </span>
           ) : lastSaved ? (
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-              <CheckCircle2 size={13} /> บันทึกอัตโนมัติแล้ว: {lastSaved}
+              <CheckCircle2 size={13} /> บันทึกอัตโนมัติแล้ว: {lastSaved} (ทุก 15 นาที)
             </span>
-          ) : null}
+          ) : (
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              บันทึกอัตโนมัติทุก 15 นาที
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
