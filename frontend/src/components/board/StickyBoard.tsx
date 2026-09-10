@@ -97,6 +97,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Reservation of slots to prevent overlapping when creating notes rapidly
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
+  const hasAutoRepositionedRef = useRef<Record<string, boolean>>({});
 
   const bringToFront = (noteId: string) => {
     highestZRef.current += 1;
@@ -111,11 +112,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   }, [activeBoardId]);
 
-  // Handle drag and drop coordinates saving with container boundary clamping
+  // Handle drag and drop coordinates saving with canvas boundary clamping
   const handleDragEnd = async (id: string, x: number, y: number) => {
-    const container = canvasContainerRef.current;
-    const maxW = container ? container.clientWidth : 1050;
-    const maxH = container ? Math.max(container.clientHeight, 600) : 600;
+    const canvas = document.getElementById('sticky-board-canvas');
+    const maxW = canvas ? canvas.clientWidth : 2000;
+    const maxH = canvas ? canvas.clientHeight : 1500;
 
     const clampedX = Math.max(16, Math.min(maxW - 270, Math.round(x)));
     const clampedY = Math.max(16, Math.min(maxH - 270, Math.round(y)));
@@ -128,7 +129,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Auto-arrange any existing notes that were created on top of each other (overlapping)
   useEffect(() => {
-    if (!notes || notes.length <= 1) return;
+    const boardKey = activeBoardId || '__default__';
+    if (!notes || notes.length <= 1 || hasAutoRepositionedRef.current[boardKey]) return;
+
     const occupied: Array<{ id: string; x: number; y: number }> = [];
     const needReposition: Array<{ id: string; x: number; y: number }> = [];
 
@@ -136,8 +139,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const spacingY = 320;
     const startX = 24;
     const startY = 24;
-    const containerW = canvasContainerRef.current?.clientWidth || 1050;
-    const cols = Math.max(2, Math.floor((containerW - 48) / spacingX));
+    const cols = 4;
 
     notes.forEach((n, idx) => {
       const x = n.posX ?? (startX + (idx % cols) * spacingX);
@@ -168,11 +170,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     });
 
     if (needReposition.length > 0) {
-      needReposition.forEach((item) => {
-        updateNote(item.id, { posX: item.x, posY: item.y });
+      hasAutoRepositionedRef.current[boardKey] = true;
+      needReposition.forEach((item, index) => {
+        setTimeout(() => {
+          updateNote(item.id, { posX: item.x, posY: item.y });
+        }, index * 120);
       });
     }
-  }, [activeBoardId]);
+  }, [activeBoardId, notes]);
 
   // Start connecting mode from a source note
   const handleStartConnect = (sourceId: string) => {
@@ -441,7 +446,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden animate-fade-in relative select-none">
+    <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden animate-fade-in relative select-none">
       {/* ── TOP SECTION 1: Multi-Board Tabs Bar (Note Board style) ── */}
       <div className="bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 pt-2.5 flex items-center justify-between gap-3 overflow-x-auto select-none z-30">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
@@ -568,11 +573,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <span>ฟ้า</span>
             </button>
 
-            {/* + โน้ตใหม่ - Quick add directly on active board without overlap */}
+            {/* + โน้ตใหม่ - Navigate to /notes/new editor matching all other pages */}
             <button
-              onClick={() => handleQuickAdd('#FEF08A')}
+              onClick={() => {
+                const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
+                router.push(url);
+              }}
               className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
-              title="สร้างโน้ตใหม่บนบอร์ด"
+              title="สร้างโน้ตใหม่"
             >
               <Plus size={15} />
               <span>โน้ตใหม่</span>
@@ -650,11 +658,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         <div
           ref={canvasContainerRef}
           style={getBoardStyle()}
-          className="flex-1 w-full h-full overflow-auto relative p-8 cursor-default pt-28 board-canvas-container"
+          className="flex-1 w-full h-full min-h-0 overflow-auto relative p-6 sm:p-8 cursor-default pt-28 board-canvas-container"
         >
           <div
             id="sticky-board-canvas"
-            className="w-full h-full min-w-full min-h-[600px] relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl"
+            className="min-w-[2000px] min-h-[1500px] relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl"
           >
             {/* SVG Visual Connection Lines Canvas */}
             <NoteConnectionCanvas

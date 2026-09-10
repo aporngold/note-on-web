@@ -305,10 +305,10 @@ export default function StickyNoteItem({
       } else if (isDragging) {
         const rawX = e.clientX - dragOffset.x;
         const rawY = e.clientY - dragOffset.y;
-        // Keep note within designated board container bounds
-        const container = (document.getElementById('sticky-board-canvas') || (e.target as HTMLElement).closest('.board-canvas-container')) as HTMLElement | null;
-        const maxW = container ? container.clientWidth : 1050;
-        const maxH = container ? Math.max(container.clientHeight, 600) : 600;
+        // Keep note within designated board canvas bounds
+        const canvas = document.getElementById('sticky-board-canvas');
+        const maxW = canvas ? canvas.clientWidth : 2000;
+        const maxH = canvas ? canvas.clientHeight : 1500;
 
         const maxX = Math.max(16, maxW - size.width - 24);
         const maxY = Math.max(16, maxH - size.height - 24);
@@ -374,9 +374,9 @@ export default function StickyNoteItem({
       }
       if (isDragging) {
         setIsDragging(false);
-        const container = (document.getElementById('sticky-board-canvas') || document.querySelector('.board-canvas-container')) as HTMLElement | null;
-        const maxW = container ? container.clientWidth : 1050;
-        const maxH = container ? Math.max(container.clientHeight, 600) : 600;
+        const canvas = document.getElementById('sticky-board-canvas');
+        const maxW = canvas ? canvas.clientWidth : 2000;
+        const maxH = canvas ? canvas.clientHeight : 1500;
 
         const maxX = Math.max(16, maxW - size.width - 24);
         const maxY = Math.max(16, maxH - size.height - 24);

@@ -312,10 +312,10 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
 
         {/* Page Content */}
         <main
-          className={`flex-1 overflow-y-auto ${
+          className={`flex-1 ${
             viewMode === 'board' || router.pathname === '/board'
-              ? 'p-2 sm:p-4'
-              : 'p-4 sm:p-8'
+              ? 'overflow-hidden flex flex-col p-2 sm:p-3'
+              : 'overflow-y-auto p-4 sm:p-8'
           }`}
         >
           {children}

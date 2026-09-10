@@ -304,12 +304,25 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         let initialY: number | undefined;
         if (targetBoardId) {
           const boardNotes = notes.filter((n) => n.boardId === targetBoardId && !n.isArchived);
-          const cols = 3;
-          const slot = boardNotes.length;
-          const col = slot % cols;
-          const row = Math.floor(slot / cols);
-          initialX = 24 + col * 320;
-          initialY = 24 + row * 320;
+          const cols = 4;
+          const spacingX = 320;
+          const spacingY = 320;
+          const startX = 24;
+          const startY = 24;
+          for (let slot = 0; slot < boardNotes.length + 50; slot++) {
+            const c = slot % cols;
+            const r = Math.floor(slot / cols);
+            const candX = startX + c * spacingX;
+            const candY = startY + r * spacingY;
+            const isTaken = boardNotes.some(
+              (n) => Math.abs((n.posX ?? -999) - candX) < 260 && Math.abs((n.posY ?? -999) - candY) < 260
+            );
+            if (!isTaken) {
+              initialX = candX;
+              initialY = candY;
+              break;
+            }
+          }
         }
 
         const created = await createNote({
@@ -403,12 +416,25 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         let initialY: number | undefined;
         if (targetBoardId) {
           const boardNotes = notes.filter((n) => n.boardId === targetBoardId && !n.isArchived);
-          const cols = 3;
-          const slot = boardNotes.length;
-          const col = slot % cols;
-          const row = Math.floor(slot / cols);
-          initialX = 24 + col * 320;
-          initialY = 24 + row * 320;
+          const cols = 4;
+          const spacingX = 320;
+          const spacingY = 320;
+          const startX = 24;
+          const startY = 24;
+          for (let slot = 0; slot < boardNotes.length + 50; slot++) {
+            const c = slot % cols;
+            const r = Math.floor(slot / cols);
+            const candX = startX + c * spacingX;
+            const candY = startY + r * spacingY;
+            const isTaken = boardNotes.some(
+              (n) => Math.abs((n.posX ?? -999) - candX) < 260 && Math.abs((n.posY ?? -999) - candY) < 260
+            );
+            if (!isTaken) {
+              initialX = candX;
+              initialY = candY;
+              break;
+            }
+          }
         }
 
         const created = await createNote({
