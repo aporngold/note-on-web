@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
   Plus,
+  Minus,
   MoreHorizontal,
   Edit2,
   Trash2,
@@ -114,6 +115,48 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       minHeight: `${Math.max(1600, maxNoteY + 500)}px`,
     };
   }, [notes]);
+
+  // Zoom level state (0.3 to 3.0, default 1.0 as in zoom.mp4)
+  const [zoom, setZoom] = useState<number>(1.0);
+  const [isZoomOverlayVisible, setIsZoomOverlayVisible] = useState<boolean>(false);
+  const zoomTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showZoomOverlay = () => {
+    setIsZoomOverlayVisible(true);
+    if (zoomTimerRef.current) clearTimeout(zoomTimerRef.current);
+    zoomTimerRef.current = setTimeout(() => {
+      setIsZoomOverlayVisible(false);
+    }, 1200);
+  };
+
+  const handleZoomChange = (newZoom: number) => {
+    const clamped = Math.max(0.3, Math.min(3.0, Math.round(newZoom * 100) / 100));
+    setZoom(clamped);
+    showZoomOverlay();
+  };
+
+  // Wheel zoom with Ctrl or Meta key
+  useEffect(() => {
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.08 : -0.08;
+        setZoom((prev) => {
+          const next = Math.max(0.3, Math.min(3.0, Math.round((prev + delta) * 100) / 100));
+          showZoomOverlay();
+          return next;
+        });
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   const bringToFront = (noteId: string) => {
     highestZRef.current += 1;
@@ -677,36 +720,111 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           style={getBoardStyle()}
           className="flex-1 w-full h-full min-h-0 overflow-auto relative p-6 sm:p-8 cursor-default pt-28 board-canvas-container"
         >
+          {/* Zoom Wrapper to allow accurate container scrolling */}
           <div
-            id="sticky-board-canvas"
-            style={dynamicCanvasSize}
-            className="relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl transition-all duration-300"
+            style={{
+              width: `${Math.round((parseInt(dynamicCanvasSize.minWidth) || 2200) * zoom)}px`,
+              height: `${Math.round((parseInt(dynamicCanvasSize.minHeight) || 1600) * zoom)}px`,
+            }}
           >
-            {/* SVG Visual Connection Lines Canvas */}
-            <NoteConnectionCanvas
-              connections={connections.filter((c) => !activeBoardId || c.boardId === activeBoardId)}
-              notes={notes}
-            />
+            <div
+              id="sticky-board-canvas"
+              style={{
+                ...dynamicCanvasSize,
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
+              }}
+              className="relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl transition-transform duration-100 ease-out"
+            >
+              {/* SVG Visual Connection Lines Canvas */}
+              <NoteConnectionCanvas
+                connections={connections.filter((c) => !activeBoardId || c.boardId === activeBoardId)}
+                notes={notes}
+              />
 
-            {/* Sticky Notes */}
-            {notes.map((note, idx) => (
-                <StickyNoteItem
-                  key={note.id}
-                  note={note}
-                  index={idx}
-                  onDragEnd={handleDragEnd}
-                  onUnlockRequest={() => setIsVaultModalOpen(true)}
-                  onStartConnect={handleStartConnect}
-                  onTargetConnect={handleTargetConnect}
-                  onOpenFullscreen={(n) => setFullscreenNote(n)}
-                  isConnectingSource={connectingSourceId === note.id}
-                  isConnectingMode={!!connectingSourceId}
-                  onBringToFront={() => bringToFront(note.id)}
-                  customZIndex={noteZIndices[note.id]}
-                  isFocused={focusedNoteId === note.id}
-                />
-              ))}
+              {/* Sticky Notes */}
+              {notes.map((note, idx) => (
+                  <StickyNoteItem
+                    key={note.id}
+                    note={note}
+                    index={idx}
+                    zoom={zoom}
+                    onDragEnd={handleDragEnd}
+                    onUnlockRequest={() => setIsVaultModalOpen(true)}
+                    onStartConnect={handleStartConnect}
+                    onTargetConnect={handleTargetConnect}
+                    onOpenFullscreen={(n) => setFullscreenNote(n)}
+                    isConnectingSource={connectingSourceId === note.id}
+                    isConnectingMode={!!connectingSourceId}
+                    onBringToFront={() => bringToFront(note.id)}
+                    customZIndex={noteZIndices[note.id]}
+                    isFocused={focusedNoteId === note.id}
+                  />
+                ))}
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* ── Center Zoom Indicator (Big overlay as in video zoom.mp4) ── */}
+      {isZoomOverlayVisible && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none animate-fade-in select-none">
+          <div className="bg-black/75 dark:bg-slate-900/90 backdrop-blur-md text-white px-8 py-3.5 rounded-2xl shadow-2xl border border-white/20 text-2xl sm:text-3xl font-mono font-black tracking-wider flex items-center justify-center">
+            <span>ZOOM: {Math.round(zoom * 100)}%</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Floating Zoom Controller Bar (Right-side widget as in zoom.mp4) ── */}
+      {boardViewMode === 'freeform' && (
+        <div className="absolute right-6 bottom-6 z-30 flex items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 px-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 select-none animate-fade-in">
+          {/* 100% Reset Button */}
+          <button
+            type="button"
+            onClick={() => handleZoomChange(1.0)}
+            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-xl transition active:scale-95 flex items-center justify-center min-w-[52px] shadow-xs ${
+              Math.round(zoom * 100) === 100
+                ? 'bg-indigo-600 text-white shadow-indigo-500/20'
+                : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+            }`}
+            title="คลิกเพื่อรีเซ็ตขนาดการซูมเป็น 100%"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+
+          {/* Zoom Out (-) Button */}
+          <button
+            type="button"
+            onClick={() => handleZoomChange(zoom - 0.1)}
+            disabled={zoom <= 0.3}
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-slate-700 dark:text-slate-200 transition active:scale-90"
+            title="ซูมออก (-10%)"
+          >
+            <Minus size={15} />
+          </button>
+
+          {/* Zoom Slider */}
+          <input
+            type="range"
+            min="30"
+            max="300"
+            step="5"
+            value={Math.round(zoom * 100)}
+            onChange={(e) => handleZoomChange(Number(e.target.value) / 100)}
+            className="w-24 sm:w-32 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            title={`ระดับการซูม: ${Math.round(zoom * 100)}%`}
+          />
+
+          {/* Zoom In (+) Button */}
+          <button
+            type="button"
+            onClick={() => handleZoomChange(zoom + 0.1)}
+            disabled={zoom >= 3.0}
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-slate-700 dark:text-slate-200 transition active:scale-90"
+            title="ซูมเข้า (+10%)"
+          >
+            <Plus size={15} />
+          </button>
         </div>
       )}
 

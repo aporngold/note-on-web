@@ -41,6 +41,7 @@ interface StickyNoteItemProps {
   onBringToFront?: () => void;
   customZIndex?: number;
   isFocused?: boolean;
+  zoom?: number;
 }
 
 const PAPER_COLORS = [
@@ -99,6 +100,7 @@ export default function StickyNoteItem({
   onBringToFront,
   customZIndex,
   isFocused = false,
+  zoom = 1,
 }: StickyNoteItemProps) {
   const router = useRouter();
   const {
@@ -286,8 +288,8 @@ export default function StickyNoteItem({
     const canvas = document.getElementById('sticky-board-canvas');
     const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
     setDragOffset({
-      x: (e.clientX - canvasRect.left) - pos.x,
-      y: (e.clientY - canvasRect.top) - pos.y,
+      x: (e.clientX - canvasRect.left) / zoom - pos.x,
+      y: (e.clientY - canvasRect.top) / zoom - pos.y,
     });
   };
 
@@ -324,8 +326,8 @@ export default function StickyNoteItem({
       } else if (isDragging) {
         const canvas = document.getElementById('sticky-board-canvas');
         const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-        const rawX = (e.clientX - canvasRect.left) - dragOffset.x;
-        const rawY = (e.clientY - canvasRect.top) - dragOffset.y;
+        const rawX = (e.clientX - canvasRect.left) / zoom - dragOffset.x;
+        const rawY = (e.clientY - canvasRect.top) / zoom - dragOffset.y;
         
         const maxW = canvas ? canvas.clientWidth : 2000;
         const maxH = canvas ? canvas.clientHeight : 1500;
@@ -337,8 +339,8 @@ export default function StickyNoteItem({
         const clampedY = Math.max(24, Math.min(maxY, rawY));
         setPos({ x: clampedX, y: clampedY });
       } else if (resizingDir) {
-        const deltaX = e.clientX - resizeStart.clientX;
-        const deltaY = e.clientY - resizeStart.clientY;
+        const deltaX = (e.clientX - resizeStart.clientX) / zoom;
+        const deltaY = (e.clientY - resizeStart.clientY) / zoom;
 
         let newW = resizeStart.w;
         let newH = resizeStart.h;
