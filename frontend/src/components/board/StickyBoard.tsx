@@ -90,6 +90,17 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Canvas scroll container ref
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
+  // Z-index management so clicked or interacted notes always sit on top
+  const [noteZIndices, setNoteZIndices] = useState<Record<string, number>>({});
+  const highestZRef = useRef<number>(50);
+  const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
+
+  const bringToFront = (noteId: string) => {
+    highestZRef.current += 1;
+    const newZ = highestZRef.current;
+    setNoteZIndices((prev) => ({ ...prev, [noteId]: newZ }));
+  };
+
   // Automatically scroll to top-left when board changes
   useEffect(() => {
     if (canvasContainerRef.current) {
@@ -97,10 +108,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   }, [activeBoardId]);
 
-  // Handle drag and drop coordinates saving
+  // Handle drag and drop coordinates saving with boundary clamping
   const handleDragEnd = async (id: string, x: number, y: number) => {
+    const clampedX = Math.max(16, Math.min(2200 - 280, Math.round(x)));
+    const clampedY = Math.max(16, Math.min(1600 - 280, Math.round(y)));
     try {
-      await updateNote(id, { posX: Math.round(x), posY: Math.round(y) });
+      await updateNote(id, { posX: clampedX, posY: clampedY });
     } catch (e) {
       console.error('Failed to save note position:', e);
     }
@@ -142,24 +155,25 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     setConnectingSourceId(null);
   };
 
-  // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note, aligned on the same level
+  // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note with proper spacing
   const findNextAvailableSlot = () => {
-    const spacingX = 290;
-    const spacingY = 320;
-    const startX = 60;
-    const startY = 100;
-    const cols = typeof window !== 'undefined' ? Math.max(3, Math.floor((window.innerWidth - 180) / spacingX)) : 4;
+    const spacingX = 300;
+    const spacingY = 300;
+    const startX = 48;
+    const startY = 36;
+    const containerWidth = canvasContainerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1200);
+    const cols = Math.max(3, Math.min(7, Math.floor((containerWidth - 96) / spacingX)));
 
-    const isSlotOccupied = (candX: number, candY: number) => {
+    const isSlotOccupied = (candX: number, candY: number, candW = 260, candH = 260) => {
+      const margin = 20; // safe spacing gap around notes
       return notes.some((n) => {
         const nx = n.posX ?? startX;
         const ny = n.posY ?? startY;
         const nw = n.width ?? 260;
         const nh = n.height ?? 260;
-        // Collision detection box
-        const horizontalOverlap = Math.abs(nx - candX) < Math.max(nw, 260) - 20;
-        const verticalOverlap = Math.abs(ny - candY) < Math.max(nh, 260) - 20;
-        return horizontalOverlap && verticalOverlap;
+        const overlapX = candX < nx + nw + margin && candX + candW + margin > nx;
+        const overlapY = candY < ny + nh + margin && candY + candH + margin > ny;
+        return overlapX && overlapY;
       });
     };
 
@@ -178,12 +192,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     return { x: startX, y: startY };
   };
 
-  // Quick add sticky note directly onto the active board
+  // Quick add sticky note directly onto the active board with proper spacing, bring to front, and auto-focus
   const handleQuickAdd = async (color: string = '#FEF08A') => {
     const { x, y } = findNextAvailableSlot();
     const targetBoardId = activeBoardId || boards.find((b) => b.isDefault)?.id || boards[0]?.id || undefined;
 
-    await createNote({
+    const newNote = await createNote({
       title: 'โน้ตใหม่',
       content: '',
       color,
@@ -197,6 +211,26 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       isPinned: false,
       boardId: targetBoardId,
     });
+
+    if (newNote?.id) {
+      bringToFront(newNote.id);
+      setFocusedNoteId(newNote.id);
+
+      setTimeout(() => {
+        const el = document.getElementById(`note-card-${newNote.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          const input = el.querySelector('input, textarea') as HTMLInputElement | HTMLTextAreaElement | null;
+          if (input) {
+            input.focus();
+          }
+        }
+      }, 100);
+
+      setTimeout(() => {
+        setFocusedNoteId((curr) => (curr === newNote.id ? null : curr));
+      }, 2500);
+    }
   };
 
   // Auto-arrange all notes in a neat grid
@@ -546,7 +580,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           style={getBoardStyle()}
           className="flex-1 w-full h-full overflow-auto relative p-8 cursor-default pt-28"
         >
-          <div className="min-w-[2200px] min-h-[1600px] relative">
+          <div className="min-w-[2200px] min-h-[1600px] relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl m-2">
             {/* SVG Visual Connection Lines Canvas */}
             <NoteConnectionCanvas
               connections={connections.filter((c) => !activeBoardId || c.boardId === activeBoardId)}
@@ -566,6 +600,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                   onOpenFullscreen={(n) => setFullscreenNote(n)}
                   isConnectingSource={connectingSourceId === note.id}
                   isConnectingMode={!!connectingSourceId}
+                  onBringToFront={() => bringToFront(note.id)}
+                  customZIndex={noteZIndices[note.id]}
+                  isFocused={focusedNoteId === note.id}
                 />
               ))}
           </div>

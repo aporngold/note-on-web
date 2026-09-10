@@ -38,6 +38,9 @@ interface StickyNoteItemProps {
   isConnectingSource?: boolean;
   isConnectingMode?: boolean;
   onOpenFullscreen?: (note: Note) => void;
+  onBringToFront?: () => void;
+  customZIndex?: number;
+  isFocused?: boolean;
 }
 
 const PAPER_COLORS = [
@@ -93,6 +96,9 @@ export default function StickyNoteItem({
   isConnectingSource = false,
   isConnectingMode = false,
   onOpenFullscreen,
+  onBringToFront,
+  customZIndex,
+  isFocused = false,
 }: StickyNoteItemProps) {
   const router = useRouter();
   const {
@@ -244,6 +250,9 @@ export default function StickyNoteItem({
 
   // Drag start handler - Instant 1:1 mouse tracking
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Bring this note to front on click or drag
+    onBringToFront?.();
+
     // If in connecting mode, clicking this note selects it as connection target
     if (isConnectingMode) {
       if (onTargetConnect) {
@@ -294,9 +303,12 @@ export default function StickyNoteItem({
         currentRotationRef.current = newAngle;
         setRotation(newAngle);
       } else if (isDragging) {
-        const newX = Math.max(0, e.clientX - dragOffset.x);
-        const newY = Math.max(0, e.clientY - dragOffset.y);
-        setPos({ x: newX, y: newY });
+        const rawX = e.clientX - dragOffset.x;
+        const rawY = e.clientY - dragOffset.y;
+        // Keep note within designated board bounds (2200x1600 canvas)
+        const clampedX = Math.max(16, Math.min(2200 - size.width - 24, rawX));
+        const clampedY = Math.max(16, Math.min(1600 - size.height - 24, rawY));
+        setPos({ x: clampedX, y: clampedY });
       } else if (resizingDir) {
         const deltaX = e.clientX - resizeStart.clientX;
         const deltaY = e.clientY - resizeStart.clientY;
@@ -355,7 +367,9 @@ export default function StickyNoteItem({
       }
       if (isDragging) {
         setIsDragging(false);
-        onDragEnd(note.id, pos.x, pos.y);
+        const clampedX = Math.max(16, Math.min(2200 - size.width - 24, pos.x));
+        const clampedY = Math.max(16, Math.min(1600 - size.height - 24, pos.y));
+        onDragEnd(note.id, clampedX, clampedY);
       }
       if (resizingDir) {
         setResizingDir(null);
@@ -476,10 +490,22 @@ export default function StickyNoteItem({
           color: textColor,
           transform: isDragging
             ? `scale(1.03) rotate(${rotation}deg)`
+            : isFocused
+            ? `scale(1.02) rotate(${rotation}deg)`
             : `rotate(${rotation}deg)`,
-          zIndex: isDragging || resizingDir ? 50 : isConnectingSource ? 45 : note.isPinned ? 30 : 10,
+          zIndex: isDragging || resizingDir
+            ? 9999
+            : isConnectingSource
+            ? 8888
+            : customZIndex !== undefined
+            ? customZIndex
+            : note.isPinned
+            ? 30
+            : 10,
           boxShadow: isDragging || resizingDir
             ? '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
+            : isFocused
+            ? '0 0 0 4px #6366F1, 0 25px 50px -12px rgba(99, 102, 241, 0.35)'
             : isConnectingSource
             ? '0 0 0 4px #6366F1, 0 10px 25px -5px rgba(99, 102, 241, 0.5)'
             : '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
@@ -489,7 +515,11 @@ export default function StickyNoteItem({
         }}
         className={`absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 ${
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
-        } ${isConnectingMode && !isConnectingSource ? 'hover:ring-4 hover:ring-indigo-400 cursor-pointer' : ''}`}
+        } ${isFocused ? 'ring-4 ring-indigo-500/80 shadow-2xl' : ''} ${
+          isConnectingMode && !isConnectingSource ? 'hover:ring-4 hover:ring-indigo-400 cursor-pointer' : ''
+        }`}
+        onClick={() => onBringToFront?.()}
+        onFocusCapture={() => onBringToFront?.()}
         onMouseDown={handleMouseDown}
         onDoubleClick={(e) => {
           e.stopPropagation();
