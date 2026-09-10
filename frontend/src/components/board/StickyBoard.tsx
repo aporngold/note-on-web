@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Plus,
-  LayoutGrid,
   MoreHorizontal,
   Edit2,
   Trash2,
@@ -526,20 +525,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             >
               <Sparkles size={14} className={`text-amber-500 ${isArranging ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{isArranging ? 'กำลังจัดเรียง...' : 'จัดเรียงอัตโนมัติ'}</span>
-            </button>
-
-            {/* Switch to Freeform Canvas Icon Button */}
-            <button
-              onClick={() => setBoardViewMode('freeform')}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border shadow-xs ${
-                boardViewMode === 'freeform'
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
-              title="กระดานอิสระ (Freeform Board)"
-            >
-              <LayoutGrid size={14} />
-              <span className="hidden sm:inline">กระดานอิสระ</span>
             </button>
 
             {/* Change Background Button */}
