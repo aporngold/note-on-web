@@ -14,7 +14,6 @@ import {
   Link2,
   Compass,
   Image as ImageIcon,
-  Maximize2,
   Sparkles,
 } from 'lucide-react';
 import StickyNoteItem from './StickyNoteItem';
@@ -180,28 +179,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Quick add sticky note directly onto the active board
   const handleQuickAdd = async (color: string = '#FEF08A') => {
     const { x, y } = findNextAvailableSlot();
+    const targetBoardId = activeBoardId || boards.find((b) => b.isDefault)?.id || boards[0]?.id || undefined;
 
     await createNote({
-      title: 'โน้ตด่วน',
-      content: '',
-      color,
-      textColor: '#0F172A',
-      fontSize: 'normal',
-      fontFamily: 'sans',
-      kanbanStatus: 'todo',
-      rotation: 0,
-      posX: x,
-      posY: y,
-      isPinned: false,
-      boardId: activeBoardId || undefined,
-    });
-  };
-
-  // Quick add sticky note and open in Fullscreen Focus Modal (เหมือนหน้าคัมบัง)
-  const handleQuickAddFullscreen = async (color: string = '#FEF08A') => {
-    const { x, y } = findNextAvailableSlot();
-
-    const newNote = await createNote({
       title: 'โน้ตใหม่',
       content: '',
       color,
@@ -213,12 +193,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       posX: x,
       posY: y,
       isPinned: false,
-      boardId: activeBoardId || undefined,
+      boardId: targetBoardId,
     });
-
-    if (newNote) {
-      setFullscreenNote(newNote);
-    }
   };
 
   // Auto-arrange all notes in a neat grid
@@ -481,14 +457,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <span>ฟ้า</span>
             </button>
 
-            {/* Quick Add and Open Fullscreen (เหมือนหน้าคัมบัง) */}
+            {/* + โน้ตใหม่ directly on Active Board */}
             <button
-              onClick={() => handleQuickAddFullscreen('#FEF08A')}
-              className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
-              title="สร้างโน้ตใหม่และเปิดแก้ไขเต็มจอทันที (เหมือนหน้าคัมบัง)"
+              onClick={() => handleQuickAdd('#FEF08A')}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+              title={`สร้างโน้ตใหม่บนบอร์ด "${activeBoard?.name || 'ปัจจุบัน'}"`}
             >
-              <Maximize2 size={13} />
-              <span>+ โน้ตใหม่ (เต็มจอ)</span>
+              <Plus size={15} />
+              <span>+ โน้ตใหม่</span>
             </button>
 
             {/* Web Sticky Simulator Button */}
@@ -565,36 +541,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           style={getBoardStyle()}
           className="flex-1 w-full h-full overflow-auto relative p-8 cursor-default pt-28"
         >
-          {/* Empty Board State: Centered at Top of Viewport so it is immediately visible */}
-          {notes.length === 0 && (
-            <div className="fixed left-1/2 top-36 sm:top-40 -translate-x-1/2 z-20 pointer-events-auto text-center p-8 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl shadow-2xl max-w-sm w-full mx-4 border border-slate-200/80 dark:border-slate-800 space-y-3 animate-fade-in">
-              <span className="text-4xl select-none">📌</span>
-              <h3 className="font-bold text-slate-800 dark:text-white text-base">
-                บอร์ด {activeBoard ? `"${activeBoard.name}"` : ''} ยังว่างเปล่า
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                กดปุ่ม &quot;+ แปะโน้ต&quot; ด้านบน เพื่อสร้างโน้ตใหม่ ลากวางตำแหน่ง เชื่อมต่อโน้ต หรือแนบไฟล์รูปภาพ/PDF ได้อย่างอิสระ!
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <button
-                  onClick={() => handleQuickAdd('#FEF08A')}
-                  className="px-4 py-2 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5"
-                >
-                  <Plus size={15} />
-                  <span>+ แปะโน้ต</span>
-                </button>
-                <button
-                  onClick={() => handleQuickAddFullscreen('#FEF08A')}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5"
-                  title="สร้างโน้ตใหม่และเปิดแก้ไขเต็มจอทันที"
-                >
-                  <Maximize2 size={14} />
-                  <span>+ เต็มจอ</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="min-w-[2200px] min-h-[1600px] relative">
             {/* SVG Visual Connection Lines Canvas */}
             <NoteConnectionCanvas

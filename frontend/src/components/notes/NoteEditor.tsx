@@ -28,6 +28,7 @@ import {
   History,
   ScanText,
   Sparkles,
+  LayoutGrid,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -79,11 +80,12 @@ interface NoteEditorProps {
 
 export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const router = useRouter();
-  const { notebooks, labels, createNote, updateNote, deleteNote, duplicateNote, createLabel } = useNoteStore();
+  const { notebooks, labels, boards, activeBoardId, createNote, updateNote, deleteNote, duplicateNote, createLabel } = useNoteStore();
   const { isVaultUnlocked } = useAuthStore();
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [boardId, setBoardId] = useState<string | null>(null);
   const [color, setColor] = useState(COLORS[0]);
   const [textColor, setTextColor] = useState('#0F172A');
   const [isLocked, setIsLocked] = useState(false);
@@ -186,6 +188,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         setAttachments(n.attachments || []);
         setNotebookId(n.notebookId || null);
         setSelectedLabelIds(n.labels?.map((l) => l.id) || []);
+        if (n.boardId) setBoardId(n.boardId);
 
         let loadedContent = n.content || '';
 
@@ -227,6 +230,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   }, [initialNoteId, isVaultUnlocked, router, editor]);
 
   // Sync editor content when loaded
+  // Initialize boardId for new notes from active board or query parameter
+  useEffect(() => {
+    if (!initialNoteId) {
+      const qBoardId = (router.query.boardId as string) || activeBoardId || null;
+      if (qBoardId) {
+        setBoardId(qBoardId);
+      }
+    }
+  }, [initialNoteId, router.query.boardId, activeBoardId]);
+
   useEffect(() => {
     if (editor && isLoaded && content && editor.isEmpty) {
       editor.commands.setContent(convertLegacyContentToHtml(content), { emitUpdate: false });
@@ -279,6 +292,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           isPinned,
           isFavorite,
           notebookId,
+          boardId: boardId || activeBoardId || undefined,
           labelIds: selectedLabelIds,
           iv,
           salt,
@@ -294,6 +308,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           isPinned,
           isFavorite,
           notebookId,
+          boardId: boardId || activeBoardId || undefined,
           labelIds: selectedLabelIds,
           iv,
           salt,
@@ -317,7 +332,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     color,
     textColor,
     isPinned,
+    isFavorite,
     notebookId,
+    boardId,
+    activeBoardId,
     selectedLabelIds,
     updateNote,
     createNote,
@@ -359,6 +377,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           isPinned,
           isFavorite,
           notebookId,
+          boardId: boardId || activeBoardId || undefined,
           labelIds: selectedLabelIds,
           iv,
           salt,
@@ -373,6 +392,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           isPinned,
           isFavorite,
           notebookId,
+          boardId: boardId || activeBoardId || undefined,
           labelIds: selectedLabelIds,
           iv,
           salt,
@@ -400,6 +420,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     isPinned,
     isFavorite,
     notebookId,
+    boardId,
+    activeBoardId,
     selectedLabelIds,
     updateNote,
     createNote,
@@ -429,7 +451,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [title, content, color, textColor, notebookId, selectedLabelIds, isPinned, isFavorite, isLoaded, triggerAutoSave]);
+  }, [title, content, color, textColor, notebookId, boardId, selectedLabelIds, isPinned, isFavorite, isLoaded, triggerAutoSave]);
 
   const handleUploadFile = async (file: File) => {
     try {
@@ -825,6 +847,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                     fontFamily: 'sans',
                     fontSize: 'normal',
                     notebookId: notebookId || undefined,
+                    boardId: boardId || activeBoardId || undefined,
                     isPinned,
                     isFavorite,
                     isLocked,
@@ -858,25 +881,45 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         </div>
       </div>
 
-      {/* Metadata Bar (Notebook, Color, Labels) */}
+      {/* Metadata Bar (Notebook, Board, Color, Labels) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* Notebook Selector */}
-          <div className="flex items-center gap-2">
-            <Book size={16} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">สมุดบันทึก:</span>
-            <select
-              value={notebookId || ''}
-              onChange={(e) => setNotebookId(e.target.value || null)}
-              className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              <option value="">(ไม่มีสมุดบันทึก)</option>
-              {notebooks.map((nb) => (
-                <option key={nb.id} value={nb.id}>
-                  {nb.name}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Notebook Selector */}
+            <div className="flex items-center gap-2">
+              <Book size={16} className="text-slate-400" />
+              <span className="text-xs font-semibold text-slate-500">สมุดบันทึก:</span>
+              <select
+                value={notebookId || ''}
+                onChange={(e) => setNotebookId(e.target.value || null)}
+                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+              >
+                <option value="">(ไม่มีสมุดบันทึก)</option>
+                {notebooks.map((nb) => (
+                  <option key={nb.id} value={nb.id}>
+                    {nb.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Board Selector */}
+            <div className="flex items-center gap-2">
+              <LayoutGrid size={16} className="text-slate-400" />
+              <span className="text-xs font-semibold text-slate-500">กระดาน (Board):</span>
+              <select
+                value={boardId || ''}
+                onChange={(e) => setBoardId(e.target.value || null)}
+                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+              >
+                <option value="">(ไม่ระบุบอร์ด / ทั่วไป)</option>
+                {boards.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.isDefault ? '(บอร์ดเริ่มต้น)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Color Picker Swatches */}

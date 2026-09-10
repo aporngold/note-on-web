@@ -28,6 +28,8 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
     fetchNotes,
     fetchNotebooks,
     fetchLabels,
+    fetchBoards,
+    activeBoardId,
   } = useNoteStore();
 
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -49,8 +51,9 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
     if (user) {
       fetchNotebooks();
       fetchLabels();
+      fetchBoards();
     }
-  }, [user, fetchNotebooks, fetchLabels]);
+  }, [user, fetchNotebooks, fetchLabels, fetchBoards]);
 
   if (isLoading) {
     return (
@@ -290,14 +293,20 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               <span className="hidden sm:inline">สำรองข้อมูล</span>
             </button>
 
-            {/* Quick New Note */}
-            <button
-              onClick={() => router.push('/notes/new')}
-              className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-500/20 flex items-center gap-1.5 transition ml-1"
-            >
-              <Plus size={16} />
-              <span className="hidden sm:inline">โน้ตใหม่</span>
-            </button>
+            {/* Quick New Note (Hidden on /board since it's already in the StickyBoard toolbar) */}
+            {router.pathname !== '/board' && (
+              <button
+                onClick={() => {
+                  const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
+                  router.push(url);
+                }}
+                className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-500/20 flex items-center gap-1.5 transition ml-1"
+                title="สร้างโน้ตใหม่"
+              >
+                <Plus size={16} />
+                <span className="hidden sm:inline">โน้ตใหม่</span>
+              </button>
+            )}
           </div>
         </header>
 
