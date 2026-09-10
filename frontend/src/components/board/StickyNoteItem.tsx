@@ -157,6 +157,7 @@ export default function StickyNoteItem({
   // Inline editing state
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content || '');
+  const [isEditingRichContent, setIsEditingRichContent] = useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [isTextColorOpen, setIsTextColorOpen] = useState(false);
 
@@ -199,6 +200,22 @@ export default function StickyNoteItem({
       });
     }
   }, [note.posX, note.posY, index, isDragging, resizingDir]);
+
+  // Synchronize title and content when note prop updates (from fullscreen editor or external edit)
+  useEffect(() => {
+    setTitle(note.title || '');
+    setContent(note.content || '');
+  }, [note.title, note.content]);
+
+  // Synchronize size when note prop updates
+  useEffect(() => {
+    if (!resizingDir) {
+      setSize({
+        width: note.width || 260,
+        height: note.height || 260,
+      });
+    }
+  }, [note.width, note.height, resizingDir]);
 
   const handleRotateMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -266,9 +283,11 @@ export default function StickyNoteItem({
 
     e.preventDefault();
     setIsDragging(true);
+    const canvas = document.getElementById('sticky-board-canvas');
+    const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
     setDragOffset({
-      x: e.clientX - pos.x,
-      y: e.clientY - pos.y,
+      x: (e.clientX - canvasRect.left) - pos.x,
+      y: (e.clientY - canvasRect.top) - pos.y,
     });
   };
 
@@ -303,18 +322,19 @@ export default function StickyNoteItem({
         currentRotationRef.current = newAngle;
         setRotation(newAngle);
       } else if (isDragging) {
-        const rawX = e.clientX - dragOffset.x;
-        const rawY = e.clientY - dragOffset.y;
-        // Keep note within designated board canvas bounds
         const canvas = document.getElementById('sticky-board-canvas');
+        const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
+        const rawX = (e.clientX - canvasRect.left) - dragOffset.x;
+        const rawY = (e.clientY - canvasRect.top) - dragOffset.y;
+        
         const maxW = canvas ? canvas.clientWidth : 2000;
         const maxH = canvas ? canvas.clientHeight : 1500;
 
-        const maxX = Math.max(16, maxW - size.width - 24);
-        const maxY = Math.max(16, maxH - size.height - 24);
+        const maxX = Math.max(20, maxW - size.width - 24);
+        const maxY = Math.max(24, maxH - size.height - 24);
 
-        const clampedX = Math.max(16, Math.min(maxX, rawX));
-        const clampedY = Math.max(16, Math.min(maxY, rawY));
+        const clampedX = Math.max(20, Math.min(maxX, rawX));
+        const clampedY = Math.max(24, Math.min(maxY, rawY));
         setPos({ x: clampedX, y: clampedY });
       } else if (resizingDir) {
         const deltaX = e.clientX - resizeStart.clientX;
@@ -378,11 +398,11 @@ export default function StickyNoteItem({
         const maxW = canvas ? canvas.clientWidth : 2000;
         const maxH = canvas ? canvas.clientHeight : 1500;
 
-        const maxX = Math.max(16, maxW - size.width - 24);
-        const maxY = Math.max(16, maxH - size.height - 24);
+        const maxX = Math.max(20, maxW - size.width - 24);
+        const maxY = Math.max(24, maxH - size.height - 24);
 
-        const clampedX = Math.max(16, Math.min(maxX, pos.x));
-        const clampedY = Math.max(16, Math.min(maxY, pos.y));
+        const clampedX = Math.max(20, Math.min(maxX, pos.x));
+        const clampedY = Math.max(24, Math.min(maxY, pos.y));
         onDragEnd(note.id, clampedX, clampedY);
       }
       if (resizingDir) {
@@ -1167,14 +1187,21 @@ export default function StickyNoteItem({
               className={`w-full h-full overflow-y-auto leading-relaxed cursor-text ${getFontSizeClass()} ${getFontFamilyClass()}`}
               style={{ color: textColor }}
             >
-              {/<[a-z][\s\S]*>/i.test(displayContent) ? (
+              {/<[a-z][\s\S]*>/i.test(displayContent) && !isEditingRichContent ? (
                 <div
-                  className="prose dark:prose-invert max-w-none text-inherit text-xs sm:text-sm leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: displayContent }}
-                />
+                  onClick={() => setIsEditingRichContent(true)}
+                  className="prose dark:prose-invert max-w-none text-inherit text-xs sm:text-sm leading-relaxed cursor-text group/content relative min-h-full"
+                  title="คลิกเพื่อแก้ไขข้อความ"
+                >
+                  <div dangerouslySetInnerHTML={{ __html: displayContent }} />
+                  <span className="opacity-0 group-hover/content:opacity-60 text-[9px] block mt-1 italic text-slate-500">
+                    (คลิกเพื่อพิมพ์แก้ไข)
+                  </span>
+                </div>
               ) : (
                 <textarea
                   value={content}
+                  autoFocus={isEditingRichContent}
                   onChange={(e) => setContent(e.target.value)}
                   onBlur={handleBlur}
                   placeholder="เขียนข้อความของคุณตรงนี้..."

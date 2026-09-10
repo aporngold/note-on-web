@@ -99,6 +99,22 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
   const hasAutoRepositionedRef = useRef<Record<string, boolean>>({});
 
+  // Dynamic minimum canvas dimensions based on outermost note coordinates
+  const dynamicCanvasSize = React.useMemo(() => {
+    let maxNoteX = 0;
+    let maxNoteY = 0;
+    notes.forEach((n) => {
+      const right = (n.posX ?? 0) + (n.width ?? 260);
+      const bottom = (n.posY ?? 0) + (n.height ?? 260);
+      if (right > maxNoteX) maxNoteX = right;
+      if (bottom > maxNoteY) maxNoteY = bottom;
+    });
+    return {
+      minWidth: `${Math.max(2200, maxNoteX + 500)}px`,
+      minHeight: `${Math.max(1600, maxNoteY + 500)}px`,
+    };
+  }, [notes]);
+
   const bringToFront = (noteId: string) => {
     highestZRef.current += 1;
     const newZ = highestZRef.current;
@@ -321,12 +337,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
 
     setIsArranging(true);
-    const spacingX = 290;
+    const spacingX = 300;
     const spacingY = 320;
-    const startX = 60;
+    const startX = 40;
     const startY = 40;
-    const containerWidth = canvasContainerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1200);
-    const cols = Math.max(2, Math.floor((containerWidth - 120) / spacingX));
+    const canvas = document.getElementById('sticky-board-canvas');
+    const canvasW = canvas ? canvas.clientWidth : 2200;
+    const cols = Math.max(4, Math.floor((canvasW - 120) / spacingX));
 
     // Sort pinned notes first, then maintain natural order
     const sortedNotes = [...notes].sort((a, b) => {
@@ -662,7 +679,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         >
           <div
             id="sticky-board-canvas"
-            className="min-w-[2000px] min-h-[1500px] relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl"
+            style={dynamicCanvasSize}
+            className="relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl transition-all duration-300"
           >
             {/* SVG Visual Connection Lines Canvas */}
             <NoteConnectionCanvas

@@ -19,7 +19,7 @@ export default function NoteConnectionCanvas({
 
   return (
     <svg
-      className="absolute inset-0 w-full h-full pointer-events-none z-15"
+      className="absolute inset-0 w-full h-full pointer-events-none z-[5]"
       style={{ overflow: 'visible' }}
     >
       <defs>

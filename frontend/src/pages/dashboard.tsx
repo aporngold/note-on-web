@@ -80,7 +80,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className={`max-w-7xl mx-auto ${viewMode === 'board' ? 'space-y-0' : 'space-y-6'}`}>
+      <div className={viewMode === 'board' ? 'w-full h-full flex-1 flex flex-col min-h-0' : 'max-w-7xl mx-auto space-y-6'}>
         {/* Header Title & Filter Pill (Hidden when on Board mode to let the board use full height and move up) */}
         {viewMode !== 'board' && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
