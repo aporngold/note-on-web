@@ -305,9 +305,16 @@ export default function StickyNoteItem({
       } else if (isDragging) {
         const rawX = e.clientX - dragOffset.x;
         const rawY = e.clientY - dragOffset.y;
-        // Keep note within designated board bounds (2200x1600 canvas)
-        const clampedX = Math.max(16, Math.min(2200 - size.width - 24, rawX));
-        const clampedY = Math.max(16, Math.min(1600 - size.height - 24, rawY));
+        // Keep note within designated board container bounds
+        const container = (document.getElementById('sticky-board-canvas') || (e.target as HTMLElement).closest('.board-canvas-container')) as HTMLElement | null;
+        const maxW = container ? container.clientWidth : 1050;
+        const maxH = container ? Math.max(container.clientHeight, 600) : 600;
+
+        const maxX = Math.max(16, maxW - size.width - 24);
+        const maxY = Math.max(16, maxH - size.height - 24);
+
+        const clampedX = Math.max(16, Math.min(maxX, rawX));
+        const clampedY = Math.max(16, Math.min(maxY, rawY));
         setPos({ x: clampedX, y: clampedY });
       } else if (resizingDir) {
         const deltaX = e.clientX - resizeStart.clientX;
@@ -367,8 +374,15 @@ export default function StickyNoteItem({
       }
       if (isDragging) {
         setIsDragging(false);
-        const clampedX = Math.max(16, Math.min(2200 - size.width - 24, pos.x));
-        const clampedY = Math.max(16, Math.min(1600 - size.height - 24, pos.y));
+        const container = (document.getElementById('sticky-board-canvas') || document.querySelector('.board-canvas-container')) as HTMLElement | null;
+        const maxW = container ? container.clientWidth : 1050;
+        const maxH = container ? Math.max(container.clientHeight, 600) : 600;
+
+        const maxX = Math.max(16, maxW - size.width - 24);
+        const maxY = Math.max(16, maxH - size.height - 24);
+
+        const clampedX = Math.max(16, Math.min(maxX, pos.x));
+        const clampedY = Math.max(16, Math.min(maxY, pos.y));
         onDragEnd(note.id, clampedX, clampedY);
       }
       if (resizingDir) {

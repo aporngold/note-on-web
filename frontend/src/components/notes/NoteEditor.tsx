@@ -80,7 +80,7 @@ interface NoteEditorProps {
 
 export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const router = useRouter();
-  const { notebooks, labels, boards, activeBoardId, createNote, updateNote, deleteNote, duplicateNote, createLabel } = useNoteStore();
+  const { notes, notebooks, labels, boards, activeBoardId, createNote, updateNote, deleteNote, duplicateNote, createLabel } = useNoteStore();
   const { isVaultUnlocked } = useAuthStore();
 
   const [title, setTitle] = useState('');
@@ -299,6 +299,19 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         });
         toast.success('บันทึกการเปลี่ยนแปลงแล้ว');
       } else {
+        const targetBoardId = boardId || activeBoardId || undefined;
+        let initialX: number | undefined;
+        let initialY: number | undefined;
+        if (targetBoardId) {
+          const boardNotes = notes.filter((n) => n.boardId === targetBoardId && !n.isArchived);
+          const cols = 3;
+          const slot = boardNotes.length;
+          const col = slot % cols;
+          const row = Math.floor(slot / cols);
+          initialX = 24 + col * 320;
+          initialY = 24 + row * 320;
+        }
+
         const created = await createNote({
           title: title.trim() || 'ไม่มีชื่อบันทึก',
           content: finalContent,
@@ -308,8 +321,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           isPinned,
           isFavorite,
           notebookId,
-          boardId: boardId || activeBoardId || undefined,
+          boardId: targetBoardId,
           labelIds: selectedLabelIds,
+          posX: initialX,
+          posY: initialY,
           iv,
           salt,
         });
@@ -383,6 +398,19 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           salt,
         });
       } else {
+        const targetBoardId = boardId || activeBoardId || undefined;
+        let initialX: number | undefined;
+        let initialY: number | undefined;
+        if (targetBoardId) {
+          const boardNotes = notes.filter((n) => n.boardId === targetBoardId && !n.isArchived);
+          const cols = 3;
+          const slot = boardNotes.length;
+          const col = slot % cols;
+          const row = Math.floor(slot / cols);
+          initialX = 24 + col * 320;
+          initialY = 24 + row * 320;
+        }
+
         const created = await createNote({
           title: title.trim() || 'ไม่มีชื่อบันทึก',
           content: finalContent,
@@ -392,8 +420,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           isPinned,
           isFavorite,
           notebookId,
-          boardId: boardId || activeBoardId || undefined,
+          boardId: targetBoardId,
           labelIds: selectedLabelIds,
+          posX: initialX,
+          posY: initialY,
           iv,
           salt,
         });

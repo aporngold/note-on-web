@@ -95,6 +95,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const highestZRef = useRef<number>(50);
   const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
 
+  // Reservation of slots to prevent overlapping when creating notes rapidly
+  const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
+
   const bringToFront = (noteId: string) => {
     highestZRef.current += 1;
     const newZ = highestZRef.current;
@@ -108,16 +111,68 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   }, [activeBoardId]);
 
-  // Handle drag and drop coordinates saving with boundary clamping
+  // Handle drag and drop coordinates saving with container boundary clamping
   const handleDragEnd = async (id: string, x: number, y: number) => {
-    const clampedX = Math.max(16, Math.min(2200 - 280, Math.round(x)));
-    const clampedY = Math.max(16, Math.min(1600 - 280, Math.round(y)));
+    const container = canvasContainerRef.current;
+    const maxW = container ? container.clientWidth : 1050;
+    const maxH = container ? Math.max(container.clientHeight, 600) : 600;
+
+    const clampedX = Math.max(16, Math.min(maxW - 270, Math.round(x)));
+    const clampedY = Math.max(16, Math.min(maxH - 270, Math.round(y)));
     try {
       await updateNote(id, { posX: clampedX, posY: clampedY });
     } catch (e) {
       console.error('Failed to save note position:', e);
     }
   };
+
+  // Auto-arrange any existing notes that were created on top of each other (overlapping)
+  useEffect(() => {
+    if (!notes || notes.length <= 1) return;
+    const occupied: Array<{ id: string; x: number; y: number }> = [];
+    const needReposition: Array<{ id: string; x: number; y: number }> = [];
+
+    const spacingX = 320;
+    const spacingY = 320;
+    const startX = 24;
+    const startY = 24;
+    const containerW = canvasContainerRef.current?.clientWidth || 1050;
+    const cols = Math.max(2, Math.floor((containerW - 48) / spacingX));
+
+    notes.forEach((n, idx) => {
+      const x = n.posX ?? (startX + (idx % cols) * spacingX);
+      const y = n.posY ?? (startY + Math.floor(idx / cols) * spacingY);
+
+      const collides = occupied.some(
+        (o) => Math.abs(o.x - x) < 200 && Math.abs(o.y - y) < 200
+      );
+
+      if (collides) {
+        for (let s = 0; s < 100; s++) {
+          const c = s % cols;
+          const r = Math.floor(s / cols);
+          const candX = startX + c * spacingX;
+          const candY = startY + r * spacingY;
+          const isTaken = occupied.some(
+            (o) => Math.abs(o.x - candX) < 260 && Math.abs(o.y - candY) < 260
+          );
+          if (!isTaken) {
+            needReposition.push({ id: n.id, x: candX, y: candY });
+            occupied.push({ id: n.id, x: candX, y: candY });
+            break;
+          }
+        }
+      } else {
+        occupied.push({ id: n.id, x, y });
+      }
+    });
+
+    if (needReposition.length > 0) {
+      needReposition.forEach((item) => {
+        updateNote(item.id, { posX: item.x, posY: item.y });
+      });
+    }
+  }, [activeBoardId]);
 
   // Start connecting mode from a source note
   const handleStartConnect = (sourceId: string) => {
@@ -157,27 +212,43 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note with proper spacing
   const findNextAvailableSlot = () => {
-    const spacingX = 300;
-    const spacingY = 300;
-    const startX = 48;
-    const startY = 36;
-    const containerWidth = canvasContainerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1200);
-    const cols = Math.max(3, Math.min(7, Math.floor((containerWidth - 96) / spacingX)));
+    const spacingX = 320;
+    const spacingY = 320;
+    const startX = 24;
+    const startY = 24;
+    const containerWidth = canvasContainerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1050);
+    const cols = Math.max(2, Math.floor((containerWidth - 48) / spacingX));
 
     const isSlotOccupied = (candX: number, candY: number, candW = 260, candH = 260) => {
-      const margin = 20; // safe spacing gap around notes
-      return notes.some((n) => {
+      const margin = 16;
+      // 1. Check against all existing notes on the board
+      const noteCollision = notes.some((n) => {
         const nx = n.posX ?? startX;
         const ny = n.posY ?? startY;
         const nw = n.width ?? 260;
         const nh = n.height ?? 260;
-        const overlapX = candX < nx + nw + margin && candX + candW + margin > nx;
-        const overlapY = candY < ny + nh + margin && candY + candH + margin > ny;
-        return overlapX && overlapY;
+        return (
+          candX < nx + nw + margin &&
+          candX + candW + margin > nx &&
+          candY < ny + nh + margin &&
+          candY + candH + margin > ny
+        );
       });
+      if (noteCollision) return true;
+
+      // 2. Check against pending reservations to prevent race conditions during rapid clicks
+      const pendingCollision = pendingSlotsRef.current.some((p) => {
+        return (
+          candX < p.x + 260 + margin &&
+          candX + candW + margin > p.x &&
+          candY < p.y + 260 + margin &&
+          candY + candH + margin > p.y
+        );
+      });
+      return pendingCollision;
     };
 
-    // Scan slots left-to-right, row-by-row on the same aligned level
+    // Scan slots row by row
     for (let slot = 0; slot < notes.length + 100; slot++) {
       const col = slot % cols;
       const row = Math.floor(slot / cols);
@@ -185,6 +256,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       const candY = startY + row * spacingY;
 
       if (!isSlotOccupied(candX, candY)) {
+        pendingSlotsRef.current.push({ x: candX, y: candY });
+        setTimeout(() => {
+          pendingSlotsRef.current = pendingSlotsRef.current.filter((p) => p.x !== candX || p.y !== candY);
+        }, 5000);
         return { x: candX, y: candY };
       }
     }
@@ -493,14 +568,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <span>ฟ้า</span>
             </button>
 
-            {/* + โน้ตใหม่ - Navigate to /notes/new exactly like other pages */}
+            {/* + โน้ตใหม่ - Quick add directly on active board without overlap */}
             <button
-              onClick={() => {
-                const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
-                router.push(url);
-              }}
+              onClick={() => handleQuickAdd('#FEF08A')}
               className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
-              title="สร้างโน้ตใหม่"
+              title="สร้างโน้ตใหม่บนบอร์ด"
             >
               <Plus size={15} />
               <span>โน้ตใหม่</span>
@@ -578,9 +650,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         <div
           ref={canvasContainerRef}
           style={getBoardStyle()}
-          className="flex-1 w-full h-full overflow-auto relative p-8 cursor-default pt-28"
+          className="flex-1 w-full h-full overflow-auto relative p-8 cursor-default pt-28 board-canvas-container"
         >
-          <div className="min-w-[2200px] min-h-[1600px] relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl m-2">
+          <div
+            id="sticky-board-canvas"
+            className="w-full h-full min-w-full min-h-[600px] relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl"
+          >
             {/* SVG Visual Connection Lines Canvas */}
             <NoteConnectionCanvas
               connections={connections.filter((c) => !activeBoardId || c.boardId === activeBoardId)}
