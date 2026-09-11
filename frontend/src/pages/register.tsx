@@ -71,7 +71,8 @@ export default function RegisterPage() {
 
   const handleGoogleSignIn = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-    window.location.href = `${apiUrl}/auth/google`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    window.location.href = `${apiUrl}/auth/google?origin=${encodeURIComponent(origin)}`;
   };
 
   return (

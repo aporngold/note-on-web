@@ -1,15 +1,17 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
+  // 1. If explicit NEXT_PUBLIC_API_URL is configured (e.g. production on Vercel), ALWAYS prioritize it!
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  // 2. If testing via local LAN IP (e.g. 192.168.x.x from mobile)
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    if (host && /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
       const isHttps = window.location.protocol === 'https:';
       return `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
     }
-  }
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
   }
   return 'http://localhost:5000/api';
 };
