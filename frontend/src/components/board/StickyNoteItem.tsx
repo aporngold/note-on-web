@@ -20,6 +20,7 @@ import {
   Star,
   RotateCw,
   Volume2,
+  Share2,
 } from 'lucide-react';
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -28,6 +29,7 @@ import { EncryptionService } from '@/utils/encryption';
 import toast from 'react-hot-toast';
 import ViewportPopover from '../ui/ViewportPopover';
 import ViewportContextMenu from '../ui/ViewportContextMenu';
+import ShareNoteModal from '../notes/ShareNoteModal';
 
 interface StickyNoteItemProps {
   note: Note;
@@ -42,6 +44,7 @@ interface StickyNoteItemProps {
   onBringToFront?: () => void;
   customZIndex?: number;
   isFocused?: boolean;
+  isHighlighted?: boolean;
   zoom?: number;
 }
 
@@ -88,6 +91,73 @@ const KANBAN_STATUSES = [
 
 type ResizeDirection = 'right' | 'left' | 'bottom' | 'bottom-right' | 'bottom-left';
 
+interface StickyContentEditableProps {
+  html: string;
+  onChange: (newHtml: string) => void;
+  onBlur: () => void;
+  onFocus?: () => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
+  html,
+  onChange,
+  onBlur,
+  onFocus,
+  placeholder = 'เขียนข้อความของคุณตรงนี้...',
+  disabled = false,
+  className = '',
+  style,
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const lastHtmlRef = useRef(html);
+  const [isEmpty, setIsEmpty] = useState(() => {
+    return !html || html.replace(/<[^>]*>/g, '').trim() === '';
+  });
+
+  useEffect(() => {
+    if (ref.current && html !== lastHtmlRef.current) {
+      lastHtmlRef.current = html;
+      ref.current.innerHTML = html;
+      setIsEmpty(!html || html.replace(/<[^>]*>/g, '').trim() === '');
+    }
+  }, [html]);
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const newHtml = e.currentTarget.innerHTML;
+    lastHtmlRef.current = newHtml;
+    setIsEmpty(!newHtml || newHtml.replace(/<[^>]*>/g, '').trim() === '');
+    onChange(newHtml);
+  };
+
+  return (
+    <div className="relative w-full h-full min-h-0">
+      <div
+        ref={ref}
+        contentEditable={!disabled}
+        suppressContentEditableWarning
+        onInput={handleInput}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        className={`${className} focus:outline-none select-text cursor-text no-drag min-h-full`}
+        style={style}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+      {isEmpty && (
+        <div
+          className="absolute top-0 left-0 pointer-events-none opacity-30 select-none leading-relaxed text-inherit"
+          style={style}
+        >
+          {placeholder}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function StickyNoteItem({
   note,
   index,
@@ -101,6 +171,7 @@ export default function StickyNoteItem({
   onBringToFront,
   customZIndex,
   isFocused = false,
+  isHighlighted = false,
   zoom = 1,
 }: StickyNoteItemProps) {
   const router = useRouter();
@@ -160,7 +231,6 @@ export default function StickyNoteItem({
   // Inline editing state
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content || '');
-  const [isEditingRichContent, setIsEditingRichContent] = useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [isTextColorOpen, setIsTextColorOpen] = useState(false);
 
@@ -171,14 +241,15 @@ export default function StickyNoteItem({
   const fontFamily = note.fontFamily || 'sans';
   const kanbanStatus = note.kanbanStatus || 'todo';
 
-  // Rotation state: persistent from note.rotation (defaults to 0, or subtle natural tilt fallback)
+  // Rotation state: persistent from note.rotation (defaults to 0, no tilt)
   const [rotation, setRotation] = useState<number>(() => {
     if (note.rotation !== undefined && note.rotation !== null) {
       return note.rotation;
     }
-    return ((index * 37) % 5) - 2;
+    return 0;
   });
 
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
   const currentRotationRef = useRef<number>(rotation);
   const lastClickTimeRef = useRef<number>(0);
@@ -195,14 +266,26 @@ export default function StickyNoteItem({
     }
   }, [note.rotation]);
 
+  // Optimistic position tracker: prevents note from bouncing when dragging finishes
+  const lastSavedPosRef = useRef<{ x: number; y: number }>({
+    x: note.posX ?? 80 + (index % 5) * 280,
+    y: note.posY ?? 125 + Math.floor(index / 5) * 320,
+  });
+
   useEffect(() => {
+    // Only update pos from external props if note.posX / posY are valid and different from last saved pos
     if (!isDragging && !resizingDir) {
-      setPos({
-        x: note.posX ?? 80 + (index % 5) * 280,
-        y: note.posY ?? 80 + Math.floor(index / 5) * 320,
-      });
+      if (typeof note.posX === 'number' && typeof note.posY === 'number') {
+        if (
+          Math.abs(note.posX - lastSavedPosRef.current.x) > 4 ||
+          Math.abs(note.posY - lastSavedPosRef.current.y) > 4
+        ) {
+          lastSavedPosRef.current = { x: note.posX, y: note.posY };
+          setPos({ x: note.posX, y: note.posY });
+        }
+      }
     }
-  }, [note.posX, note.posY, index, isDragging, resizingDir]);
+  }, [note.posX, note.posY, isDragging, resizingDir]);
 
   // Synchronize title and content when note prop updates (from fullscreen editor or external edit)
   useEffect(() => {
@@ -268,33 +351,55 @@ export default function StickyNoteItem({
     }
   }
 
-  // Drag start handler - Instant 1:1 mouse tracking
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Bring this note to front on click or drag
+  // Drag start helper for both Mouse and Touch
+  const initDrag = (clientX: number, clientY: number, target: HTMLElement) => {
     onBringToFront?.();
 
-    // If in connecting mode, clicking this note selects it as connection target
     if (isConnectingMode) {
       if (onTargetConnect) {
         onTargetConnect(note.id);
       }
-      return;
+      return false;
     }
 
-    // Prevent drag if clicking on interactive elements or resize handles
-    if ((e.target as HTMLElement).closest('.no-drag')) return;
+    // Prevent drag if interacting with buttons, inputs, textareas, links, or specific no-drag elements
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('a') ||
+      target.closest('.no-drag')
+    ) {
+      return false;
+    }
 
-    e.preventDefault();
     setIsDragging(true);
     const canvas = document.getElementById('sticky-board-canvas');
     const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
     setDragOffset({
-      x: (e.clientX - canvasRect.left) / zoom - pos.x,
-      y: (e.clientY - canvasRect.top) / zoom - pos.y,
+      x: (clientX - canvasRect.left) / zoom - pos.x,
+      y: (clientY - canvasRect.top) / zoom - pos.y,
     });
+    return true;
   };
 
-  // Start multi-directional resize (Left, Right, Bottom, Bottom-Right, Bottom-Left)
+  // Drag start handler - Instant 1:1 mouse tracking
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only primary left-click
+    const started = initDrag(e.clientX, e.clientY, e.target as HTMLElement);
+    if (started) {
+      e.preventDefault();
+    }
+  };
+
+  // Drag start handler - Mobile/Tablet Touch tracking
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    initDrag(touch.clientX, touch.clientY, e.target as HTMLElement);
+  };
+
+  // Start multi-directional resize (Mouse)
   const handleResizeStart = (e: React.MouseEvent, dir: ResizeDirection) => {
     e.stopPropagation();
     e.preventDefault();
@@ -309,16 +414,30 @@ export default function StickyNoteItem({
     });
   };
 
-  // Window mousemove and mouseup listeners for smooth real-time response
+  // Start multi-directional resize (Touch)
+  const handleResizeTouchStart = (e: React.TouchEvent, dir: ResizeDirection) => {
+    if (e.touches.length !== 1) return;
+    e.stopPropagation();
+    const touch = e.touches[0];
+    setResizingDir(dir);
+    setResizeStart({
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      posX: pos.x,
+      posY: pos.y,
+      w: size.width,
+      h: size.height,
+    });
+  };
+
+  // Window mouse and touch listeners for smooth real-time response
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (clientX: number, clientY: number) => {
       if (isRotating) {
-        const deltaY = rotateStartRef.current.startY - e.clientY;
+        const deltaY = rotateStartRef.current.startY - clientY;
         if (Math.abs(deltaY) > 3) {
           rotateStartRef.current.hasMoved = true;
         }
-        // Drag Up (deltaY > 0) -> rotates right (clockwise, +degrees)
-        // Drag Down (deltaY < 0) -> rotates left (counter-clockwise, -degrees)
         let newAngle = Math.round(rotateStartRef.current.startRotation + deltaY * 0.6);
         while (newAngle > 180) newAngle -= 360;
         while (newAngle < -180) newAngle += 360;
@@ -327,21 +446,14 @@ export default function StickyNoteItem({
       } else if (isDragging) {
         const canvas = document.getElementById('sticky-board-canvas');
         const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-        const rawX = (e.clientX - canvasRect.left) / zoom - dragOffset.x;
-        const rawY = (e.clientY - canvasRect.top) / zoom - dragOffset.y;
+        const rawX = (clientX - canvasRect.left) / zoom - dragOffset.x;
+        const rawY = (clientY - canvasRect.top) / zoom - dragOffset.y;
         
-        const maxW = canvas ? canvas.clientWidth : 2000;
-        const maxH = canvas ? canvas.clientHeight : 1500;
-
-        const maxX = Math.max(20, maxW - size.width - 24);
-        const maxY = Math.max(24, maxH - size.height - 24);
-
-        const clampedX = Math.max(20, Math.min(maxX, rawX));
-        const clampedY = Math.max(24, Math.min(maxY, rawY));
-        setPos({ x: clampedX, y: clampedY });
+        // Follow mouse smoothly and fluidly without any left resistance or wall
+        setPos({ x: rawX, y: rawY });
       } else if (resizingDir) {
-        const deltaX = (e.clientX - resizeStart.clientX) / zoom;
-        const deltaY = (e.clientY - resizeStart.clientY) / zoom;
+        const deltaX = (clientX - resizeStart.clientX) / zoom;
+        const deltaY = (clientY - resizeStart.clientY) / zoom;
 
         let newW = resizeStart.w;
         let newH = resizeStart.h;
@@ -370,7 +482,18 @@ export default function StickyNoteItem({
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging && !isRotating && !resizingDir) return;
+      if (e.touches.length !== 1) return;
+      if (e.cancelable) e.preventDefault();
+      handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const handleEnd = () => {
       if (isRotating) {
         setIsRotating(false);
         if (rotateStartRef.current.hasMoved) {
@@ -397,16 +520,14 @@ export default function StickyNoteItem({
       }
       if (isDragging) {
         setIsDragging(false);
-        const canvas = document.getElementById('sticky-board-canvas');
-        const maxW = canvas ? canvas.clientWidth : 2000;
-        const maxH = canvas ? canvas.clientHeight : 1500;
+        // Truly freeform positioning across the board, neatly bounded within 7 columns
+        const maxX = 2060 - size.width - 24;
+        const freeX = Math.max(0, Math.min(maxX, Math.round(pos.x)));
+        const freeY = Math.max(0, Math.round(pos.y));
 
-        const maxX = Math.max(20, maxW - size.width - 24);
-        const maxY = Math.max(24, maxH - size.height - 24);
-
-        const clampedX = Math.max(20, Math.min(maxX, pos.x));
-        const clampedY = Math.max(24, Math.min(maxY, pos.y));
-        onDragEnd(note.id, clampedX, clampedY);
+        setPos({ x: freeX, y: freeY });
+        lastSavedPosRef.current = { x: freeX, y: freeY };
+        onDragEnd(note.id, freeX, freeY);
       }
       if (resizingDir) {
         setResizingDir(null);
@@ -419,14 +540,23 @@ export default function StickyNoteItem({
       }
     };
 
+    const handleMouseUp = () => handleEnd();
+    const handleTouchEnd = () => handleEnd();
+
     if (isDragging || resizingDir || isRotating) {
       window.addEventListener('mousemove', handleMouseMove, { passive: true });
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd);
+      window.addEventListener('touchcancel', handleTouchEnd);
     }
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      window.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [isDragging, resizingDir, isRotating, dragOffset, resizeStart, note.id, onDragEnd, pos, size, updateNote]);
 
@@ -541,23 +671,32 @@ export default function StickyNoteItem({
             : 10,
           boxShadow: isDragging || resizingDir
             ? '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
+            : isHighlighted
+            ? '0 0 0 3px #6366F1, 0 10px 25px -5px rgba(99, 102, 241, 0.35)'
             : isFocused
-            ? '0 0 0 4px #6366F1, 0 25px 50px -12px rgba(99, 102, 241, 0.35)'
+            ? '0 0 0 2px #6366F1, 0 10px 20px -5px rgba(99, 102, 241, 0.2)'
             : isConnectingSource
             ? '0 0 0 4px #6366F1, 0 10px 25px -5px rgba(99, 102, 241, 0.5)'
             : '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-          transition: isDragging || resizingDir
+          transition: isDragging || resizingDir || isRotating
             ? 'none'
-            : 'left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s, transform 0.2s',
+            : 'box-shadow 0.25s ease-out, transform 0.2s ease-out, opacity 0.25s ease-out',
         }}
-        className={`absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 ${
+        className={`absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 transition-all duration-200 ${
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
-        } ${isFocused ? 'ring-4 ring-indigo-500/80 shadow-2xl' : ''} ${
+        } ${
+          isHighlighted
+            ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900'
+            : isFocused
+            ? 'ring-1 ring-indigo-400/80'
+            : ''
+        } ${
           isConnectingMode && !isConnectingSource ? 'hover:ring-4 hover:ring-indigo-400 cursor-pointer' : ''
         }`}
         onClick={() => onBringToFront?.()}
         onFocusCapture={() => onBringToFront?.()}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onDoubleClick={(e) => {
           e.stopPropagation();
           // Never open fullscreen when double-clicking on buttons, controls, inputs, or .no-drag elements
@@ -577,10 +716,16 @@ export default function StickyNoteItem({
           setContextMenu({ isOpen: true, x: e.clientX, y: e.clientY });
         }}
       >
-        {/* ── Tape (when not pinned) ── */}
+        {/* ── Tape (when not pinned) - Dedicated Drag Handle ── */}
         {!note.isPinned && (
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 pointer-events-none z-10">
-            <div className="w-20 h-5 bg-white/40 dark:bg-white/20 backdrop-blur-sm shadow-sm border border-white/40 -rotate-1 rounded-xs" />
+          <div
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 cursor-grab active:cursor-grabbing group/tape transition-transform hover:scale-105 select-none"
+            style={{ touchAction: 'none' }}
+            title="คลิกค้างแล้วลากเพื่อย้ายแผ่นโน้ต (หรือแตะลากบนมือถือ)"
+          >
+            <div className="w-28 h-5 bg-white/40 dark:bg-white/20 backdrop-blur-md shadow-xs border border-white/40 -rotate-1 rounded-xs transition group-hover/tape:bg-white/60 dark:group-hover/tape:bg-white/30" />
           </div>
         )}
 
@@ -591,7 +736,7 @@ export default function StickyNoteItem({
               e.stopPropagation();
               togglePin(note.id);
             }}
-            className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white z-30 cursor-pointer hover:scale-110 transition active:scale-95"
+            className="no-drag absolute -top-2.5 -right-2.5 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white z-30 cursor-pointer hover:scale-110 transition active:scale-95"
             title="คลิกเพื่อยกเลิกการปักหมุด"
           >
             <Pin size={12} className="fill-current" />
@@ -599,7 +744,10 @@ export default function StickyNoteItem({
         )}
 
         {/* ── Top Header Controls (Adaptive to Note Width) ── */}
-        <div className="flex items-center justify-between gap-1 mb-1.5 no-drag shrink-0 w-full overflow-hidden">
+        <div
+          style={{ touchAction: 'none' }}
+          className="flex items-center justify-between gap-1 mb-1.5 shrink-0 w-full overflow-hidden cursor-grab active:cursor-grabbing select-none"
+        >
           <div className="flex items-center gap-0.5 shrink-0">
             {/* Rotate Button (ตรงมุมซ้ายบน - ลากขึ้นหมุนขวา ลากลงหมุนซ้าย) */}
             <button
@@ -1014,18 +1162,30 @@ export default function StickyNoteItem({
               )}
             </div>
 
-            {/* Open note in Fullscreen focus mode (เหมือนหน้าคัมบัง) */}
+            {/* Share Note Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsShareModalOpen(true);
+              }}
+              className="p-1 rounded hover:bg-black/10 transition text-slate-700 dark:text-slate-200"
+              title="แชร์โน้ตนี้"
+            >
+              <Share2 size={12} className={note.shareCode ? 'text-indigo-600 dark:text-indigo-400' : ''} />
+            </button>
+
+            {/* Open note in Fullscreen focus mode */}
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onOpenFullscreen) onOpenFullscreen(note);
               }}
-              className="px-1.5 py-0.5 rounded bg-black/5 hover:bg-black/15 transition text-slate-800 dark:text-slate-100 flex items-center gap-1 font-bold text-[10px]"
-              title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
+              className="p-1 rounded hover:bg-black/10 transition text-slate-700 dark:text-slate-200 flex items-center justify-center"
+              title="ขยายขนาดโน้ต"
             >
-              <Maximize2 size={11} />
-              {!isCompact && <span>เต็มจอ</span>}
+              <Maximize2 size={12} />
             </button>
 
             {/* Delete to trash */}
@@ -1045,7 +1205,7 @@ export default function StickyNoteItem({
         </div>
 
         {/* ── Kanban Status Quick Switcher Badge ── */}
-        <div className="flex items-center justify-between mb-1 no-drag">
+        <div className="flex items-center justify-between mb-1">
           <div className="relative">
             <button
               ref={kanbanBtnRef}
@@ -1063,7 +1223,7 @@ export default function StickyNoteItem({
                 triggerRef={kanbanBtnRef}
                 placement="bottom-start"
                 offset={4}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-lg w-28 text-slate-800 dark:text-slate-100 animate-fade-in"
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-lg w-28 text-slate-800 dark:text-slate-100 animate-fade-in no-drag"
               >
                 {KANBAN_STATUSES.map((k) => (
                   <button
@@ -1087,7 +1247,7 @@ export default function StickyNoteItem({
         </div>
 
         {/* ── Note Title Input ── */}
-        <div className="mb-1.5 no-drag shrink-0">
+        <div className="mb-1.5 shrink-0">
           {note.isLocked && !isVaultUnlocked ? (
             <div className="font-bold text-sm tracking-tight line-clamp-1 opacity-80">
               {note.title || 'โน้ตที่เข้ารหัสลับ'}
@@ -1097,6 +1257,7 @@ export default function StickyNoteItem({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onFocus={() => onBringToFront?.()}
               onBlur={handleBlur}
               placeholder="หัวข้อโน้ต..."
               className={`w-full font-bold bg-transparent border-b border-black/10 focus:border-black/30 focus:outline-none pb-0.5 placeholder-black/30 ${getFontFamilyClass()}`}
@@ -1176,13 +1337,13 @@ export default function StickyNoteItem({
         )}
 
         {/* ── Note Content Area ── */}
-        <div className="flex-1 no-drag min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {isEncrypted ? (
             <div
               onClick={() => {
                 if (onUnlockRequest) onUnlockRequest();
               }}
-              className="text-xs italic cursor-pointer p-2 rounded bg-black/5 hover:bg-black/10 transition leading-relaxed h-full overflow-y-auto"
+              className="text-xs italic cursor-pointer p-2 rounded bg-black/5 hover:bg-black/10 transition leading-relaxed h-full overflow-y-auto no-drag"
             >
               {displayContent}
             </div>
@@ -1195,34 +1356,27 @@ export default function StickyNoteItem({
               className={`w-full h-full overflow-y-auto leading-relaxed cursor-text ${getFontSizeClass()} ${getFontFamilyClass()}`}
               style={{ color: textColor }}
             >
-              {/<[a-z][\s\S]*>/i.test(displayContent) && !isEditingRichContent ? (
-                <div
-                  onClick={() => setIsEditingRichContent(true)}
-                  className="prose dark:prose-invert max-w-none text-inherit text-xs sm:text-sm leading-relaxed cursor-text group/content relative min-h-full"
-                  title="คลิกเพื่อแก้ไขข้อความ"
-                >
-                  <div dangerouslySetInnerHTML={{ __html: displayContent }} />
-                  <span className="opacity-0 group-hover/content:opacity-60 text-[9px] block mt-1 italic text-slate-500">
-                    (คลิกเพื่อพิมพ์แก้ไข)
-                  </span>
-                </div>
-              ) : (
-                <textarea
-                  value={content}
-                  autoFocus={isEditingRichContent}
-                  onChange={(e) => setContent(e.target.value)}
-                  onBlur={handleBlur}
-                  placeholder="เขียนข้อความของคุณตรงนี้..."
-                  className="w-full h-full bg-transparent resize-none focus:outline-none leading-relaxed placeholder-black/30"
-                  style={{ color: textColor }}
-                />
-              )}
+              <StickyContentEditable
+                html={displayContent}
+                onChange={(newHtml) => {
+                  setContent(newHtml);
+                }}
+                onFocus={() => onBringToFront?.()}
+                onBlur={handleBlur}
+                disabled={note.isLocked}
+                placeholder="เขียนข้อความของคุณตรงนี้..."
+                className="w-full h-full prose dark:prose-invert max-w-none text-inherit leading-relaxed"
+                style={{ color: textColor }}
+              />
             </div>
           )}
         </div>
 
         {/* ── Note Bottom Bar ── */}
-        <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-black/10 text-[10px] opacity-70 shrink-0 relative">
+        <div
+          style={{ touchAction: 'none' }}
+          className="flex items-center justify-between pt-1.5 mt-1 border-t border-black/10 text-[10px] opacity-70 shrink-0 relative cursor-grab active:cursor-grabbing select-none"
+        >
           <div className="flex items-center gap-1 truncate max-w-[140px]">
             {note.notebook && <span>📁 {note.notebook.name}</span>}
             {note.labels && note.labels.length > 0 && (
@@ -1231,8 +1385,8 @@ export default function StickyNoteItem({
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center text-black/30" title="คลิกและลากแผ่นโน้ตเพื่อย้ายตำแหน่งอย่างอิสระ">
-              <GripHorizontal size={13} />
+            <div className="flex items-center text-black/40 hover:text-black/80 transition" title="คลิกหรือแตะลากแผ่นโน้ตเพื่อย้ายตำแหน่ง">
+              <GripHorizontal size={14} />
             </div>
           </div>
         </div>
@@ -1240,21 +1394,29 @@ export default function StickyNoteItem({
         {/* ── RESIZE HANDLES (Left, Right, Bottom, Bottom-Right, Bottom-Left) ── */}
         <div
           onMouseDown={(e) => handleResizeStart(e, 'right')}
+          onTouchStart={(e) => handleResizeTouchStart(e, 'right')}
+          style={{ touchAction: 'none' }}
           className="no-drag absolute top-2 right-0 bottom-3 w-2 cursor-ew-resize hover:bg-indigo-500/20 transition-colors z-20"
           title="ลากขอบขวาเพื่อปรับความกว้าง"
         />
         <div
           onMouseDown={(e) => handleResizeStart(e, 'left')}
+          onTouchStart={(e) => handleResizeTouchStart(e, 'left')}
+          style={{ touchAction: 'none' }}
           className="no-drag absolute top-2 left-0 bottom-3 w-2 cursor-ew-resize hover:bg-indigo-500/20 transition-colors z-20"
           title="ลากขอบซ้ายเพื่อปรับความกว้าง"
         />
         <div
           onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+          onTouchStart={(e) => handleResizeTouchStart(e, 'bottom')}
+          style={{ touchAction: 'none' }}
           className="no-drag absolute bottom-0 left-3 right-3 h-2 cursor-ns-resize hover:bg-indigo-500/20 transition-colors z-20"
           title="ลากขอบล่างเพื่อปรับความสูง"
         />
         <div
           onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
+          onTouchStart={(e) => handleResizeTouchStart(e, 'bottom-right')}
+          style={{ touchAction: 'none' }}
           className="no-drag absolute bottom-0 right-0 w-4 h-4 cursor-se-resize flex items-end justify-end p-0.5 text-black/30 hover:text-black/80 transition-colors z-30"
           title="ลากมุมขวาล่างเพื่อปรับทั้งกว้างและสูง"
         >
@@ -1264,6 +1426,8 @@ export default function StickyNoteItem({
         </div>
         <div
           onMouseDown={(e) => handleResizeStart(e, 'bottom-left')}
+          onTouchStart={(e) => handleResizeTouchStart(e, 'bottom-left')}
+          style={{ touchAction: 'none' }}
           className="no-drag absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize flex items-end justify-start p-0.5 text-black/30 hover:text-black/80 transition-colors z-30"
           title="ลากมุมซ้ายล่างเพื่อปรับทั้งกว้างและสูง"
         >
@@ -1312,7 +1476,18 @@ export default function StickyNoteItem({
             className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition"
           >
             <Maximize2 size={13} className="text-indigo-500" />
-            <span>เปิดดูเต็มจอ</span>
+            <span>ขยายขนาดโน้ต</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              setIsShareModalOpen(true);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition text-indigo-600 dark:text-indigo-400"
+          >
+            <Share2 size={13} />
+            <span>แชร์โน้ตนี้</span>
           </button>
           <button
             type="button"
@@ -1373,6 +1548,15 @@ export default function StickyNoteItem({
           </button>
         </div>
       </ViewportContextMenu>
+
+      {/* Share Note Modal */}
+      <ShareNoteModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        noteId={note.id}
+        noteTitle={note.title || title}
+        isLocked={note.isLocked}
+      />
     </>
   );
 }

@@ -23,12 +23,14 @@ import {
   Upload,
   Plus,
   X,
+  Check,
   Maximize2,
   Share2,
   History,
   ScanText,
   Sparkles,
   LayoutGrid,
+  MoreHorizontal,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -52,6 +54,8 @@ import { EncryptionService } from '@/utils/encryption';
 import MasterPasswordModal from './MasterPasswordModal';
 import api from '@/utils/api';
 import NoteRichToolbar from './NoteRichToolbar';
+import MobileEditorToolbar from './MobileEditorToolbar';
+import BottomSheet from '../ui/BottomSheet';
 import AudioRecorderModal from './AudioRecorderModal';
 import NoteAttachmentDrawer from './NoteAttachmentDrawer';
 import FullscreenNoteModal from './FullscreenNoteModal';
@@ -107,6 +111,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
 
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -696,8 +701,69 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-4 pb-12 animate-fade-in">
-      {/* Top Action Bar */}
-      <div className="flex items-center justify-between gap-3 flex-wrap bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl shadow-sm">
+      {/* Mobile Compact Top Bar (GEMINI.md STEP 3) */}
+      <div className="flex lg:hidden items-center justify-between gap-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-2.5 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            title="กลับไปหน้าหลัก"
+            aria-label="กลับ"
+          >
+            <ArrowLeft size={19} />
+          </button>
+
+          {/* Quick Notebook Selector */}
+          <select
+            value={notebookId || ''}
+            onChange={(e) => setNotebookId(e.target.value || null)}
+            className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[130px] truncate"
+            title="เลือกสมุดบันทึก"
+          >
+            <option value="">(ไม่มีสมุด)</option>
+            {notebooks.map((nb) => (
+              <option key={nb.id} value={nb.id}>
+                {nb.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-1">
+          {/* Live Auto-save indicator dot */}
+          {isAutoSaving ? (
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping mr-1" title="กำลังบันทึกอัตโนมัติ..." />
+          ) : lastSaved ? (
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1" title={`บันทึกอัตโนมัติแล้ว: ${lastSaved}`} />
+          ) : null}
+
+          {/* Quick Save */}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 disabled:opacity-50"
+          >
+            <Save size={14} />
+            <span>{isSaving ? 'บันทึก...' : 'บันทึก'}</span>
+          </button>
+
+          {/* More Options Sheet Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMoreOpen(true)}
+            className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+            title="เครื่องมือเพิ่มเติม"
+            aria-label="เครื่องมือเพิ่มเติม"
+          >
+            <MoreHorizontal size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Top Action Bar (Preserved 100% for lg screens) */}
+      <div className="hidden lg:flex items-center justify-between gap-3 flex-wrap bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl shadow-sm">
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push('/dashboard')}
@@ -861,6 +927,18 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </button>
           )}
 
+          {/* Share Button */}
+          {initialNoteId && (
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition flex items-center gap-1.5 font-bold text-xs active:scale-95 border border-slate-200/80 dark:border-slate-700"
+              title="แชร์โน้ตนี้"
+            >
+              <Share2 size={15} />
+              <span className="hidden sm:inline">แชร์</span>
+            </button>
+          )}
+
           {/* Delete Button */}
           {initialNoteId && (
             <button
@@ -919,11 +997,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 }
               }
             }}
-            className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center gap-1.5 font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95"
-            title="เปิดแก้ไขแบบเต็มจอ (เหมือนหน้าคัมบัง)"
+            className="p-2 sm:px-3 sm:py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center gap-1.5 font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95"
+            title="เปิดแก้ไขแบบขยาย (เหมือนหน้าคัมบัง)"
           >
             <Maximize2 size={15} />
-            <span>เต็มจอ</span>
           </button>
 
           {/* Save Button */}
@@ -1101,66 +1178,78 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           />
         </div>
 
-        {/* Rich Note Toolbar */}
-        <NoteRichToolbar
-          content={content}
-          onContentChange={(newContent) => {
-            setContent(newContent);
-            if (editor && editor.getHTML() !== newContent) {
-              editor.commands.setContent(newContent, { emitUpdate: false });
-            }
-          }}
-          editor={editor}
-          color={color}
-          onColorChange={(newColor) => setColor(newColor)}
-          textColor={textColor}
-          onTextColorChange={(newTc) => setTextColor(newTc)}
-          isPinned={isPinned}
-          onTogglePin={() => setIsPinned(!isPinned)}
-          isBorderless={isBorderless}
-          onToggleBorderless={() => setIsBorderless(!isBorderless)}
-          zoomLevel={zoomLevel}
-          onZoomChange={(z) => setZoomLevel(z)}
-          onRecordAudio={() => setIsAudioModalOpen(true)}
-          onAttachFile={() => setIsAttachmentDrawerOpen(true)}
-          attachmentsCount={attachments.length}
-          onCopyNote={() => {
-            const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
-            navigator.clipboard.writeText(fullText);
-            toast.success('คัดลอกข้อความโน้ตแล้ว');
-          }}
-          onDownloadTxt={() => {
-            const textContent = editor ? editor.getText() : stripHtmlTags(content);
-            const fullText = `${title}\n\n${textContent}`;
-            const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${title || 'note'}.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
-            toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
-          }}
-          onDownloadMd={handleExportMarkdown}
-          onPrint={handlePrint}
-          onShare={() => {
-            const textContent = editor ? editor.getText() : stripHtmlTags(content);
-            if (typeof navigator !== 'undefined' && navigator.share) {
-              navigator.share({ title, text: textContent }).catch(() => {});
-            } else {
-              const fullText = `${title}\n\n${textContent}`;
+        {/* Desktop Full Toolbar (Preserved 100% for lg screens) */}
+        <div className="hidden lg:block">
+          <NoteRichToolbar
+            content={content}
+            onContentChange={(newContent) => {
+              setContent(newContent);
+              if (editor && editor.getHTML() !== newContent) {
+                editor.commands.setContent(newContent, { emitUpdate: false });
+              }
+            }}
+            editor={editor}
+            color={color}
+            onColorChange={(newColor) => setColor(newColor)}
+            textColor={textColor}
+            onTextColorChange={(newTc) => setTextColor(newTc)}
+            isPinned={isPinned}
+            onTogglePin={() => setIsPinned(!isPinned)}
+            isBorderless={isBorderless}
+            onToggleBorderless={() => setIsBorderless(!isBorderless)}
+            zoomLevel={zoomLevel}
+            onZoomChange={(z) => setZoomLevel(z)}
+            onRecordAudio={() => setIsAudioModalOpen(true)}
+            onAttachFile={() => setIsAttachmentDrawerOpen(true)}
+            attachmentsCount={attachments.length}
+            onCopyNote={() => {
+              const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
               navigator.clipboard.writeText(fullText);
               toast.success('คัดลอกข้อความโน้ตแล้ว');
-            }
-          }}
-          onDelete={handleDelete}
-          onCancel={() => router.push('/dashboard')}
-          onAccept={handleSave}
-          isSaving={isSaving}
+            }}
+            onDownloadTxt={() => {
+              const textContent = editor ? editor.getText() : stripHtmlTags(content);
+              const fullText = `${title}\n\n${textContent}`;
+              const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${title || 'note'}.txt`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
+            }}
+            onDownloadMd={handleExportMarkdown}
+            onPrint={handlePrint}
+            onShare={() => {
+              const textContent = editor ? editor.getText() : stripHtmlTags(content);
+              if (typeof navigator !== 'undefined' && navigator.share) {
+                navigator.share({ title, text: textContent }).catch(() => {});
+              } else {
+                const fullText = `${title}\n\n${textContent}`;
+                navigator.clipboard.writeText(fullText);
+                toast.success('คัดลอกข้อความโน้ตแล้ว');
+              }
+            }}
+            onDelete={handleDelete}
+            onCancel={() => router.push('/dashboard')}
+            onAccept={handleSave}
+            isSaving={isSaving}
+          />
+        </div>
+
+        {/* Mobile Docked Toolbar (Sticky above virtual keyboard) */}
+        <MobileEditorToolbar
+          editor={editor}
+          onAttachFile={() => setIsAttachmentDrawerOpen(true)}
+          onRecordAudio={() => setIsAudioModalOpen(true)}
+          onOpenOcr={() => setIsOcrModalOpen(true)}
+          onOpenAiAssistant={() => setIsAiModalOpen(true)}
+          onOpenVersionHistory={() => setIsVersionDrawerOpen(true)}
         />
 
         {/* Content Area (TipTap Editor / Preview) */}
-        <div className="flex-1 p-6 flex flex-col">
+        <div className="flex-1 p-4 sm:p-6 pb-28 lg:pb-6 flex flex-col">
           {isPreview ? (
             <div
               className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed"
@@ -1280,6 +1369,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           onClose={() => setIsShareModalOpen(false)}
           noteId={initialNoteId}
           noteTitle={title}
+          isLocked={isLocked}
         />
       )}
 
@@ -1328,6 +1418,192 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           }
         }}
       />
+
+      {/* Mobile More Options Bottom Sheet (GEMINI.md STEP 3) */}
+      <BottomSheet
+        isOpen={isMobileMoreOpen}
+        onClose={() => setIsMobileMoreOpen(false)}
+        title="เมนูและการตั้งค่าโน้ต"
+      >
+        <div className="space-y-1">
+          {/* Lock E2EE */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMoreOpen(false);
+              handleLockToggle();
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <div className="flex items-center gap-3">
+              {isLocked ? <Lock size={18} className="text-amber-500" /> : <Unlock size={18} className="text-slate-400" />}
+              <span>{isLocked ? 'ปลดล็อก / การเข้ารหัสลับ (E2EE)' : 'เปิดการเข้ารหัสลับ (E2EE)'}</span>
+            </div>
+            <span className="text-xs text-slate-400">{isLocked ? 'เปิดใช้งานอยู่' : 'ปิดอยู่'}</span>
+          </button>
+
+          {/* Pin */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsPinned(!isPinned);
+              toast.success(isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตแล้ว');
+              setIsMobileMoreOpen(false);
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <div className="flex items-center gap-3">
+              <Pin size={18} className={isPinned ? 'text-indigo-600 fill-indigo-600' : 'text-slate-400'} />
+              <span>ปักหมุดไว้บนสุด (Pin)</span>
+            </div>
+            {isPinned && <Check size={18} className="text-indigo-600" />}
+          </button>
+
+          {/* Favorite */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsFavorite(!isFavorite);
+              toast.success(isFavorite ? 'นำออกจากรายการโปรด' : 'เพิ่มในรายการโปรดแล้ว');
+              setIsMobileMoreOpen(false);
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <div className="flex items-center gap-3">
+              <Star size={18} className={isFavorite ? 'text-amber-500 fill-amber-500' : 'text-slate-400'} />
+              <span>รายการโปรด (Favorite)</span>
+            </div>
+            {isFavorite && <Check size={18} className="text-amber-500" />}
+          </button>
+
+          {/* File Attachments */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMoreOpen(false);
+              setIsAttachmentDrawerOpen(true);
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <div className="flex items-center gap-3">
+              <Paperclip size={18} className="text-slate-400" />
+              <span>ไฟล์แนบ ({attachments.length})</span>
+            </div>
+          </button>
+
+          {/* Voice Memo */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMoreOpen(false);
+              setIsAudioModalOpen(true);
+            }}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <Mic size={18} className="text-indigo-500" />
+            <span>อัดเสียงบันทึก (Voice Memo)</span>
+          </button>
+
+          {/* OCR Image */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMoreOpen(false);
+              setIsOcrModalOpen(true);
+            }}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <ScanText size={18} className="text-blue-500" />
+            <span>สแกนข้อความจากรูปภาพ (OCR)</span>
+          </button>
+
+          {/* AI Assistant */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMoreOpen(false);
+              setIsAiModalOpen(true);
+            }}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <Sparkles size={18} className="text-purple-500" />
+            <span>ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี)</span>
+          </button>
+
+          {/* Version History */}
+          {initialNoteId && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMoreOpen(false);
+                setIsVersionDrawerOpen(true);
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+            >
+              <History size={18} className="text-slate-400" />
+              <span>ประวัติเวอร์ชัน (Version History)</span>
+            </button>
+          )}
+
+          {/* Share */}
+          {initialNoteId && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMoreOpen(false);
+                setIsShareModalOpen(true);
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+            >
+              <Share2 size={18} className="text-indigo-500" />
+              <span>แชร์โน้ตนี้</span>
+            </button>
+          )}
+
+          {/* Duplicate */}
+          {initialNoteId && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMoreOpen(false);
+                handleDuplicate();
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+            >
+              <Copy size={18} className="text-slate-400" />
+              <span>ทำสำเนาโน้ต (Duplicate)</span>
+            </button>
+          )}
+
+          {/* Export Markdown */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMoreOpen(false);
+              handleExportMarkdown();
+            }}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+          >
+            <Download size={18} className="text-emerald-500" />
+            <span>ดาวน์โหลดเป็นไฟล์ Markdown (.md)</span>
+          </button>
+
+          {/* Delete */}
+          {initialNoteId && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMoreOpen(false);
+                handleDelete();
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-sm font-bold transition mt-2"
+            >
+              <Trash2 size={18} />
+              <span>ลบโน้ตนี้</span>
+            </button>
+          )}
+        </div>
+      </BottomSheet>
     </div>
   );
 }

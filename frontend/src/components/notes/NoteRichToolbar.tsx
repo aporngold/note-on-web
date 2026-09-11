@@ -1070,7 +1070,7 @@ export default function NoteRichToolbar({
                 }}
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between text-indigo-600 dark:text-indigo-400 font-medium"
               >
-                <span>ยกเลิกโหมดเต็มจอ</span>
+                <span>ปิดโหมดขยาย</span>
                 <Minimize2 size={13} />
               </button>
             )}

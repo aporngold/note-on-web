@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Menu, Search, Plus, Grid, List, Columns, ShieldAlert, PanelLeft, PanelLeftClose, Database, Star } from 'lucide-react';
 import Sidebar from './Sidebar';
+import MobileBottomNav from './MobileBottomNav';
 import BackupModal from '../modals/BackupModal';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
@@ -315,11 +316,14 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
           className={`flex-1 ${
             viewMode === 'board' || router.pathname === '/board'
               ? 'overflow-hidden flex flex-col p-2 sm:p-3'
-              : 'overflow-y-auto p-4 sm:p-8'
+              : `overflow-y-auto p-4 sm:p-8 ${!router.pathname.startsWith('/notes/') ? 'pb-24 lg:pb-8' : ''}`
           }`}
         >
           {children}
         </main>
+
+        {/* Mobile Bottom Navigation (Visible on lg:hidden) */}
+        <MobileBottomNav />
 
         {/* Backup & Restore Modal */}
         <BackupModal

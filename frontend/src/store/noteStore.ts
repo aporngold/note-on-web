@@ -217,15 +217,35 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   deleteBoard: async (id) => {
-    await api.delete(`/boards/${id}`);
-    const remaining = get().boards.filter((b) => b.id !== id);
-    const fallback = remaining.find((b) => b.isDefault) || remaining[0] || null;
-    set({
-      boards: remaining,
-      activeBoardId: fallback ? fallback.id : null,
-    });
-    toast.success('ลบบอร์ดเรียบร้อย');
-    get().fetchNotes();
+    try {
+      const res = await api.delete(`/boards/${id}`);
+      const data = res.data;
+      if (data.isDefaultBoardCleared) {
+        // Default board notes were cleared into trash, but default board stays
+        set((state) => ({
+          boards: state.boards.map((b) => (b.id === id ? { ...b, noteCount: 0 } : b)),
+          notes: state.notes.filter((n) => n.boardId !== id),
+        }));
+        toast.success(data.message || 'ลบโน้ตทั้งหมดบนกระดานหลักเรียบร้อยแล้ว (ย้ายไปที่ถังขยะ)');
+        get().fetchNotes();
+        get().fetchBoards();
+        return;
+      }
+
+      const remaining = get().boards.filter((b) => b.id !== id);
+      const fallback = remaining.find((b) => b.isDefault) || remaining[0] || null;
+      set({
+        boards: remaining,
+        activeBoardId: fallback ? fallback.id : null,
+        notes: get().notes.filter((n) => n.boardId !== id),
+      });
+      toast.success(data.message || 'ลบบอร์ดเรียบร้อย (โน้ตทั้งหมดถูกย้ายไปที่ถังขยะ)');
+      get().fetchNotes();
+      get().fetchBoards();
+    } catch (error: any) {
+      console.error('deleteBoard error:', error);
+      toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบบอร์ด');
+    }
   },
 
   setActiveBoardId: (id) => {
@@ -268,6 +288,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     const newNote = res.data;
     set((state) => ({
       notes: [newNote, ...state.notes],
+      boards: state.boards.map((b) => {
+        const matches = newNote.boardId ? b.id === newNote.boardId : b.isDefault;
+        return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;
+      }),
     }));
     get().fetchNotebooks();
     get().fetchLabels();
@@ -275,6 +299,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   updateNote: async (id, data) => {
+    // 1. Optimistic update immediately in local store so dragging/editing never bounces back
+    set((state) => ({
+      notes: state.notes.map((n) => (n.id === id ? { ...n, ...data } : n)),
+    }));
     const res = await api.put(`/notes/${id}`, data);
     const updated = res.data;
     set((state) => ({
@@ -294,6 +322,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         const foundInNotes = state.notes.find((n) => n.id === id);
         return {
           notes: state.notes.filter((n) => n.id !== id),
+          boards: state.boards.map((b) => {
+            const matches = foundInNotes?.boardId ? b.id === foundInNotes.boardId : b.isDefault;
+            return matches ? { ...b, noteCount: Math.max(0, (b.noteCount || 1) - 1) } : b;
+          }),
           trashNotes: isPermanent
             ? state.trashNotes.filter((n) => n.id !== id)
             : foundInNotes

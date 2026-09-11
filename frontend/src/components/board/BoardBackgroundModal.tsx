@@ -228,14 +228,41 @@ export const BOARD_PATTERNS: BoardPattern[] = [
 ];
 
 export const CURATED_WALLPAPERS = [
+  // ── กลุ่มที่ 1: วัสดุและพื้นผิวธรรมชาติ (Textures & Wood) ──
   {
-    name: 'ป่าไม้หมอก (Misty Forest)',
-    url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1600&auto=format&fit=crop',
+    name: 'ไม้ก๊อกธรรมชาติ (Real Cork)',
+    url: 'https://images.unsplash.com/photo-1596704017254-9b121068fb31?q=80&w=1600&auto=format&fit=crop',
   },
   {
-    name: 'ทะเลสาบและภูเขา (Alpine Lake)',
-    url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1600&auto=format&fit=crop',
+    name: 'ไม้โอ๊คอบอุ่น (Warm Oak Wood)',
+    url: 'https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=80&w=1600&auto=format&fit=crop',
   },
+  {
+    name: 'ไม้กระดานวินเทจ (Rustic Wood)',
+    url: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'กระดาษคราฟท์ (Kraft Paper)',
+    url: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ปูนเปลือยลอฟท์ (Dark Concrete)',
+    url: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'หินอ่อนขาวคลีน (White Marble)',
+    url: 'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'กำแพงอิฐขาวมินิมอล (White Brick)',
+    url: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ผนังปูนขัดมันสีเทา (Grey Cement)',
+    url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1600&auto=format&fit=crop',
+  },
+
+  // ── กลุ่มที่ 2: โต๊ะทำงานและสตูดิโอ (Workspace & Desk) ──
   {
     name: 'โต๊ะทำงานมินิมอล (Warm Desk)',
     url: 'https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?q=80&w=1600&auto=format&fit=crop',
@@ -245,12 +272,114 @@ export const CURATED_WALLPAPERS = [
     url: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?q=80&w=1600&auto=format&fit=crop',
   },
   {
-    name: 'สถาปัตยกรรม (Architecture)',
-    url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1600&auto=format&fit=crop',
+    name: 'มุมอ่านหนังสือสงบ (Cozy Reading)',
+    url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'สมุดบันทึกและปากกา (Notebook & Pen)',
+    url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'โต๊ะไม้และแล็ปท็อป (Modern Desk)',
+    url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'สตูดิโอนักออกแบบ (Creative Studio)',
+    url: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=1600&auto=format&fit=crop',
+  },
+
+  // ── กลุ่มที่ 3: ธรรมชาติและทิวทัศน์ (Nature & Landscape) ──
+  {
+    name: 'ป่าไม้หมอก (Misty Forest)',
+    url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ทะเลสาบและภูเขา (Alpine Lake)',
+    url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1600&auto=format&fit=crop',
   },
   {
     name: 'พระอาทิตย์ตก (Sunset Glow)',
     url: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'คลื่นทะเลสงบนิ่ง (Calm Ocean Waves)',
+    url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ทะเลทรายสีทอง (Golden Dunes)',
+    url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ภูเขาหิมะตระหง่าน (Snow Peak Mount)',
+    url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ใบไม้เขียวชอุ่ม (Lush Green Leaves)',
+    url: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'แสงแดดยามเช้าลอดกิ่งไม้ (Morning Sunshine)',
+    url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop',
+  },
+
+  // ── กลุ่มที่ 4: สถาปัตยกรรมและเมือง (Architecture & Cities) ──
+  {
+    name: 'สถาปัตยกรรมโมเดิร์น (Architecture)',
+    url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'แสงไฟเมืองกลางคืน (City Lights Night)',
+    url: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ตึกกระจกเรขาคณิต (Geometric Glass)',
+    url: 'https://images.unsplash.com/photo-1486718448742-163732cd1544?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'บันไดวนมินิมอล (Spiral Geometry)',
+    url: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1600&auto=format&fit=crop',
+  },
+
+  // ── กลุ่มที่ 5: มืด ลึกลับ กราเดียนท์ & อวกาศ (Dark, Gradient & Space) ──
+  {
+    name: 'ทางช้างเผือกราตรี (Milky Way Galaxy)',
+    url: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'คลื่นสีน้ำเงินเข้ม (Deep Blue Silk)',
+    url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ไล่เฉดสีนีออนม่วงส้ม (Neon Gradient)',
+    url: 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'หมอกควันสีม่วงมิดไนท์ (Midnight Smoke)',
+    url: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'แสงไฟนีออนไซเบอร์พังก์ (Cyber Glow)',
+    url: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'หยดน้ำบนกระจก (Raindrops on Glass)',
+    url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ท้องฟ้ายามเย็นสีพาสเทล (Pastel Twilight)',
+    url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'แสงเหนือสีเขียวมรกต (Aurora Borealis)',
+    url: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'คลื่นทะเลหมอกยามเช้า (Ocean Mist)',
+    url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1600&auto=format&fit=crop',
+  },
+  {
+    name: 'ผืนทรายระลอกคลื่น (Rippled Dunes)',
+    url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?q=80&w=1600&auto=format&fit=crop',
   },
 ];
 

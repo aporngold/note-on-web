@@ -670,6 +670,7 @@ export default function FullscreenNoteModal({
         onClose={() => setIsShareModalOpen(false)}
         noteId={note.id}
         noteTitle={title}
+        isLocked={note.isLocked}
       />
 
       {/* Version History Drawer */}

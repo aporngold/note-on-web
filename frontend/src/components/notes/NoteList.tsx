@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
-import { Pin, Trash2, Copy, Lock, Book, Tag, Maximize2 } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Book, Tag, Maximize2, Share2 } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
+import ShareNoteModal from './ShareNoteModal';
 
 interface NoteListProps {
   notes: Note[];
@@ -16,6 +17,7 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
+  const [shareNote, setShareNote] = useState<Note | null>(null);
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
@@ -113,6 +115,16 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  setShareNote(note);
+                }}
+                className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
+                title="แชร์โน้ตนี้"
+              >
+                <Share2 size={15} className={note.shareCode ? 'text-blue-500' : ''} />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
                   duplicateNote(note.id);
                 }}
                 className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600"
@@ -134,6 +146,17 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
           </div>
         ))}
       </div>
+
+      {/* Share Note Modal */}
+      {shareNote && (
+        <ShareNoteModal
+          isOpen={Boolean(shareNote)}
+          onClose={() => setShareNote(null)}
+          noteId={shareNote.id}
+          noteTitle={shareNote.title}
+          isLocked={shareNote.isLocked}
+        />
+      )}
     </div>
   );
 }

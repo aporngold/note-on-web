@@ -10,6 +10,7 @@ import { EncryptionService } from '@/utils/encryption';
 import { stripHtmlTags } from '@/utils/editorHelper';
 import ViewportContextMenu, { ViewportMenuItem } from '../ui/ViewportContextMenu';
 import ViewportPopover from '../ui/ViewportPopover';
+import ShareNoteModal from './ShareNoteModal';
 
 interface NoteCardProps {
   note: Note;
@@ -51,6 +52,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
     y: 0,
   });
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleClick = () => {
@@ -125,13 +127,18 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
             )}
 
             {note.shareCode && (
-              <span
-                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
-                title="แชร์สาธารณะอยู่"
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsShareModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition"
+                title="คลิกเพื่อจัดการหรือคัดลอกลิงก์แชร์"
               >
                 <Share2 size={11} />
-                <span>แชร์</span>
-              </span>
+                <span>แชร์อยู่</span>
+              </button>
             )}
           </div>
 
@@ -307,7 +314,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
                 >
                   <Maximize2 size={13} />
-                  <span>ดูแบบเต็มจอ</span>
+                  <span>เปิดอ่าน / แก้ไข</span>
                 </button>
                 <button
                   type="button"
@@ -345,6 +352,18 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   <Copy size={13} />
                   <span>คัดลอกโน้ต</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
+                    setIsShareModalOpen(true);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                  <Share2 size={13} className="text-indigo-500" />
+                  <span>แชร์โน้ตนี้</span>
+                </button>
               </div>
               <div className="py-1">
                 <button
@@ -375,7 +394,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
         <div className="py-1">
           <ViewportMenuItem
             icon={<Maximize2 size={14} />}
-            label="เปิดดู / แก้ไขแบบเต็มจอ"
+            label="เปิดดู / แก้ไข"
             onClick={() => {
               if (onOpenFullscreen) onOpenFullscreen(note);
               else router.push(`/notes/${note.id}`);
@@ -396,6 +415,11 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
             label="คัดลอกโน้ตนี้"
             onClick={() => duplicateNote(note.id)}
           />
+          <ViewportMenuItem
+            icon={<Share2 size={14} className="text-indigo-500" />}
+            label="แชร์โน้ตนี้"
+            onClick={() => setIsShareModalOpen(true)}
+          />
         </div>
         <div className="py-1 border-t border-slate-100 dark:border-slate-800">
           <ViewportMenuItem
@@ -406,6 +430,15 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
           />
         </div>
       </ViewportContextMenu>
+
+      {/* Share Note Modal */}
+      <ShareNoteModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        noteId={note.id}
+        noteTitle={note.title}
+        isLocked={note.isLocked}
+      />
     </div>
   );
 }

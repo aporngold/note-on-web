@@ -23,7 +23,7 @@ import NoteConnectionCanvas from './NoteConnectionCanvas';
 import KanbanView from './KanbanView';
 import BoardShareModal from '../modals/BoardShareModal';
 import WebStickyModal from '../modals/WebStickyModal';
-import BoardBackgroundModal, { BOARD_PATTERNS } from './BoardBackgroundModal';
+import BoardBackgroundModal, { BOARD_PATTERNS, CURATED_WALLPAPERS } from './BoardBackgroundModal';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
 import { Note, Board, BoardViewMode } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -64,7 +64,17 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     createConnection,
     boardViewMode,
     setBoardViewMode,
+    notes: allNotes,
   } = useNoteStore();
+
+  // Real-time note count per board from reactive store state
+  const getBoardNoteCount = (b: Board) => {
+    const isActive = b.id === activeBoardId || (!activeBoardId && b.isDefault);
+    if (isActive) {
+      return notes.filter((n) => !n.isArchived).length;
+    }
+    return b.noteCount ?? 0;
+  };
 
   const [boardTheme, setBoardTheme] = useState<BoardTheme>('cork');
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -95,24 +105,22 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [noteZIndices, setNoteZIndices] = useState<Record<string, number>>({});
   const highestZRef = useRef<number>(50);
   const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
+  const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(null);
 
   // Reservation of slots to prevent overlapping when creating notes rapidly
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
-  const hasAutoRepositionedRef = useRef<Record<string, boolean>>({});
 
-  // Dynamic minimum canvas dimensions based on outermost note coordinates
+  // Dynamic canvas dimensions: exactly 7 notes wide (2060px), height expands with rows as before
   const dynamicCanvasSize = React.useMemo(() => {
-    let maxNoteX = 0;
     let maxNoteY = 0;
     notes.forEach((n) => {
-      const right = (n.posX ?? 0) + (n.width ?? 260);
       const bottom = (n.posY ?? 0) + (n.height ?? 260);
-      if (right > maxNoteX) maxNoteX = right;
       if (bottom > maxNoteY) maxNoteY = bottom;
     });
     return {
-      minWidth: `${Math.max(2400, maxNoteX + 500)}px`,
-      minHeight: `${Math.max(1600, maxNoteY + 500)}px`,
+      minWidth: '2060px',
+      width: '2060px',
+      minHeight: `${Math.max(1300, maxNoteY + 120)}px`,
     };
   }, [notes]);
 
@@ -171,72 +179,22 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   }, [activeBoardId]);
 
-  // Handle drag and drop coordinates saving with canvas boundary clamping
+  // Handle drag and drop coordinates saving without artificial boundary clamping
   const handleDragEnd = async (id: string, x: number, y: number) => {
-    const canvas = document.getElementById('sticky-board-canvas');
-    const maxW = canvas ? canvas.clientWidth : 2000;
-    const maxH = canvas ? canvas.clientHeight : 1500;
+    const freeX = Math.max(0, Math.round(x));
+    const freeY = Math.max(0, Math.round(y));
 
-    const clampedX = Math.max(16, Math.min(maxW - 270, Math.round(x)));
-    const clampedY = Math.max(16, Math.min(maxH - 270, Math.round(y)));
+    // Optimistically update store immediately so the note stays locked in place with zero bounce
+    useNoteStore.setState((state) => ({
+      notes: state.notes.map((n) => (n.id === id ? { ...n, posX: freeX, posY: freeY } : n)),
+    }));
+
     try {
-      await updateNote(id, { posX: clampedX, posY: clampedY });
+      await updateNote(id, { posX: freeX, posY: freeY });
     } catch (e) {
       console.error('Failed to save note position:', e);
     }
   };
-
-  // Auto-arrange any existing notes that were created on top of each other (overlapping)
-  useEffect(() => {
-    const boardKey = activeBoardId || '__default__';
-    if (!notes || notes.length <= 1 || hasAutoRepositionedRef.current[boardKey]) return;
-
-    const occupied: Array<{ id: string; x: number; y: number }> = [];
-    const needReposition: Array<{ id: string; x: number; y: number }> = [];
-
-    const spacingX = 300;
-    const spacingY = 320;
-    const startX = 24;
-    const startY = 24;
-    const cols = 7;
-
-    notes.forEach((n, idx) => {
-      const x = n.posX ?? (startX + (idx % cols) * spacingX);
-      const y = n.posY ?? (startY + Math.floor(idx / cols) * spacingY);
-
-      const collides = occupied.some(
-        (o) => Math.abs(o.x - x) < 200 && Math.abs(o.y - y) < 200
-      );
-
-      if (collides) {
-        for (let s = 0; s < 100; s++) {
-          const c = s % cols;
-          const r = Math.floor(s / cols);
-          const candX = startX + c * spacingX;
-          const candY = startY + r * spacingY;
-          const isTaken = occupied.some(
-            (o) => Math.abs(o.x - candX) < 260 && Math.abs(o.y - candY) < 260
-          );
-          if (!isTaken) {
-            needReposition.push({ id: n.id, x: candX, y: candY });
-            occupied.push({ id: n.id, x: candX, y: candY });
-            break;
-          }
-        }
-      } else {
-        occupied.push({ id: n.id, x, y });
-      }
-    });
-
-    if (needReposition.length > 0) {
-      hasAutoRepositionedRef.current[boardKey] = true;
-      needReposition.forEach((item, index) => {
-        setTimeout(() => {
-          updateNote(item.id, { posX: item.x, posY: item.y });
-        }, index * 120);
-      });
-    }
-  }, [activeBoardId, notes]);
 
   // Start connecting mode from a source note
   const handleStartConnect = (sourceId: string) => {
@@ -276,8 +234,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note with proper spacing
   const findNextAvailableSlot = () => {
-    const spacingX = 300;
-    const spacingY = 320;
+    const spacingX = 290;
+    const spacingY = 300;
     const startX = 24;
     const startY = 24;
     // Support 7 notes horizontally across the board before going down to the next row
@@ -354,21 +312,58 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     if (newNote?.id) {
       bringToFront(newNote.id);
       setFocusedNoteId(newNote.id);
+      setHighlightedNoteId(newNote.id);
+
+      // Smoothly scroll ONLY if the note is outside current viewport (keeps exact safe position if already visible)
+      const container = canvasContainerRef.current;
+      if (container) {
+        const noteLeft = (newNote.posX ?? 24) * zoom;
+        const noteTop = (newNote.posY ?? 24) * zoom;
+        const noteRight = noteLeft + 260 * zoom;
+        const noteBottom = noteTop + 260 * zoom;
+
+        const viewLeft = container.scrollLeft;
+        const viewTop = container.scrollTop;
+        const viewRight = viewLeft + container.clientWidth;
+        const viewBottom = viewTop + container.clientHeight;
+
+        const isFullyVisible =
+          noteLeft >= viewLeft &&
+          noteRight <= viewRight &&
+          noteTop >= viewTop &&
+          noteBottom <= viewBottom;
+
+        if (!isFullyVisible) {
+          container.scrollTo({
+            left: Math.max(0, noteLeft - 24),
+            top: Math.max(0, noteTop - 24),
+            behavior: 'smooth',
+          });
+        }
+      }
 
       setTimeout(() => {
         const el = document.getElementById(`note-card-${newNote.id}`);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-          const input = el.querySelector('input, textarea') as HTMLInputElement | HTMLTextAreaElement | null;
+          const input = el.querySelector('input[type="text"]') as HTMLInputElement | null;
           if (input) {
-            input.focus();
+            input.focus({ preventScroll: true });
+            input.select();
+          } else {
+            const editable = el.querySelector('[contenteditable="true"]') as HTMLElement | null;
+            editable?.focus({ preventScroll: true });
           }
         }
-      }, 100);
+      }, 50);
+
+      // Complete subtle highlight and finish all effects within 1.0 second (1000ms)
+      setTimeout(() => {
+        setHighlightedNoteId(null);
+      }, 650);
 
       setTimeout(() => {
         setFocusedNoteId((curr) => (curr === newNote.id ? null : curr));
-      }, 2500);
+      }, 1000);
     }
   };
 
@@ -380,10 +375,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
 
     setIsArranging(true);
-    const spacingX = 300;
-    const spacingY = 320;
-    const startX = 40;
-    const startY = 40;
+    const spacingX = 290;
+    const spacingY = 300;
+    const startX = 24;
+    const startY = 24;
     // Support 7 notes horizontally across the board
     const cols = 7;
 
@@ -426,19 +421,37 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   };
 
-  // Create new board
+  // Create new board with randomized background (from wallpapers or patterns) and vibrant tab color
   const handleCreateBoard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBoardName.trim()) return;
 
+    // 60% chance to pick a curated wallpaper, 40% chance to pick a textured pattern
+    const useWallpaper = Math.random() > 0.4;
+    let randomTheme = 'cork';
+    let randomBgImage: string | null = null;
+
+    if (useWallpaper && CURATED_WALLPAPERS && CURATED_WALLPAPERS.length > 0) {
+      const randomWp = CURATED_WALLPAPERS[Math.floor(Math.random() * CURATED_WALLPAPERS.length)];
+      randomTheme = 'custom';
+      randomBgImage = randomWp.url;
+    } else if (BOARD_PATTERNS && BOARD_PATTERNS.length > 0) {
+      const randomPattern = BOARD_PATTERNS[Math.floor(Math.random() * BOARD_PATTERNS.length)];
+      randomTheme = randomPattern.id;
+    }
+
+    const randomColor = TAB_COLORS[Math.floor(Math.random() * TAB_COLORS.length)];
+
     try {
       await createBoard({
         name: newBoardName.trim(),
-        color: newBoardColor,
-        theme: boardTheme,
+        color: newBoardColor || randomColor,
+        theme: randomTheme,
+        bgImage: randomBgImage,
       });
       setNewBoardName('');
       setIsAddBoardModalOpen(false);
+      toast.success('สร้างบอร์ดใหม่พร้อมสุ่มพื้นหลังเรียบร้อยแล้ว!');
     } catch (err) {
       console.error(err);
       toast.error('สร้างบอร์ดไม่สำเร็จ');
@@ -462,13 +475,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   };
 
-  // Delete board confirmation
+  // Delete board confirmation or clear all notes if default board
   const handleDeleteBoard = async (board: Board) => {
     if (board.isDefault) {
-      toast.error('ไม่สามารถลบบอร์ดหลักเริ่มต้นได้');
+      if (confirm(`คุณต้องการลบโน้ตทั้งหมดบน "${board.name}" ใช่หรือไม่?\n(โน้ตทั้งหมดบนกระดานนี้จะถูกย้ายไปที่ถังขยะ แต่ตัวกระดานหลักจะยังคงอยู่)`)) {
+        await deleteBoard(board.id);
+        setEditingBoard(null);
+      }
       return;
     }
-    if (confirm(`คุณต้องการลบบอร์ด "${board.name}" ใช่หรือไม่? (โน้ตในบอร์ดนี้จะยังคงอยู่ในระบบแต่ไม่สังกัดบอร์ดนี้)`)) {
+    if (confirm(`คุณต้องการลบบอร์ด "${board.name}" ใช่หรือไม่?\n(โน้ตทั้งหมดในบอร์ดนี้จะถูกย้ายไปที่ถังขยะ)`)) {
       await deleteBoard(board.id);
       setEditingBoard(null);
     }
@@ -537,11 +553,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 >
                   {b.name}
                 </span>
-                {typeof b.noteCount === 'number' && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                    {b.noteCount}
-                  </span>
-                )}
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-semibold">
+                  {getBoardNoteCount(b)}
+                </span>
 
                 {/* Edit board button */}
                 <button
@@ -557,7 +571,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
           {/* Add Board Tab Button */}
           <button
-            onClick={() => setIsAddBoardModalOpen(true)}
+            onClick={() => {
+              setNewBoardColor(TAB_COLORS[Math.floor(Math.random() * TAB_COLORS.length)]);
+              setIsAddBoardModalOpen(true);
+            }}
             className="flex items-center gap-1 px-3 py-1.5 rounded-t-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition shrink-0 border-t-2 border-transparent"
           >
             <Plus size={14} />
@@ -584,23 +601,21 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               >
                 <Edit2 size={12} />
               </button>
-              {!activeBoard.isDefault && (
-                <button
-                  onClick={() => handleDeleteBoard(activeBoard)}
-                  className="p-0.5 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-600 transition"
-                  title={`ลบบอร์ด "${activeBoard.name}"`}
-                >
-                  <Trash2 size={12} />
-                </button>
-              )}
+              <button
+                onClick={() => handleDeleteBoard(activeBoard)}
+                className="p-0.5 hover:bg-rose-100 dark:hover:bg-rose-950/60 rounded text-slate-400 hover:text-rose-600 transition"
+                title={activeBoard.isDefault ? `ลบโน้ตทั้งหมดบนกระดานหลัก (ย้ายลงถังขยะ)` : `ลบบอร์ด "${activeBoard.name}" (ย้ายโน้ตลงถังขยะ)`}
+              >
+                <Trash2 size={12} />
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── TOP SECTION 2: Control Toolbar (Freeform Canvas Only) ── */}
+      {/* ── TOP SECTION 2: Control Toolbar (Freeform Canvas Only - Docked cleanly beneath tabs) ── */}
       {boardViewMode === 'freeform' && (
-        <div className="absolute top-14 left-4 right-4 z-20 flex items-center justify-between gap-3 p-2 sm:p-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-md">
+        <div className="w-full shrink-0 z-20 flex items-center justify-between gap-3 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
           {/* Quick Add Sticky Note Buttons */}
           <div className="flex items-center gap-2 overflow-x-auto">
             <button
@@ -696,7 +711,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
       {/* ── CONNECTION IN PROGRESS BANNER ── */}
       {connectingSourceId && (
-        <div className="absolute top-28 left-1/2 -translate-x-1/2 z-40 bg-indigo-600 text-white px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-bold animate-bounce">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-indigo-600 text-white px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-bold animate-bounce">
           <Link2 size={16} />
           <span>🔗 โหมดเชื่อมต่อโน้ต: คลิกที่โน้ตปลายทางเพื่อเชื่อมโยงเส้นลูกศร</span>
           <button
@@ -717,7 +732,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         <div
           ref={canvasContainerRef}
           style={getBoardStyle()}
-          className="flex-1 w-full h-full min-h-0 overflow-auto relative p-6 sm:p-8 cursor-default pt-28 board-canvas-container"
+          className="flex-1 w-full h-full min-h-0 overflow-auto relative p-6 sm:p-8 cursor-default board-canvas-container"
         >
           {/* Zoom Wrapper to allow accurate container scrolling */}
           <div
@@ -733,7 +748,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 transform: `scale(${zoom})`,
                 transformOrigin: 'top left',
               }}
-              className="relative border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 rounded-3xl transition-transform duration-100 ease-out"
+              className="relative rounded-3xl transition-transform duration-100 ease-out"
             >
               {/* SVG Visual Connection Lines Canvas */}
               <NoteConnectionCanvas
@@ -755,9 +770,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     onOpenFullscreen={(n) => setFullscreenNote(n)}
                     isConnectingSource={connectingSourceId === note.id}
                     isConnectingMode={!!connectingSourceId}
-                    onBringToFront={() => bringToFront(note.id)}
+                    onBringToFront={() => {
+                      bringToFront(note.id);
+                      setFocusedNoteId(note.id);
+                    }}
                     customZIndex={noteZIndices[note.id]}
                     isFocused={focusedNoteId === note.id}
+                    isHighlighted={highlightedNoteId === note.id}
                   />
                 ))}
             </div>
@@ -960,7 +979,15 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     <span>ลบบอร์ด</span>
                   </button>
                 ) : (
-                  <div />
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBoard(editingBoard)}
+                    className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition flex items-center gap-1"
+                    title="ลบโน้ตทั้งหมดบนกระดานหลักนี้ (ย้ายลงถังขยะ)"
+                  >
+                    <Trash2 size={13} />
+                    <span>ลบโน้ตทั้งหมด</span>
+                  </button>
                 )}
 
                 <div className="flex items-center gap-2">

@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/utils/api';
+import ViewportPortal from '@/components/ui/ViewportPortal';
 
 interface ShareNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
   noteId?: string;
   noteTitle?: string;
+  isLocked?: boolean;
 }
 
 export default function ShareNoteModal({
@@ -28,6 +30,7 @@ export default function ShareNoteModal({
   onClose,
   noteId,
   noteTitle,
+  isLocked = false,
 }: ShareNoteModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -117,8 +120,9 @@ export default function ShareNoteModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden flex flex-col">
+    <ViewportPortal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -181,6 +185,19 @@ export default function ShareNoteModal({
                 </button>
               </div>
 
+              {/* E2EE Warning Banner */}
+              {isLocked && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+                  <Lock className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div>
+                    <p className="font-bold">โน้ตนี้เปิดการเข้ารหัสลับ E2EE อยู่</p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
+                      ผู้รับลิงก์สาธารณะจะไม่สามารถอ่านเนื้อหาได้จนกว่าจะปลดล็อกหรือปิดการล็อก E2EE เสียก่อน
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Public Link Box */}
               {isShared && shareCode && (
                 <div className="space-y-4 animate-fade-in">
@@ -188,30 +205,56 @@ export default function ShareNoteModal({
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                       ลิงก์สำหรับแชร์:
                     </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                       <input
                         type="text"
                         readOnly
                         value={publicUrl}
-                        className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 select-all font-mono"
+                        className="w-full sm:flex-1 px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 select-all font-mono"
                       />
-                      <button
-                        type="button"
-                        onClick={handleCopyLink}
-                        className="flex items-center gap-1 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md transition-all whitespace-nowrap"
-                      >
-                        {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{isCopied ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
-                      </button>
-                      <a
-                        href={publicUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                        title="เปิดดูตัวอย่างหน้าแชร์"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                        <button
+                          type="button"
+                          onClick={handleCopyLink}
+                          className="flex items-center gap-1 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-all whitespace-nowrap"
+                        >
+                          {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{isCopied ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
+                        </button>
+
+                        {/* Native Web Share for Mobile (LINE, Messenger, AirDrop ฯลฯ) */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (typeof navigator !== 'undefined' && navigator.share) {
+                              navigator
+                                .share({
+                                  title: noteTitle || 'แชร์โน้ตจาก SecureNote',
+                                  text: `อ่านบันทึก "${noteTitle || 'โน้ต'}" บน SecureNote`,
+                                  url: publicUrl,
+                                })
+                                .catch(() => {});
+                            } else {
+                              handleCopyLink();
+                            }
+                          }}
+                          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-xs transition-all whitespace-nowrap"
+                          title="แชร์เข้าแอปบนมือถือ (LINE, Messenger ฯลฯ)"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>แชร์แอป</span>
+                        </button>
+
+                        <a
+                          href={publicUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+                          title="เปิดดูตัวอย่างหน้าแชร์"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
                     </div>
                   </div>
 
@@ -288,5 +331,6 @@ export default function ShareNoteModal({
         </div>
       </div>
     </div>
-  );
+  </ViewportPortal>
+);
 }

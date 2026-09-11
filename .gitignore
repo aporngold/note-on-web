@@ -37,3 +37,9 @@ backend/uploads/*
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+
+# Media reference files (videos)
+*.mp4
+*.mov
+*.avi
+*.wmv
