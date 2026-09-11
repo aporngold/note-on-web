@@ -4,7 +4,8 @@
   "description": "Secure Note API Server with End-to-End Encryption support",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && tsc",
     "start": "prisma db push && node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "dev:nodemon": "nodemon --watch src --exec ts-node src/server.ts",
