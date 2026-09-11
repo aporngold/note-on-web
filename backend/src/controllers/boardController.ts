@@ -266,7 +266,10 @@ export class BoardController {
       // If user deletes the default board ("กระดานหลัก"): clear all notes on it into Trash, but keep the board intact!
       if (board.isDefault) {
         await prisma.note.updateMany({
-          where: { userId, boardId: id },
+          where: {
+            userId,
+            OR: [{ boardId: id }, { boardId: null }],
+          },
           data: { isArchived: true },
         });
         await prisma.noteConnection.deleteMany({

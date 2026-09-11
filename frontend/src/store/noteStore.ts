@@ -224,7 +224,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         // Default board notes were cleared into trash, but default board stays
         set((state) => ({
           boards: state.boards.map((b) => (b.id === id ? { ...b, noteCount: 0 } : b)),
-          notes: state.notes.filter((n) => n.boardId !== id),
+          notes: state.notes.filter((n) => n.boardId !== id && n.boardId != null),
         }));
         toast.success(data.message || 'ลบโน้ตทั้งหมดบนกระดานหลักเรียบร้อยแล้ว (ย้ายไปที่ถังขยะ)');
         get().fetchNotes();
