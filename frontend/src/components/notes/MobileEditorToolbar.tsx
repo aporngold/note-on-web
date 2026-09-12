@@ -21,6 +21,7 @@ import {
   Link as LinkIcon,
   Image as ImageIcon,
   Mic,
+  AudioLines,
   Table as TableIcon,
   Paperclip,
   RotateCcw,
@@ -461,8 +462,8 @@ export default function MobileEditorToolbar({
                   }}
                   className="p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
-                  <Mic size={18} className="text-indigo-500" />
-                  <span>อัดเสียงบันทึก</span>
+                  <AudioLines size={18} className="text-indigo-500" />
+                  <span>อัดเสียงบันทึก (Voice Memo)</span>
                 </button>
               )}
 

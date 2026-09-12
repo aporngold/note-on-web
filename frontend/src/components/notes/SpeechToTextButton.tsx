@@ -199,14 +199,13 @@ export default function SpeechToTextButton({
           onClick={toggleListening}
           title={isListening ? 'กำลังฟังเสียงพูดเพื่อพิมพ์ (แตะเพื่อหยุด)' : 'พูดเพื่อพิมพ์ (Speech-to-Text)'}
           aria-label="พูดเพื่อพิมพ์"
-          className={`min-w-[40px] h-10 px-2 rounded-xl flex items-center justify-center gap-1 transition ${
+          className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${
             isListening
               ? 'bg-rose-500 text-white animate-pulse shadow-md'
               : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
           }`}
         >
-          <Mic size={18} />
-          <span className="text-[11px] font-bold">{isListening ? 'ฟัง...' : 'พิมพ์'}</span>
+          <Mic size={18} className={isListening ? 'animate-bounce' : ''} />
         </button>
 
         {/* Small language toggle badge */}
@@ -214,7 +213,7 @@ export default function SpeechToTextButton({
           type="button"
           onClick={toggleLanguage}
           title="สลับภาษา (TH/EN)"
-          className="px-1 py-0.5 text-[9px] font-extrabold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition -ml-0.5 mr-1"
+          className="px-1 py-0.5 text-[9px] font-extrabold rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition -ml-1 mr-1"
         >
           {lang === 'th-TH' ? 'TH' : 'EN'}
         </button>
@@ -230,39 +229,29 @@ export default function SpeechToTextButton({
     );
   }
 
-  // 3. Default variant (pill button with label)
+  // 3. Default variant for desktop / rich toolbar (compact icon-only with language badge)
   return (
     <div className={`relative inline-flex items-center ${className}`}>
       <button
         type="button"
         onClick={toggleListening}
         title={isListening ? 'กำลังฟังเสียงพูดเพื่อพิมพ์ (คลิกเพื่อหยุด)' : 'พูดเพื่อพิมพ์ (Speech-to-Text)'}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-xs ${
+        aria-label="พูดเพื่อพิมพ์"
+        className={`p-1.5 rounded-lg transition font-medium flex items-center justify-center ${
           isListening
-            ? 'bg-rose-500 text-white animate-pulse ring-2 ring-rose-300 dark:ring-rose-900'
-            : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
+            ? 'bg-rose-500 text-white animate-pulse ring-2 ring-rose-300 dark:ring-rose-900 shadow-sm'
+            : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
         }`}
       >
-        {isListening ? (
-          <>
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <Mic className="w-3.5 h-3.5" />
-            <span>กำลังฟัง...</span>
-          </>
-        ) : (
-          <>
-            <Mic className="w-3.5 h-3.5 text-indigo-500" />
-            <span>พูดเพื่อพิมพ์</span>
-          </>
-        )}
+        <Mic size={16} className={isListening ? 'animate-bounce' : ''} />
       </button>
 
       {/* Language badge toggle */}
       <button
         type="button"
         onClick={toggleLanguage}
-        title="คลิกเพื่อสลับภาษา (ไทย / English)"
-        className="ml-1 px-1.5 py-1 text-[10px] font-bold rounded bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 transition-colors"
+        title="คลิกเพื่อสลับภาษาพูด (ไทย / English)"
+        className="ml-0.5 px-1 py-0.5 text-[9px] font-extrabold rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 transition-colors"
       >
         {lang === 'th-TH' ? 'TH' : 'EN'}
       </button>

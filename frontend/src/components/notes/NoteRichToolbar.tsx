@@ -44,6 +44,7 @@ import {
   Type,
   Highlighter,
   Mic,
+  AudioLines,
   Quote as QuoteIcon,
   Sparkles,
   ScanText,
@@ -1980,9 +1981,9 @@ export default function NoteRichToolbar({
             type="button"
             onClick={onRecordAudio}
             className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg transition font-medium flex items-center gap-1"
-            title="อัดเสียง / บันทึกเสียงพูด (Voice Memo)"
+            title="อัดเสียงบันทึก (Voice Memo)"
           >
-            <Mic size={16} />
+            <AudioLines size={16} />
           </button>
         )}
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, Play, Pause, RotateCcw, Check, X, Volume2, AlertCircle } from 'lucide-react';
+import { Mic, AudioLines, Square, Play, Pause, RotateCcw, Check, X, Volume2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/utils/api';
 
@@ -242,7 +242,7 @@ export default function AudioRecorderModal({
 
         <div className="text-center mb-6">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 shadow-inner">
-            <Mic size={28} />
+            <AudioLines size={28} />
           </div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">บันทึกเสียง (Voice Memo)</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">

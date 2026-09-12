@@ -21,6 +21,7 @@ import {
   Star,
   Paperclip,
   Mic,
+  AudioLines,
   Upload,
   Plus,
   X,
@@ -964,9 +965,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           <button
             onClick={() => setIsAudioModalOpen(true)}
             className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
-            title="อัดเสียงพูด (Voice Memo)"
+            title="อัดเสียงบันทึก (Voice Memo)"
           >
-            <Mic size={17} />
+            <AudioLines size={17} />
           </button>
 
           {/* Speech-to-Text Live Dictation */}
@@ -1680,7 +1681,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             }}
             className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
           >
-            <Mic size={18} className="text-indigo-500" />
+            <AudioLines size={18} className="text-indigo-500" />
             <span>อัดเสียงบันทึก (Voice Memo)</span>
           </button>
 
