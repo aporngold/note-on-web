@@ -1226,13 +1226,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           </div>
         )}
         {/* Title Input */}
-        <div className="p-3.5 sm:p-6 pb-2 sm:pb-3 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+        <div className="px-4 py-2 sm:px-6 sm:py-2.5 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
           <input
             type="text"
             placeholder="ชื่อเรื่องโน้ต..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white bg-transparent placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none tracking-tight"
+            className="w-full text-lg sm:text-xl font-bold text-slate-900 dark:text-white bg-transparent placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none tracking-tight"
           />
         </div>
 
@@ -1257,9 +1257,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             onToggleBorderless={() => setIsBorderless(!isBorderless)}
             zoomLevel={zoomLevel}
             onZoomChange={(z) => setZoomLevel(z)}
-            onRecordAudio={() => setIsAudioModalOpen(true)}
-            onAttachFile={() => setIsAttachmentDrawerOpen(true)}
-            attachmentsCount={attachments.length}
             onCopyNote={() => {
               const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
               navigator.clipboard.writeText(fullText);

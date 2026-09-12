@@ -116,6 +116,7 @@ interface NoteRichToolbarProps {
   onToggleTrulyFullscreen?: () => void;
   onCancel: () => void;
   onAccept: () => void;
+  showSpeechToText?: boolean;
   isSaving?: boolean;
 }
 
@@ -136,6 +137,7 @@ export default function NoteRichToolbar({
   onZoomChange,
   onAttachFile,
   onRecordAudio,
+  showSpeechToText = false,
   attachmentsCount = 0,
   onCopyNote,
   onDownloadTxt,
@@ -1602,6 +1604,17 @@ export default function NoteRichToolbar({
           <Strikethrough size={16} />
         </button>
 
+        {/* Clear Format Tx */}
+        <button
+          type="button"
+          onClick={handleClearFormatting}
+          className="px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-mono font-bold text-xs flex items-center text-slate-600 dark:text-slate-300"
+          title="ล้างรูปแบบตัวอักษรทั้งหมด (Clear Formatting)"
+        >
+          <span>T</span>
+          <span className="text-[10px] text-rose-500">x</span>
+        </button>
+
         {/* Text Color Dropdown */}
         <div className="relative">
           <button
@@ -1678,6 +1691,49 @@ export default function NoteRichToolbar({
             </div>
           </ViewportPopover>
         </div>
+
+        {/* Separator */}
+        <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+
+        {/* Align Left */}
+        <button
+          type="button"
+          onClick={() => handleAlign('left')}
+          className={getToolBtnClass(isAlignLeftActive)}
+          title="จัดชิดซ้าย"
+        >
+          <AlignLeft size={16} />
+        </button>
+
+        {/* Align Center */}
+        <button
+          type="button"
+          onClick={() => handleAlign('center')}
+          className={getToolBtnClass(isAlignCenterActive)}
+          title="จัดกึ่งกลาง"
+        >
+          <AlignCenter size={16} />
+        </button>
+
+        {/* Align Right */}
+        <button
+          type="button"
+          onClick={() => handleAlign('right')}
+          className={getToolBtnClass(isAlignRightActive)}
+          title="จัดชิดขวา"
+        >
+          <AlignRight size={16} />
+        </button>
+
+        {/* Align Justify */}
+        <button
+          type="button"
+          onClick={() => handleAlign('justify')}
+          className={getToolBtnClass(isAlignJustifyActive)}
+          title="จัดเต็มบรรทัด (Justify)"
+        >
+          <AlignJustify size={16} />
+        </button>
 
         {/* Separator */}
         <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
@@ -1933,11 +1989,35 @@ export default function NoteRichToolbar({
           </ViewportPopover>
         </div>
 
-        {/* Separator */}
-        <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+        {/* Source Code Block <> */}
+        <button
+          type="button"
+          onClick={handleCodeBlock}
+          className={getToolBtnClass(isCodeBlockActive)}
+          title="บล็อกโค้ด (Code Block)"
+        >
+          <Code size={16} />
+        </button>
 
-        {/* Speech to Text Live Dictation */}
-        <SpeechToTextButton editor={editor || null} />
+        {/* Separator */}
+        {(onRecordAudio || showSpeechToText || onOpenOcr || onOpenAiAssistant) && (
+          <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+        )}
+
+        {/* Audio / Voice Memo */}
+        {onRecordAudio && (
+          <button
+            type="button"
+            onClick={onRecordAudio}
+            className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg transition font-medium flex items-center gap-1"
+            title="อัดเสียง / บันทึกเสียงพูด (Voice Memo)"
+          >
+            <Mic size={16} />
+          </button>
+        )}
+
+        {/* Speech to Text Live Dictation (only if requested) */}
+        {showSpeechToText && <SpeechToTextButton editor={editor || null} />}
 
         {/* Image OCR Button */}
         {onOpenOcr && (
@@ -2063,108 +2143,6 @@ export default function NoteRichToolbar({
           aria-label="พับเก็บแถบเครื่องมือ"
         >
           <ChevronUp size={15} />
-        </button>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════
-          แถวที่ 5: แถบจัดแต่งข้อความแถวที่ 2 (Clear Format, Alignments, Indent, HR, Checklist, Image, Code)
-         ══════════════════════════════════════════════════════ */}
-      <div className="px-3 py-1.5 flex items-center gap-1.5 flex-wrap text-slate-700 dark:text-slate-200">
-        {/* Clear Format Tx */}
-        <button
-          type="button"
-          onClick={handleClearFormatting}
-          className="px-2 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-mono font-bold text-xs flex items-center text-slate-600 dark:text-slate-300"
-          title="ล้างรูปแบบตัวอักษรทั้งหมด (Clear Formatting)"
-        >
-          <span>T</span>
-          <span className="text-[10px] text-rose-500">x</span>
-        </button>
-
-        {/* Separator */}
-        <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
-
-        {/* Align Left */}
-        <button
-          type="button"
-          onClick={() => handleAlign('left')}
-          className={getToolBtnClass(isAlignLeftActive)}
-          title="จัดชิดซ้าย"
-        >
-          <AlignLeft size={16} />
-        </button>
-
-        {/* Align Center */}
-        <button
-          type="button"
-          onClick={() => handleAlign('center')}
-          className={getToolBtnClass(isAlignCenterActive)}
-          title="จัดกึ่งกลาง"
-        >
-          <AlignCenter size={16} />
-        </button>
-
-        {/* Align Right */}
-        <button
-          type="button"
-          onClick={() => handleAlign('right')}
-          className={getToolBtnClass(isAlignRightActive)}
-          title="จัดชิดขวา"
-        >
-          <AlignRight size={16} />
-        </button>
-
-        {/* Align Justify */}
-        <button
-          type="button"
-          onClick={() => handleAlign('justify')}
-          className={getToolBtnClass(isAlignJustifyActive)}
-          title="จัดเต็มบรรทัด (Justify)"
-        >
-          <AlignJustify size={16} />
-        </button>
-
-        {/* Separator */}
-        <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
-
-        {/* Checklist shortcut */}
-        <button
-          type="button"
-          onClick={handleChecklist}
-          className={`${getToolBtnClass(isTaskListActive)} hidden sm:inline-flex`}
-          title="กล่องเช็คลิสต์ (Checklist)"
-        >
-          <CheckSquare size={16} />
-        </button>
-
-        {/* Image shortcut */}
-        <button
-          type="button"
-          onClick={handleInsertImageClick}
-          className={`${getToolBtnClass(false)} hidden sm:inline-flex`}
-          title="แทรกรูปภาพ"
-        >
-          <ImageIcon size={16} />
-        </button>
-
-        {/* Horizontal Rule — */}
-        <button
-          type="button"
-          onClick={handleHorizontalRule}
-          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition font-bold"
-          title="เส้นแบ่งบรรทัด (Horizontal Rule)"
-        >
-          <Minus size={16} />
-        </button>
-
-        {/* Source Code Block <> */}
-        <button
-          type="button"
-          onClick={handleCodeBlock}
-          className={getToolBtnClass(isCodeBlockActive)}
-          title="บล็อกโค้ด (Code Block)"
-        >
-          <Code size={16} />
         </button>
       </div>
         </>

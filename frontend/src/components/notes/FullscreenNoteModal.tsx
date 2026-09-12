@@ -491,7 +491,7 @@ export default function FullscreenNoteModal({
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               placeholder="หัวข้อโน้ต..."
-              className={`w-full font-bold text-xl sm:text-2xl lg:text-3xl bg-transparent border-b border-black/15 focus:border-black/40 focus:outline-none pb-2 placeholder-black/30 ${getFontFamilyClass()}`}
+              className={`w-full font-bold text-lg sm:text-xl bg-transparent border-b border-black/15 focus:border-black/40 focus:outline-none pb-2 placeholder-black/30 ${getFontFamilyClass()}`}
               style={{ color: textColor }}
             />
           </div>
