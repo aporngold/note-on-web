@@ -825,15 +825,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <Search size={18} />
           </button>
 
-          {/* Quick Save */}
+          {/* Quick Save (Icon-only) */}
           <button
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 disabled:opacity-50"
+            className="p-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center shadow-sm transition active:scale-95 disabled:opacity-50"
+            title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+            aria-label="บันทึก"
           >
-            <Save size={14} />
-            <span className="hidden sm:inline">{isSaving ? 'บันทึก...' : 'บันทึก'}</span>
+            <Save size={16} />
           </button>
 
           {/* More Options Sheet Trigger */}
@@ -845,6 +846,17 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             aria-label="เครื่องมือเพิ่มเติม"
           >
             <MoreHorizontal size={20} />
+          </button>
+
+          {/* Close / Cancel Button */}
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="p-2 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+            title="ปิด / ยกเลิก (Close)"
+            aria-label="ปิดโน้ต"
+          >
+            <X size={19} />
           </button>
         </div>
       </div>
@@ -897,11 +909,11 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </span>
           ) : lastSaved ? (
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-              <CheckCircle2 size={13} /> บันทึกอัตโนมัติแล้ว: {lastSaved} (ทุก 15 นาที)
+              <CheckCircle2 size={13} /> บันทึกอัตโนมัติแล้ว: {lastSaved}
             </span>
           ) : (
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-              บันทึกอัตโนมัติทุก 15 นาที
+              บันทึกอัตโนมัติ
             </span>
           )}
         </div>
@@ -990,7 +1002,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
           >
             <Sparkles size={14} />
-            <span className="hidden md:inline">AI ผู้ช่วย</span>
+            <span className="hidden md:inline">AI</span>
           </button>
 
           {/* Version History Button */}
@@ -1055,25 +1067,37 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </button>
           )}
 
-          {/* Fullscreen Mode Button */}
+          {/* Fullscreen Mode Button (Icon-only) */}
           <button
             type="button"
             onClick={handleOpenFullscreen}
-            className="p-2 sm:px-3 sm:py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center gap-1.5 font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95"
+            className="p-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center justify-center font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95"
             title="เปิดแก้ไขแบบเต็มจอ (Fullscreen)"
+            aria-label="เต็มจอ"
           >
-            <Maximize2 size={15} />
-            <span className="hidden sm:inline">เต็มจอ</span>
+            <Maximize2 size={16} />
           </button>
 
-          {/* Save Button */}
+          {/* Save Button (Icon-only) */}
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="ml-1 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md shadow-indigo-200 dark:shadow-none transition active:scale-95 disabled:opacity-50"
+            className="ml-1 p-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-indigo-200 dark:shadow-none transition active:scale-95 disabled:opacity-50"
+            title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+            aria-label="บันทึก"
           >
             <Save size={16} />
-            <span>{isSaving ? 'กำลังบันทึก...' : 'บันทึก'}</span>
+          </button>
+
+          {/* Close / Cancel Button */}
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition ml-1"
+            title="ปิด / ยกเลิก (Close)"
+            aria-label="ปิดโน้ต"
+          >
+            <X size={18} />
           </button>
         </div>
       </div>

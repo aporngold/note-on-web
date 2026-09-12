@@ -20,6 +20,13 @@ export default function SpeechToTextButton({
   const [lang, setLang] = useState<'th-TH' | 'en-US'>('th-TH');
   const [interimText, setInterimText] = useState('');
   const recognitionRef = useRef<any>(null);
+  const isListeningRef = useRef(false);
+  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const editorRef = useRef<Editor | null>(editor);
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   useEffect(() => {
     // Check Web Speech API support
@@ -49,8 +56,8 @@ export default function SpeechToTextButton({
 
       setInterimText(currentInterim);
 
-      if (finalTranscript && editor) {
-        editor.chain().focus().insertContent(` ${finalTranscript.trim()} `).run();
+      if (finalTranscript && editorRef.current) {
+        editorRef.current.chain().focus().insertContent(` ${finalTranscript.trim()} `).run();
         setInterimText('');
       }
     };
@@ -59,20 +66,28 @@ export default function SpeechToTextButton({
       console.warn('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         toast.error('เบราว์เซอร์ไม่อนุญาตไมโครโฟน โปรดแตะไอคอนแม่กุญแจบนแถบ URL เพื่อเปิดสิทธิ์');
+        isListeningRef.current = false;
         setIsListening(false);
       } else if (event.error === 'no-speech') {
-        // Just silent timeout, ignore
+        // Silent timeout by browser - do NOT disable, let onend auto-restart
+      } else if (event.error === 'aborted') {
+        // Manual stop or restart, ignore
       }
     };
 
     recognition.onend = () => {
-      // If user didn't explicitly stop, restart for continuous dictation
-      if (isListening) {
-        try {
-          recognition.start();
-        } catch (e) {
-          setIsListening(false);
-        }
+      // If user still wants to listen, auto-restart seamlessly (Continuous Dictation)
+      if (isListeningRef.current) {
+        if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = setTimeout(() => {
+          if (isListeningRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e: any) {
+              // Already running or starting
+            }
+          }
+        }, 150);
       } else {
         setIsListening(false);
         setInterimText('');
@@ -82,11 +97,14 @@ export default function SpeechToTextButton({
     recognitionRef.current = recognition;
 
     return () => {
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
       }
     };
-  }, [lang, editor, isListening]);
+  }, [lang]);
 
   const toggleListening = () => {
     // Check secure context for mobile devices over LAN IP
@@ -108,19 +126,24 @@ export default function SpeechToTextButton({
       return;
     }
 
-    if (isListening) {
+    if (isListeningRef.current) {
+      isListeningRef.current = false;
       setIsListening(false);
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
       }
       toast('หยุดพิมพ์ตามเสียงพูดแล้ว', { icon: '🛑' });
     } else {
       try {
         if (recognitionRef.current) {
           recognitionRef.current.lang = lang;
-          recognitionRef.current.start();
+          isListeningRef.current = true;
           setIsListening(true);
-          toast.success(`กำลังฟังเสียงพูด (${lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย!`);
+          recognitionRef.current.start();
+          toast.success(`กำลังฟังเสียงพูด (${lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้ต่อเนื่องเลย!`);
         }
       } catch (e) {
         console.error('Failed to start speech recognition:', e);
@@ -135,12 +158,16 @@ export default function SpeechToTextButton({
     e.stopPropagation();
     const nextLang = lang === 'th-TH' ? 'en-US' : 'th-TH';
     setLang(nextLang);
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
+    if (isListeningRef.current && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
       setTimeout(() => {
-        if (recognitionRef.current) {
+        if (recognitionRef.current && isListeningRef.current) {
           recognitionRef.current.lang = nextLang;
-          recognitionRef.current.start();
+          try {
+            recognitionRef.current.start();
+          } catch (e) {}
         }
       }, 200);
     }

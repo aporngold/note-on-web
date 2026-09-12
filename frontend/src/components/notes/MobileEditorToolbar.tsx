@@ -74,6 +74,55 @@ export default function MobileEditorToolbar({
   const [activeSheet, setActiveSheet] = useState<'add' | 'textColor' | 'highlight' | null>(null);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedSelectionRef = useRef<{ from: number; to: number } | null>(null);
+
+  const openColorSheet = (sheet: 'textColor' | 'highlight') => {
+    if (editor) {
+      const { from, to } = editor.state.selection;
+      savedSelectionRef.current = { from, to };
+    }
+    setActiveSheet(sheet);
+  };
+
+  const applyTextColor = (colorHex: string) => {
+    if (!editor) return;
+    if (savedSelectionRef.current && savedSelectionRef.current.from !== savedSelectionRef.current.to) {
+      editor.chain().setTextSelection(savedSelectionRef.current).setColor(colorHex).run();
+    } else {
+      editor.chain().focus().setColor(colorHex).run();
+    }
+    setActiveSheet(null);
+  };
+
+  const clearTextColor = () => {
+    if (!editor) return;
+    if (savedSelectionRef.current && savedSelectionRef.current.from !== savedSelectionRef.current.to) {
+      editor.chain().setTextSelection(savedSelectionRef.current).unsetColor().run();
+    } else {
+      editor.chain().focus().unsetColor().run();
+    }
+    setActiveSheet(null);
+  };
+
+  const applyHighlight = (colorHex: string) => {
+    if (!editor) return;
+    if (savedSelectionRef.current && savedSelectionRef.current.from !== savedSelectionRef.current.to) {
+      editor.chain().setTextSelection(savedSelectionRef.current).toggleHighlight({ color: colorHex }).run();
+    } else {
+      editor.chain().focus().toggleHighlight({ color: colorHex }).run();
+    }
+    setActiveSheet(null);
+  };
+
+  const clearHighlight = () => {
+    if (!editor) return;
+    if (savedSelectionRef.current && savedSelectionRef.current.from !== savedSelectionRef.current.to) {
+      editor.chain().setTextSelection(savedSelectionRef.current).unsetHighlight().run();
+    } else {
+      editor.chain().focus().unsetHighlight().run();
+    }
+    setActiveSheet(null);
+  };
 
   // Monitor software keyboard via VisualViewport API on mobile devices
   useEffect(() => {
@@ -190,7 +239,7 @@ export default function MobileEditorToolbar({
           {/* 4. Text Color */}
           <button
             type="button"
-            onClick={() => setActiveSheet('textColor')}
+            onClick={() => openColorSheet('textColor')}
             className="min-w-[40px] h-10 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             title="สีตัวอักษร"
             aria-label="สีตัวอักษร"
@@ -201,7 +250,7 @@ export default function MobileEditorToolbar({
           {/* 5. Highlight */}
           <button
             type="button"
-            onClick={() => setActiveSheet('highlight')}
+            onClick={() => openColorSheet('highlight')}
             className={`min-w-[40px] h-10 rounded-xl flex items-center justify-center transition ${
               editor.isActive('highlight')
                 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
@@ -526,10 +575,7 @@ export default function MobileEditorToolbar({
             <button
               key={c.color}
               type="button"
-              onClick={() => {
-                editor.chain().focus().setColor(c.color).run();
-                setActiveSheet(null);
-              }}
+              onClick={() => applyTextColor(c.color)}
               className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               <div className="flex items-center gap-3">
@@ -546,10 +592,7 @@ export default function MobileEditorToolbar({
           ))}
           <button
             type="button"
-            onClick={() => {
-              editor.chain().focus().unsetColor().run();
-              setActiveSheet(null);
-            }}
+            onClick={clearTextColor}
             className="w-full py-3 mt-2 text-center text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-2xl transition"
           >
             ล้างสีตัวอักษร (รีเซ็ตเป็นค่าเริ่มต้น)
@@ -568,10 +611,7 @@ export default function MobileEditorToolbar({
             <button
               key={c.color}
               type="button"
-              onClick={() => {
-                editor.chain().focus().setHighlight({ color: c.color }).run();
-                setActiveSheet(null);
-              }}
+              onClick={() => applyHighlight(c.color)}
               className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               <div className="flex items-center gap-3">
@@ -588,10 +628,7 @@ export default function MobileEditorToolbar({
           ))}
           <button
             type="button"
-            onClick={() => {
-              editor.chain().focus().unsetHighlight().run();
-              setActiveSheet(null);
-            }}
+            onClick={clearHighlight}
             className="w-full py-3 mt-2 text-center text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-2xl transition"
           >
             ล้างสีไฮไลต์ทั้งหมด

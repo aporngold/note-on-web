@@ -614,8 +614,8 @@ export default function FullscreenNoteModal({
                 {isAutoSaving
                   ? 'กำลังบันทึกอัตโนมัติ...'
                   : lastSavedTime
-                  ? `บันทึกแล้ว: ${lastSavedTime} (ทุก 15 นาที)`
-                  : 'บันทึกอัตโนมัติทุก 15 นาที'}
+                  ? `บันทึกแล้ว: ${lastSavedTime}`
+                  : 'บันทึกอัตโนมัติ'}
               </span>
             </span>
             <button

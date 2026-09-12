@@ -298,19 +298,21 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               <span className="hidden sm:inline">สำรองข้อมูล</span>
             </button>
 
-            {/* Quick New Note - Available in all modes */}
-            <button
-              onClick={() => {
-                const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
-                router.push(url);
-              }}
-              className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full text-xs font-bold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition-all duration-200 active:scale-95 ml-1 shrink-0"
-              title="สร้างโน้ตใหม่"
-              aria-label="สร้างโน้ตใหม่"
-            >
-              <Plus size={16} className="stroke-[2.5]" />
-              <span>โน้ตใหม่</span>
-            </button>
+            {/* Quick New Note - Available in all modes except Sticky Board */}
+            {!(router.pathname === '/board' || viewMode === 'board') && (
+              <button
+                onClick={() => {
+                  const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
+                  router.push(url);
+                }}
+                className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full text-xs font-bold shadow-md shadow-indigo-500/25 flex items-center gap-1.5 transition-all duration-200 active:scale-95 ml-1 shrink-0"
+                title="สร้างโน้ตใหม่"
+                aria-label="สร้างโน้ตใหม่"
+              >
+                <Plus size={16} className="stroke-[2.5]" />
+                <span>โน้ตใหม่</span>
+              </button>
+            )}
           </div>
         </header>
 

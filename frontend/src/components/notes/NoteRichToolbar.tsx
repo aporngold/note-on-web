@@ -573,13 +573,11 @@ export default function NoteRichToolbar({
   const handleSetTextColor = (colorHex: string, colorName: string) => {
     if (editor) {
       editor.chain().focus().setColor(colorHex).run();
-      if (onTextColorChange) onTextColorChange(colorHex);
       setIsTextColorMenuOpen(false);
       toast.success(`เปลี่ยนสีตัวอักษรเป็น ${colorName}`);
       return;
     }
     insertFormatting(`<span style="color: ${colorHex}">`, '</span>');
-    if (onTextColorChange) onTextColorChange(colorHex);
     setIsTextColorMenuOpen(false);
     toast.success(`เปลี่ยนสีหมึกเป็น ${colorName}`);
   };
@@ -2012,7 +2010,7 @@ export default function NoteRichToolbar({
             title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
           >
             <Sparkles size={14} />
-            <span>AI ผู้ช่วย</span>
+            <span>AI</span>
           </button>
         )}
 
@@ -2043,7 +2041,7 @@ export default function NoteRichToolbar({
                 className="w-full text-left px-3 py-1.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-semibold md:hidden"
               >
                 <Sparkles size={13} />
-                <span>AI ผู้ช่วย</span>
+                <span>AI</span>
               </button>
             )}
             {onOpenOcr && (

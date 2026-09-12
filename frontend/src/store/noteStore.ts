@@ -336,6 +336,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       });
       
       toast.success(res.data.message || (isPermanent ? 'ลบโน้ตถาวรเรียบร้อยแล้ว' : 'ย้ายโน้ตไปที่ถังขยะแล้ว'));
+      get().fetchTrashNotes();
       get().fetchNotebooks();
       get().fetchBoards();
     } catch (error: any) {
@@ -357,6 +358,8 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         };
       });
       toast.success(res.data.message || 'กู้คืนโน้ตเรียบร้อย');
+      get().fetchTrashNotes();
+      get().fetchNotes();
       get().fetchNotebooks();
       get().fetchBoards();
     } catch (error: any) {
@@ -399,6 +402,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       const res = await api.delete('/notes/trash/empty');
       set({ trashNotes: [] });
       toast.success(res.data.message || 'ล้างถังขยะเรียบร้อย');
+      get().fetchTrashNotes();
       get().fetchNotebooks();
       get().fetchBoards();
     } catch (error: any) {

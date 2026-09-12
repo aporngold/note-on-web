@@ -85,7 +85,9 @@ function ResizableImageView(props: NodeViewProps) {
     return 'mx-auto block';
   };
 
-  const handleResizeStart = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleResizeStart = (
+    direction: 'se' | 'sw' | 'ne' | 'nw' | 'e' | 'w'
+  ) => (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -98,11 +100,16 @@ function ResizableImageView(props: NodeViewProps) {
 
     const onMove = (moveEvent: MouseEvent | TouchEvent) => {
       const currentX = 'touches' in moveEvent ? moveEvent.touches[0].clientX : moveEvent.clientX;
-      const deltaX = currentX - startXRef.current;
+      const rawDeltaX = currentX - startXRef.current;
+      
+      // If dragging from left side (sw, nw, w), pulling left expands, pulling right shrinks
+      const isLeft = direction === 'sw' || direction === 'nw' || direction === 'w';
+      const deltaX = isLeft ? -rawDeltaX : rawDeltaX;
+      
       const parentWidth = containerRef.current?.parentElement?.clientWidth || 800;
 
-      // Minimum 100px, maximum 100% of parent
-      const newWidthPx = Math.max(100, Math.min(parentWidth, startWidthRef.current + deltaX));
+      // Minimum 80px, maximum 100% of parent
+      const newWidthPx = Math.max(80, Math.min(parentWidth, startWidthRef.current + deltaX));
       const percentage = Math.round((newWidthPx / parentWidth) * 100);
       updateAttributes({ width: `${percentage}%` });
     };
@@ -242,17 +249,60 @@ function ResizableImageView(props: NodeViewProps) {
           </div>
         )}
 
-        {/* Drag Resize Handle (Bottom-Right Corner) */}
-        <div
-          onMouseDown={handleResizeStart}
-          onTouchStart={handleResizeStart}
-          className={`absolute bottom-2 right-2 w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-lg cursor-nwse-resize hover:scale-110 active:scale-95 transition-transform z-20 ${
-            selected || showControls || isResizing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          }`}
-          title="คลิกแล้วลากเพื่อปรับขนาดย่อ/ขยายรูปภาพ"
-        >
-          <Maximize2 size={12} className="rotate-90" />
-        </div>
+        {/* Multi-directional Drag Resize Handles (All 4 Corners + 2 Edges) */}
+        {(selected || showControls || isResizing) && (
+          <>
+            {/* 1. Bottom-Right (SE) */}
+            <div
+              onMouseDown={handleResizeStart('se')}
+              onTouchStart={handleResizeStart('se')}
+              className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-lg cursor-nwse-resize hover:scale-110 active:scale-95 transition-transform z-20"
+              title="ลากมุมขวาล่างเพื่อปรับขนาด"
+            >
+              <Maximize2 size={12} className="rotate-90" />
+            </div>
+
+            {/* 2. Bottom-Left (SW) */}
+            <div
+              onMouseDown={handleResizeStart('sw')}
+              onTouchStart={handleResizeStart('sw')}
+              className="absolute bottom-1.5 left-1.5 w-5 h-5 rounded-md bg-white dark:bg-slate-800 border-2 border-indigo-600 shadow-md cursor-nesw-resize hover:scale-125 active:scale-95 transition-transform z-20"
+              title="ลากมุมซ้ายล่างเพื่อปรับขนาด"
+            />
+
+            {/* 3. Top-Right (NE) */}
+            <div
+              onMouseDown={handleResizeStart('ne')}
+              onTouchStart={handleResizeStart('ne')}
+              className="absolute top-1.5 right-1.5 w-5 h-5 rounded-md bg-white dark:bg-slate-800 border-2 border-indigo-600 shadow-md cursor-nesw-resize hover:scale-125 active:scale-95 transition-transform z-20"
+              title="ลากมุมขวาบนเพื่อปรับขนาด"
+            />
+
+            {/* 4. Top-Left (NW) */}
+            <div
+              onMouseDown={handleResizeStart('nw')}
+              onTouchStart={handleResizeStart('nw')}
+              className="absolute top-1.5 left-1.5 w-5 h-5 rounded-md bg-white dark:bg-slate-800 border-2 border-indigo-600 shadow-md cursor-nwse-resize hover:scale-125 active:scale-95 transition-transform z-20"
+              title="ลากมุมซ้ายบนเพื่อปรับขนาด"
+            />
+
+            {/* 5. Middle-Right Edge (E) */}
+            <div
+              onMouseDown={handleResizeStart('e')}
+              onTouchStart={handleResizeStart('e')}
+              className="absolute top-1/2 -translate-y-1/2 right-1 w-2.5 h-8 rounded-full bg-indigo-600 shadow-md cursor-ew-resize hover:scale-125 active:scale-95 transition-transform z-20"
+              title="ลากขอบขวาเพื่อปรับความกว้าง"
+            />
+
+            {/* 6. Middle-Left Edge (W) */}
+            <div
+              onMouseDown={handleResizeStart('w')}
+              onTouchStart={handleResizeStart('w')}
+              className="absolute top-1/2 -translate-y-1/2 left-1 w-2.5 h-8 rounded-full bg-indigo-600 shadow-md cursor-ew-resize hover:scale-125 active:scale-95 transition-transform z-20"
+              title="ลากขอบซ้ายเพื่อปรับความกว้าง"
+            />
+          </>
+        )}
       </div>
     </NodeViewWrapper>
   );
