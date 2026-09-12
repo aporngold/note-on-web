@@ -58,7 +58,7 @@ export default function SpeechToTextButton({
     recognition.onerror = (event: any) => {
       console.warn('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
-        toast.error('กรุณาอนุญาตการเข้าถึงไมโครโฟนบนเบราว์เซอร์');
+        toast.error('เบราว์เซอร์ไม่อนุญาตไมโครโฟน โปรดแตะไอคอนแม่กุญแจบนแถบ URL เพื่อเปิดสิทธิ์');
         setIsListening(false);
       } else if (event.error === 'no-speech') {
         // Just silent timeout, ignore
@@ -89,6 +89,17 @@ export default function SpeechToTextButton({
   }, [lang, editor, isListening]);
 
   const toggleListening = () => {
+    // Check secure context for mobile devices over LAN IP
+    if (
+      typeof window !== 'undefined' &&
+      !window.isSecureContext &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      toast.error('การพิมพ์ด้วยเสียงบนมือถือต้องใช้ HTTPS หรือ localhost');
+      return;
+    }
+
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 

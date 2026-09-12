@@ -1876,18 +1876,6 @@ export default function NoteRichToolbar({
           </ViewportPopover>
         </div>
 
-        {/* Audio / Voice Memo */}
-        {onRecordAudio && (
-          <button
-            type="button"
-            onClick={onRecordAudio}
-            className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg transition font-medium flex items-center gap-1"
-            title="อัดเสียง / บันทึกเสียงพูด (Voice Memo)"
-          >
-            <Mic size={16} />
-          </button>
-        )}
-
         {/* Image with Resize & Caption */}
         <div className="relative">
           <button

@@ -70,6 +70,8 @@ export default function AudioRecorderModal({
     }
   }, [isOpen]);
 
+  const [permissionErrorType, setPermissionErrorType] = useState<'denied' | 'insecure_context' | 'not_supported' | 'not_found' | 'other' | null>(null);
+
   const cleanup = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -84,12 +86,36 @@ export default function AudioRecorderModal({
     setAudioUrl(null);
     setIsPlaying(false);
     setIsUploading(false);
+    setPermissionErrorType(null);
   };
 
   const startRecording = async () => {
+    setPermissionErrorType(null);
+
+    // Check secure context for mobile devices over LAN IP (e.g. http://192.168.x.x:3000)
+    if (
+      typeof window !== 'undefined' &&
+      !window.isSecureContext &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      setHasPermission(false);
+      setPermissionErrorType('insecure_context');
+      toast.error('การเข้าถึงไมโครโฟนบนมือถือต้องใช้ HTTPS หรือ localhost');
+      return;
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setHasPermission(false);
+      setPermissionErrorType('not_supported');
+      toast.error('เบราว์เซอร์นี้ไม่รองรับการบันทึกเสียง หรือถูกบล็อกเนื่องจากความปลอดภัย');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setHasPermission(true);
+      setPermissionErrorType(null);
 
       const { mimeType, extension } = getBestSupportedMimeType();
       chosenMimeTypeRef.current = mimeType;
@@ -129,7 +155,17 @@ export default function AudioRecorderModal({
     } catch (err: any) {
       console.error('Microphone error:', err);
       setHasPermission(false);
-      toast.error('ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตการใช้งานไมโครโฟนในเบราว์เซอร์');
+
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setPermissionErrorType('denied');
+        toast.error('เบราว์เซอร์ไม่อนุญาตให้ใช้ไมค์ กรุณากดเปิดสิทธิ์ที่ไอคอนแม่กุญแจบนแถบ URL');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setPermissionErrorType('not_found');
+        toast.error('ไม่พบอุปกรณ์ไมโครโฟน');
+      } else {
+        setPermissionErrorType('other');
+        toast.error('ไม่สามารถเข้าถึงไมโครโฟนได้: ' + (err.message || 'โปรดตรวจสอบสิทธิ์'));
+      }
     }
   };
 
@@ -215,9 +251,40 @@ export default function AudioRecorderModal({
         </div>
 
         {hasPermission === false && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
-            <span>เบราว์เซอร์ไม่ได้รับอนุญาตให้ใช้ไมโครโฟน โปรดเปิดสิทธิ์ในหน้าต่างความปลอดภัยของเบราว์เซอร์</span>
+          <div className="mb-4 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 space-y-2 text-xs text-rose-700 dark:text-rose-300 animate-fade-in">
+            <div className="flex items-start gap-2.5 font-bold">
+              <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-500" />
+              <span>
+                {permissionErrorType === 'insecure_context'
+                  ? 'เบราว์เซอร์บล็อกไมค์บนการเชื่อมต่อที่ไม่ปลอดภัย (HTTP)'
+                  : permissionErrorType === 'denied'
+                  ? 'เบราว์เซอร์ไม่ได้รับอนุญาตให้ใช้ไมโครโฟน'
+                  : 'ไม่สามารถเข้าถึงไมโครโฟนได้'}
+              </span>
+            </div>
+
+            <div className="pl-6 text-[11px] text-slate-600 dark:text-slate-300 space-y-1 leading-relaxed">
+              {permissionErrorType === 'insecure_context' ? (
+                <p>
+                  เบราว์เซอร์บนมือถือต้องการการเชื่อมต่อแบบ <strong>HTTPS</strong> หรือ <strong>localhost</strong> ในการเข้าถึงไมค์ หากเข้าผ่าน IP วงแลน (เช่น 192.168.x.x) เบราว์เซอร์จะบล็อกตามระบบความปลอดภัย
+                </p>
+              ) : (
+                <p>
+                  <strong>วิธีแก้ไข:</strong> แตะไอคอน <strong>แม่กุญแจ</strong> หรือ <strong>การตั้งค่าสิทธิ์เว็บไซต์</strong> ที่ด้านหน้าแถบ URL ของเบราว์เซอร์ แล้วเลือก <strong>อนุญาต (Allow) ไมโครโฟน</strong>
+                </p>
+              )}
+            </div>
+
+            <div className="pl-6 pt-1">
+              <button
+                type="button"
+                onClick={startRecording}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition shadow-xs flex items-center gap-1.5"
+              >
+                <RotateCcw size={13} />
+                <span>ลองเชื่อมต่อไมค์อีกครั้ง</span>
+              </button>
+            </div>
           </div>
         )}
 
