@@ -813,20 +813,21 @@ export default function StickyNoteItem({
 
             {/* Connect Note button */}
             <button
+              type="button"
               onClick={() => onStartConnect && onStartConnect(note.id)}
-              className={`p-1 rounded-md transition text-xs flex items-center justify-center ${
+              className={`p-1.5 rounded-lg transition text-xs flex items-center justify-center shadow-xs active:scale-95 ${
                 isConnectingSource
-                  ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400'
-                  : 'bg-black/10 dark:bg-white/15 hover:bg-black/20 dark:hover:bg-white/25 text-slate-800 dark:text-slate-100 shadow-2xs'
+                  ? 'bg-blue-700 text-white ring-2 ring-blue-300 scale-105'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25'
               }`}
               title="เชื่อมโยงโน้ตนี้กับโน้ตอื่นด้วยเส้นลูกศร"
             >
-              <Link2 size={13} className="stroke-[2.2]" />
+              <Link2 size={14} className="stroke-[2.5]" />
             </button>
           </div>
 
           {/* Styling controls (Adaptive based on width) */}
-          <div className="flex items-center gap-0.5 opacity-90 hover:opacity-100 transition shrink-0">
+          <div className="flex items-center gap-1 opacity-100 transition shrink-0">
             {/* Attach File Button (hidden on narrow) */}
             {!isNarrow && (
               <>
@@ -1170,10 +1171,10 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 setIsShareModalOpen(true);
               }}
-              className="p-1 rounded-md bg-black/10 dark:bg-white/15 hover:bg-black/20 dark:hover:bg-white/25 text-slate-800 dark:text-slate-100 transition shadow-2xs flex items-center justify-center"
+              className="p-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition shadow-xs shadow-purple-500/25 flex items-center justify-center active:scale-95"
               title="แชร์โน้ตนี้"
             >
-              <Share2 size={13} className={`stroke-[2.2] ${note.shareCode ? 'text-indigo-600 dark:text-indigo-400' : ''}`} />
+              <Share2 size={14} className="stroke-[2.5]" />
             </button>
 
             {/* Open note in Fullscreen focus mode */}
@@ -1183,10 +1184,10 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 if (onOpenFullscreen) onOpenFullscreen(note);
               }}
-              className="p-1 rounded-md bg-black/10 dark:bg-white/15 hover:bg-black/20 dark:hover:bg-white/25 text-slate-800 dark:text-slate-100 transition shadow-2xs flex items-center justify-center"
+              className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs shadow-emerald-500/25 flex items-center justify-center active:scale-95"
               title="ขยายขนาดโน้ต"
             >
-              <Maximize2 size={13} className="stroke-[2.2]" />
+              <Maximize2 size={14} className="stroke-[2.5]" />
             </button>
 
             {/* Delete to trash */}
