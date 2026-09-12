@@ -238,7 +238,7 @@ function ResizableImageView(props: NodeViewProps) {
         <img
           src={src}
           alt={alt || ''}
-          title={title || ''}
+          title={title || undefined}
           className="w-full h-auto object-contain rounded-2xl block"
         />
 

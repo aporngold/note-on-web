@@ -70,6 +70,21 @@ import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
 import SpeechToTextButton from './SpeechToTextButton';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
+export const PASTEL_NOTE_COLORS = [
+  '#FEF08A', // Yellow (Classic)
+  '#FBCFE8', // Soft Pink
+  '#BBF7D0', // Mint Green
+  '#BAE6FD', // Soft Sky Blue
+  '#FED7AA', // Peach / Soft Orange
+  '#E9D5FF', // Soft Lavender
+  '#FEF3C7', // Warm Vanilla
+  '#CFFAFE', // Ice Blue
+];
+
+export const getRandomNoteColor = (): string => {
+  return PASTEL_NOTE_COLORS[Math.floor(Math.random() * PASTEL_NOTE_COLORS.length)];
+};
+
 const COLORS = [
   '#6366F1', // Indigo
   '#8B5CF6', // Purple
@@ -93,7 +108,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [boardId, setBoardId] = useState<string | null>(null);
-  const [color, setColor] = useState(COLORS[0]);
+  const [color, setColor] = useState(() => getRandomNoteColor());
   const [textColor, setTextColor] = useState('#0F172A');
   const [isLocked, setIsLocked] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
@@ -998,10 +1013,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           {/* AI Assistant Button */}
           <button
             onClick={() => setIsAiModalOpen(true)}
-            className="px-2.5 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center gap-1 text-xs font-bold shadow-sm"
+            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
             title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
           >
-            <Sparkles size={14} />
+            <Sparkles size={16} />
             <span className="hidden md:inline">AI</span>
           </button>
 
@@ -1071,7 +1086,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           <button
             type="button"
             onClick={handleOpenFullscreen}
-            className="p-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center justify-center font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95"
+            className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition flex items-center justify-center font-medium text-xs active:scale-95"
             title="เปิดแก้ไขแบบเต็มจอ (Fullscreen)"
             aria-label="เต็มจอ"
           >
@@ -1082,7 +1097,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="ml-1 p-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white rounded-xl flex items-center justify-center shadow-md shadow-indigo-200 dark:shadow-none transition active:scale-95 disabled:opacity-50"
+            className="ml-1 p-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center justify-center transition active:scale-95 disabled:opacity-50"
             title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
             aria-label="บันทึก"
           >

@@ -1469,6 +1469,8 @@ export default function NoteRichToolbar({
             type="button"
             onClick={() => setIsParagraphMenuOpen((prev) => !prev)}
             className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition"
+            title="รูปแบบข้อความ (Paragraph / หัวข้อ / กล่องอ้างอิง)"
+            aria-label="รูปแบบข้อความ"
           >
             <span>{currentBlockLabel}</span>
             <ChevronDown size={12} className="opacity-60" />
@@ -2006,7 +2008,7 @@ export default function NoteRichToolbar({
           <button
             type="button"
             onClick={onOpenAiAssistant}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white transition shadow-sm"
+            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition shadow-xs"
             title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
           >
             <Sparkles size={14} />

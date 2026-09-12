@@ -28,6 +28,7 @@ import { Note, Board, BoardViewMode } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
+import { getRandomNoteColor } from '../notes/NoteEditor';
 import toast from 'react-hot-toast';
 
 interface StickyBoardProps {
@@ -409,14 +410,15 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   };
 
   // Quick add sticky note directly onto the active board with proper spacing, bring to front, and auto-focus
-  const handleQuickAdd = async (color: string = '#FEF08A') => {
+  const handleQuickAdd = async (color?: string) => {
+    const noteColor = color || getRandomNoteColor();
     const { x, y } = findNextAvailableSlot();
     const targetBoardId = activeBoardId || boards.find((b) => b.isDefault)?.id || boards[0]?.id || undefined;
 
     const newNote = await createNote({
       title: 'โน้ตใหม่',
       content: '',
-      color,
+      color: noteColor,
       textColor: '#0F172A',
       fontSize: 'normal',
       fontFamily: 'sans',
@@ -849,6 +851,15 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               aria-label="แปะโน้ตสีฟ้า"
             >
               <Plus size={17} className="stroke-[2.5]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleQuickAdd()}
+              className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-200 via-pink-200 to-sky-200 hover:from-amber-300 hover:via-pink-300 hover:to-sky-300 text-slate-800 flex items-center justify-center shadow-sm border border-slate-300/60 transition active:scale-90 shrink-0"
+              title="แปะโน้ตสุ่มสี (พาสเทลอ่านง่าย)"
+              aria-label="แปะโน้ตสุ่มสี"
+            >
+              <Sparkles size={15} className="text-indigo-600" />
             </button>
 
             {/* + โน้ตใหม่ - Desktop only (Mobile has bottom-right FAB) */}
