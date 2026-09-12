@@ -93,7 +93,7 @@ export default function GlobalTooltip() {
       activeTriggerRef.current = target;
       clearTimers();
 
-      // Standard hover dwell time: 450ms (doesn't trigger when casually sweeping the mouse)
+      // Hover dwell time: 2000ms (2 seconds) - only shows when intentionally dwelling on a button
       hoverTimerRef.current = setTimeout(() => {
         if (activeTriggerRef.current === target) {
           const rect = target.getBoundingClientRect();
@@ -114,7 +114,7 @@ export default function GlobalTooltip() {
             handleDismiss();
           }, 3500);
         }
-      }, 450);
+      }, 2000);
     };
 
     // Track mouse movement: if mouse leaves the active button bounds, dismiss immediately
@@ -166,7 +166,7 @@ export default function GlobalTooltip() {
             handleDismiss();
           }, 3500);
         }
-      }, 450);
+      }, 2000);
     };
 
     const handleFocusOut = () => {
