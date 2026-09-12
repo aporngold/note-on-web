@@ -14,7 +14,6 @@ import {
   Share2,
   Columns,
   Link2,
-  Compass,
   Image as ImageIcon,
   Sparkles,
   ChevronDown,
@@ -23,7 +22,6 @@ import StickyNoteItem from './StickyNoteItem';
 import NoteConnectionCanvas from './NoteConnectionCanvas';
 import KanbanView from './KanbanView';
 import BoardShareModal from '../modals/BoardShareModal';
-import WebStickyModal from '../modals/WebStickyModal';
 import BoardBackgroundModal, { BOARD_PATTERNS, CURATED_WALLPAPERS } from './BoardBackgroundModal';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
 import { Note, Board, BoardViewMode } from '@/types';
@@ -92,9 +90,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     setFullscreenNote(n);
   };
 
-  // Modals for Sharing, Web Sticky, and Backgrounds
+  // Modals for Sharing and Backgrounds
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isWebStickyModalOpen, setIsWebStickyModalOpen] = useState(false);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
 
   // Modals / Dropdowns for Board Management
@@ -179,65 +176,73 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     };
   }, []);
 
-  // Two-finger pinch-to-zoom on mobile touchscreens for empty canvas area
+  // Track last tap timestamp and position for double-tap zoom toggle on empty board
+  const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
+
+  // Calculate zoom level that fits the entire board (2060px wide) into the current container width
+  const getFitZoom = () => {
+    const container = canvasContainerRef.current;
+    if (!container) return 0.18;
+    const clientWidth = container.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 390);
+    const fit = Math.round((clientWidth / 2080) * 100) / 100;
+    return Math.max(0.15, Math.min(0.85, fit));
+  };
+
+  // Toggle between Fit-Board view and 100% (1.0) view on double-tap empty canvas
+  const toggleFitZoom = () => {
+    const fitLevel = getFitZoom();
+    if (zoom > 0.45) {
+      setZoom(fitLevel);
+      showZoomOverlay();
+      if (canvasContainerRef.current) {
+        canvasContainerRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+      }
+    } else {
+      setZoom(1.0);
+      showZoomOverlay();
+    }
+  };
+
+  // Double-tap on empty canvas area to toggle between seeing entire board and 100%
   useEffect(() => {
     const container = canvasContainerRef.current;
     if (!container) return;
 
-    let initialDistance = 0;
-    let baseZoom = 1.0;
+    const handleDoubleTap = (e: TouchEvent | MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        !target ||
+        target.closest('.sticky-note-item') ||
+        target.closest('[data-note-card="true"]') ||
+        target.closest('button') ||
+        target.closest('input')
+      ) {
+        return;
+      }
 
-    const calcDistance = (e: TouchEvent) => {
-      if (e.touches.length < 2) return 0;
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      return Math.hypot(dx, dy);
-    };
+      const clientX = 'changedTouches' in e ? (e.changedTouches?.[0]?.clientX ?? 0) : (e as MouseEvent).clientX;
+      const clientY = 'changedTouches' in e ? (e.changedTouches?.[0]?.clientY ?? 0) : (e as MouseEvent).clientY;
+      const now = Date.now();
+      const prev = lastTapRef.current;
 
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        const target = e.target as HTMLElement;
-        if (target && (target.closest('.sticky-note-item') || target.closest('[data-note-card="true"]'))) {
-          return;
-        }
-        initialDistance = calcDistance(e);
-        baseZoom = zoom;
+      const timeDiff = now - prev.time;
+      const dist = Math.hypot(clientX - prev.x, clientY - prev.y);
+
+      if (timeDiff > 50 && timeDiff < 380 && dist < 35) {
+        // Valid double-tap on empty canvas!
+        toggleFitZoom();
+        lastTapRef.current = { time: 0, x: 0, y: 0 };
+      } else {
+        lastTapRef.current = { time: now, x: clientX, y: clientY };
       }
     };
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && initialDistance > 0) {
-        const target = e.target as HTMLElement;
-        if (target && (target.closest('.sticky-note-item') || target.closest('[data-note-card="true"]'))) {
-          return;
-        }
-        const dist = calcDistance(e);
-        if (dist > 0) {
-          if (e.cancelable) e.preventDefault();
-          const scale = dist / initialDistance;
-          const newZoom = Math.max(0.15, Math.min(3.0, Math.round(baseZoom * scale * 100) / 100));
-          setZoom(newZoom);
-          showZoomOverlay();
-        }
-      }
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        initialDistance = 0;
-      }
-    };
-
-    container.addEventListener('touchstart', onTouchStart, { passive: true });
-    container.addEventListener('touchmove', onTouchMove, { passive: false });
-    container.addEventListener('touchend', onTouchEnd, { passive: true });
-    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    container.addEventListener('touchend', handleDoubleTap, { passive: true });
+    container.addEventListener('dblclick', handleDoubleTap, { passive: true });
 
     return () => {
-      container.removeEventListener('touchstart', onTouchStart);
-      container.removeEventListener('touchmove', onTouchMove);
-      container.removeEventListener('touchend', onTouchEnd);
-      container.removeEventListener('touchcancel', onTouchEnd);
+      container.removeEventListener('touchend', handleDoubleTap);
+      container.removeEventListener('dblclick', handleDoubleTap);
     };
   }, [zoom]);
 
@@ -261,6 +266,18 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     focusTimerRef.current = setTimeout(() => {
       setFocusedNoteId(null);
     }, 1000);
+
+    // If currently zoomed out in fit-board view, restore zoom to 100% immediately!
+    if (zoom < 0.85) {
+      setZoom(1.0);
+      showZoomOverlay();
+      const note = notes.find((n) => n.id === noteId);
+      if (note && canvasContainerRef.current) {
+        const targetX = Math.max(0, (note.posX ?? 0) - 20);
+        const targetY = Math.max(0, (note.posY ?? 0) - 20);
+        canvasContainerRef.current.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+      }
+    }
   };
 
   // Automatically scroll to top-left when board changes
@@ -835,16 +852,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <Plus size={15} className="stroke-[2.5]" />
               <span>โน้ตใหม่</span>
             </button>
-
-            {/* Web Sticky Simulator Button */}
-            <button
-              onClick={() => setIsWebStickyModalOpen(true)}
-              className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-300 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-xs transition shrink-0"
-              title="จำลองการแทรกโน้ตบนหน้าเว็บไซต์ใดก็ได้ (Chrome Extension style)"
-            >
-              <Compass size={14} />
-              <span className="hidden md:inline">แทรกโน้ตบนหน้าเว็บ</span>
-            </button>
           </div>
 
           {/* Right Tools: Share Board, Freeform mode, Change Background */}
@@ -1211,12 +1218,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           onClose={() => setIsShareModalOpen(false)}
         />
       )}
-
-      {/* ── MODAL: Web Sticky Simulator ── */}
-      <WebStickyModal
-        isOpen={isWebStickyModalOpen}
-        onClose={() => setIsWebStickyModalOpen(false)}
-      />
 
       {/* Master Password Modal for unlocking encrypted notes */}
       <MasterPasswordModal
