@@ -1260,6 +1260,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
             }}
             onDownloadMd={handleExportMarkdown}
+            showSpeechToText={true}
             onAccept={handleSave}
             isSaving={isSaving}
           />
@@ -1682,6 +1683,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <Mic size={18} className="text-indigo-500" />
             <span>อัดเสียงบันทึก (Voice Memo)</span>
           </button>
+
+          {/* Speech-to-Text Live Dictation */}
+          <SpeechToTextButton
+            editor={editor || null}
+            variant="menu-item"
+            onActionComplete={() => setIsMobileMoreOpen(false)}
+          />
 
           {/* OCR Image */}
           <button

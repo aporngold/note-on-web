@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import BottomSheet from '../ui/BottomSheet';
 import toast from 'react-hot-toast';
+import SpeechToTextButton from './SpeechToTextButton';
 
 export const MOBILE_TEXT_COLORS = [
   { name: 'ดำเข้ม', color: '#0F172A' },
@@ -241,7 +242,10 @@ export default function MobileEditorToolbar({
             <CheckSquare size={18} />
           </button>
 
-          {/* 8. Add (+) Button for More Tools */}
+          {/* 8. Speech to text (พูดเพื่อพิมพ์) */}
+          <SpeechToTextButton editor={editor} variant="compact" />
+
+          {/* 9. Add (+) Button for More Tools */}
           <button
             type="button"
             onClick={() => setActiveSheet('add')}
@@ -476,6 +480,15 @@ export default function MobileEditorToolbar({
                   <span>แนบไฟล์เอกสาร</span>
                 </button>
               )}
+            </div>
+
+            {/* Speech to Text Dictation Item */}
+            <div className="mt-2.5">
+              <SpeechToTextButton
+                editor={editor}
+                variant="menu-item"
+                onActionComplete={() => setActiveSheet(null)}
+              />
             </div>
           </div>
 

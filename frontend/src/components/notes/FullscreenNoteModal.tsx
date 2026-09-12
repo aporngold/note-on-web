@@ -462,6 +462,7 @@ export default function FullscreenNoteModal({
               onOpenVersionHistory={() => setIsVersionDrawerOpen(true)}
               onOpenOcr={() => setIsOcrModalOpen(true)}
               onOpenAiAssistant={() => setIsAiModalOpen(true)}
+              showSpeechToText={true}
               onDelete={() => {
                 if (confirm('ต้องการย้ายโน้ตนี้ไปที่ถังขยะหรือไม่?')) {
                   deleteNote(note.id);

@@ -137,7 +137,7 @@ export default function NoteRichToolbar({
   onZoomChange,
   onAttachFile,
   onRecordAudio,
-  showSpeechToText = false,
+  showSpeechToText = true,
   attachmentsCount = 0,
   onCopyNote,
   onDownloadTxt,
