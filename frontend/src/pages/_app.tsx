@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from 'next-themes';
+import GlobalTooltip from '@/components/ui/GlobalTooltip';
 import '@/styles/globals.css';
 
 const queryClient = new QueryClient({
@@ -29,6 +30,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Component {...pageProps} />
+          <GlobalTooltip />
           <Toaster
             position="top-right"
             toastOptions={{

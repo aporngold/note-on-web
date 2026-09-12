@@ -1,45 +1,115 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ViewportPopover from './ViewportPopover';
+import { Placement } from '@/utils/viewportPosition';
 
-interface ViewportTooltipProps {
+export interface ViewportTooltipProps {
   content: React.ReactNode;
   children: React.ReactElement;
-  placement?: 'top-center' | 'bottom-center' | 'bottom-start' | 'top-start';
+  placement?: Placement;
   delay?: number;
+  disabled?: boolean;
 }
 
+/**
+ * Standardized Viewport Tooltip Component
+ * - Renders via ViewportPopover / ViewportPortal directly into document.body
+ * - Immune to container overflow (hidden/clip) and z-index stacking issues
+ * - Collision detection: flips and shifts dynamically near viewport edges
+ * - Supports mouse hover (with 150ms gentle delay) and keyboard focus
+ * - Strips native title attribute to permanently block Windows OS native empty box glitches
+ * - Hides immediately on click/pointer-down or scroll
+ */
 export default function ViewportTooltip({
   content,
   children,
   placement = 'top-center',
-  delay = 200,
+  delay = 150,
+  disabled = false,
 }: ViewportTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleMouseEnter = () => {
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const showTooltip = useCallback(() => {
+    if (disabled || !content) return;
+    clearTimer();
     timerRef.current = setTimeout(() => {
       setIsOpen(true);
     }, delay);
-  };
+  }, [clearTimer, content, delay, disabled]);
 
-  const handleMouseLeave = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+  const hideTooltip = useCallback(() => {
+    clearTimer();
     setIsOpen(false);
+  }, [clearTimer]);
+
+  useEffect(() => {
+    return () => clearTimer();
+  }, [clearTimer]);
+
+  // Hide on scroll/wheel anywhere in the window
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleScroll = () => hideTooltip();
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    window.addEventListener('wheel', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('wheel', handleScroll);
+    };
+  }, [isOpen, hideTooltip]);
+
+  // If content is empty or disabled, just render the child element
+  if (!content || disabled) {
+    return children;
+  }
+
+  // Safely merge child ref with triggerRef to preserve any existing refs (e.g. popover triggers)
+  const setRefs = (node: HTMLElement | null) => {
+    triggerRef.current = node;
+    const childRef = (children as any).ref;
+    if (typeof childRef === 'function') {
+      childRef(node);
+    } else if (childRef && typeof childRef === 'object' && 'current' in childRef) {
+      childRef.current = node;
+    }
   };
 
-  const child = React.cloneElement(children, {
-    ref: triggerRef,
-    onMouseEnter: (e: React.MouseEvent) => {
-      children.props.onMouseEnter?.(e);
-      handleMouseEnter();
+  // Strip native title to permanently prevent browser/Windows native empty tooltip box
+  const childProps: Record<string, any> = {
+    ref: setRefs,
+    title: undefined, // Strips native title to eliminate empty box bug
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType === 'touch') return; // Ignore on touch screens
+      (children.props as any).onPointerEnter?.(e);
+      showTooltip();
     },
-    onMouseLeave: (e: React.MouseEvent) => {
-      children.props.onMouseLeave?.(e);
-      handleMouseLeave();
+    onPointerLeave: (e: React.PointerEvent) => {
+      (children.props as any).onPointerLeave?.(e);
+      hideTooltip();
     },
-  });
+    onPointerDown: (e: React.PointerEvent) => {
+      (children.props as any).onPointerDown?.(e);
+      hideTooltip(); // Hide on press
+    },
+    onFocus: (e: React.FocusEvent) => {
+      (children.props as any).onFocus?.(e);
+      showTooltip();
+    },
+    onBlur: (e: React.FocusEvent) => {
+      (children.props as any).onBlur?.(e);
+      hideTooltip();
+    },
+  };
+
+  const child = React.cloneElement(children, childProps);
 
   return (
     <>
@@ -47,15 +117,15 @@ export default function ViewportTooltip({
       {isOpen && (
         <ViewportPopover
           isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
+          onClose={hideTooltip}
           triggerRef={triggerRef}
           placement={placement}
           offset={6}
           viewportPadding={8}
-          zIndex={99999}
-          className="pointer-events-none"
+          zIndex={999999}
+          className="pointer-events-none select-none"
         >
-          <div className="bg-slate-900/90 dark:bg-slate-800/95 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg shadow-lg border border-slate-700/50 backdrop-blur-xs whitespace-nowrap">
+          <div className="bg-slate-900/95 dark:bg-slate-800/95 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg shadow-xl border border-slate-700/60 backdrop-blur-md whitespace-nowrap animate-fade-in">
             {content}
           </div>
         </ViewportPopover>

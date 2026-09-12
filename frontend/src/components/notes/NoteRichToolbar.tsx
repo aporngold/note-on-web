@@ -1928,6 +1928,7 @@ export default function NoteRichToolbar({
                   type="button"
                   onClick={() => handleResizeImage('img-w-25', '25%')}
                   className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  title="ปรับความกว้างรูปภาพเป็น 25%"
                 >
                   25%
                 </button>
@@ -1935,6 +1936,7 @@ export default function NoteRichToolbar({
                   type="button"
                   onClick={() => handleResizeImage('img-w-50', '50%')}
                   className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  title="ปรับความกว้างรูปภาพเป็น 50%"
                 >
                   50%
                 </button>
@@ -1942,6 +1944,7 @@ export default function NoteRichToolbar({
                   type="button"
                   onClick={() => handleResizeImage('img-w-75', '75%')}
                   className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  title="ปรับความกว้างรูปภาพเป็น 75%"
                 >
                   75%
                 </button>
@@ -1949,6 +1952,7 @@ export default function NoteRichToolbar({
                   type="button"
                   onClick={() => handleResizeImage('img-w-100', '100%')}
                   className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  title="ปรับความกว้างรูปภาพเป็น 100% (เต็มความกว้าง)"
                 >
                   100%
                 </button>
