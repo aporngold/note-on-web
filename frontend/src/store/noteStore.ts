@@ -41,7 +41,7 @@ interface NoteState {
 
   createNote: (data: Partial<Note> & { labelIds?: string[] }) => Promise<Note>;
   updateNote: (id: string, data: Partial<Note> & { labelIds?: string[] }) => Promise<Note>;
-  deleteNote: (id: string) => Promise<void>;
+  deleteNote: (id: string, fallbackNote?: Partial<Note>) => Promise<void>;
   restoreNote: (id: string) => Promise<void>;
   duplicateNote: (id: string) => Promise<void>;
   togglePin: (id: string) => Promise<void>;
@@ -234,13 +234,16 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
       const remaining = get().boards.filter((b) => b.id !== id);
       const fallback = remaining.find((b) => b.isDefault) || remaining[0] || null;
+      const boardNotesToTrash = get().notes.filter((n) => n.boardId === id).map((n) => ({ ...n, isArchived: true }));
       set({
         boards: remaining,
         activeBoardId: fallback ? fallback.id : null,
         notes: get().notes.filter((n) => n.boardId !== id),
+        trashNotes: [...boardNotesToTrash, ...get().trashNotes.filter((tn) => !boardNotesToTrash.some((bn) => bn.id === tn.id))],
       });
       toast.success(data.message || 'ลบบอร์ดเรียบร้อย (โน้ตทั้งหมดถูกย้ายไปที่ถังขยะ)');
       get().fetchNotes();
+      get().fetchTrashNotes();
       get().fetchBoards();
     } catch (error: any) {
       console.error('deleteBoard error:', error);
@@ -313,57 +316,129 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     return updated;
   },
 
-  deleteNote: async (id) => {
+  deleteNote: async (id, fallbackNote) => {
+    // 1. Snapshot previous state for rollback on API failure
+    const prevState = {
+      notes: get().notes,
+      trashNotes: get().trashNotes,
+      boards: get().boards,
+      connections: get().connections,
+    };
+
+    const isPermanent = prevState.trashNotes.some((n) => n.id === id);
+    const existingActiveNote = prevState.notes.find((n) => n.id === id);
+    const noteToArchive: Note = (existingActiveNote || fallbackNote || {
+      id,
+      title: '',
+      content: '',
+      color: '#FFFFFF',
+      isArchived: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }) as Note;
+
+    // 2. Realtime Optimistic Update (0ms) - UI reflects changes instantly
+    set((state) => {
+      let nextTrashNotes: Note[];
+      if (isPermanent) {
+        // Permanent delete: remove from trashNotes
+        nextTrashNotes = state.trashNotes.filter((n) => n.id !== id);
+      } else {
+        // Move to trash with strict deduplication
+        const filteredTrash = state.trashNotes.filter((n) => n.id !== id);
+        nextTrashNotes = [{ ...noteToArchive, isArchived: true }, ...filteredTrash];
+      }
+
+      return {
+        notes: state.notes.filter((n) => n.id !== id),
+        trashNotes: nextTrashNotes,
+        boards: state.boards.map((b) => {
+          const matches = noteToArchive.boardId ? b.id === noteToArchive.boardId : b.isDefault;
+          return matches ? { ...b, noteCount: Math.max(0, (b.noteCount || 1) - 1) } : b;
+        }),
+        connections: state.connections.filter((c) => c.sourceId !== id && c.targetId !== id),
+      };
+    });
+
+    // 3. Network API Call
     try {
       const res = await api.delete(`/notes/${id}`);
-      const isPermanent = get().trashNotes.some((n) => n.id === id);
-      
-      set((state) => {
-        const foundInNotes = state.notes.find((n) => n.id === id);
-        return {
-          notes: state.notes.filter((n) => n.id !== id),
-          boards: state.boards.map((b) => {
-            const matches = foundInNotes?.boardId ? b.id === foundInNotes.boardId : b.isDefault;
-            return matches ? { ...b, noteCount: Math.max(0, (b.noteCount || 1) - 1) } : b;
-          }),
-          trashNotes: isPermanent
-            ? state.trashNotes.filter((n) => n.id !== id)
-            : foundInNotes
-            ? [{ ...foundInNotes, isArchived: true }, ...state.trashNotes]
-            : state.trashNotes,
-          connections: state.connections.filter((c) => c.sourceId !== id && c.targetId !== id),
-        };
-      });
-      
-      toast.success(res.data.message || (isPermanent ? 'ลบโน้ตถาวรเรียบร้อยแล้ว' : 'ย้ายโน้ตไปที่ถังขยะแล้ว'));
-      get().fetchTrashNotes();
+      const serverNote = res.data.note;
+      const serverIsPermanent = res.data.isPermanent ?? isPermanent;
+
+      // Synchronize with server object if returned
+      if (!serverIsPermanent && serverNote) {
+        set((state) => ({
+          trashNotes: [
+            serverNote,
+            ...state.trashNotes.filter((n) => n.id !== id),
+          ],
+        }));
+      }
+
+      toast.success(res.data.message || (serverIsPermanent ? 'ลบโน้ตถาวรเรียบร้อยแล้ว' : 'ย้ายโน้ตไปที่ถังขยะแล้ว'));
       get().fetchNotebooks();
       get().fetchBoards();
     } catch (error: any) {
       console.error('deleteNote error:', error);
+      // Rollback to previous state
+      set({
+        notes: prevState.notes,
+        trashNotes: prevState.trashNotes,
+        boards: prevState.boards,
+        connections: prevState.connections,
+      });
       toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบโน้ต');
     }
   },
 
   restoreNote: async (id) => {
+    // 1. Snapshot previous state
+    const prevState = {
+      notes: get().notes,
+      trashNotes: get().trashNotes,
+      boards: get().boards,
+    };
+
+    const restoredNote = prevState.trashNotes.find((n) => n.id === id);
+
+    // 2. Realtime Optimistic Update (0ms) - restore instantly
+    set((state) => {
+      const remainingTrash = state.trashNotes.filter((n) => n.id !== id);
+      const nextNotes = restoredNote
+        ? [{ ...restoredNote, isArchived: false, updatedAt: new Date().toISOString() }, ...state.notes.filter((n) => n.id !== id)]
+        : state.notes;
+
+      return {
+        trashNotes: remainingTrash,
+        notes: nextNotes,
+        boards: state.boards.map((b) => {
+          const matches = restoredNote?.boardId ? b.id === restoredNote.boardId : b.isDefault;
+          return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;
+        }),
+      };
+    });
+
+    // 3. Network API Call
     try {
       const res = await api.post(`/notes/${id}/restore`);
-      set((state) => {
-        const restoredNote = state.trashNotes.find((n) => n.id === id);
-        return {
-          trashNotes: state.trashNotes.filter((n) => n.id !== id),
-          notes: restoredNote
-            ? [{ ...restoredNote, isArchived: false, updatedAt: new Date().toISOString() }, ...state.notes]
-            : state.notes,
-        };
-      });
+      const serverNote = res.data.note;
+      if (serverNote) {
+        set((state) => ({
+          notes: [serverNote, ...state.notes.filter((n) => n.id !== id)],
+        }));
+      }
       toast.success(res.data.message || 'กู้คืนโน้ตเรียบร้อย');
-      get().fetchTrashNotes();
-      get().fetchNotes();
       get().fetchNotebooks();
       get().fetchBoards();
     } catch (error: any) {
       console.error('restoreNote error:', error);
+      // Rollback to previous state
+      set({
+        notes: prevState.notes,
+        trashNotes: prevState.trashNotes,
+        boards: prevState.boards,
+      });
       toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาดในการกู้คืนโน้ต');
     }
   },
@@ -398,15 +473,19 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   emptyTrash: async () => {
+    const prevTrashNotes = get().trashNotes;
+    // 1. Realtime Optimistic Update (0ms)
+    set({ trashNotes: [] });
+
     try {
       const res = await api.delete('/notes/trash/empty');
-      set({ trashNotes: [] });
       toast.success(res.data.message || 'ล้างถังขยะเรียบร้อย');
-      get().fetchTrashNotes();
       get().fetchNotebooks();
       get().fetchBoards();
     } catch (error: any) {
       console.error('emptyTrash error:', error);
+      // Rollback
+      set({ trashNotes: prevTrashNotes });
       toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาดในการล้างถังขยะ');
     }
   },

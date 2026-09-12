@@ -27,6 +27,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
     setBoardViewMode,
     toggleViewMode,
     fetchNotes,
+    fetchTrashNotes,
     fetchNotebooks,
     fetchLabels,
     fetchBoards,
@@ -50,11 +51,12 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
 
   useEffect(() => {
     if (user) {
+      fetchTrashNotes();
       fetchNotebooks();
       fetchLabels();
       fetchBoards();
     }
-  }, [user, fetchNotebooks, fetchLabels, fetchBoards]);
+  }, [user, fetchTrashNotes, fetchNotebooks, fetchLabels, fetchBoards]);
 
   if (isLoading) {
     return (

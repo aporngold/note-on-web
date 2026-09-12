@@ -418,14 +418,32 @@ export class NoteController {
       // If already in trash, delete permanently
       if (note.isArchived) {
         await prisma.note.delete({ where: { id } });
-        return res.json({ message: 'ลบโน้ตถาวรเรียบร้อยแล้ว' });
+        return res.json({ message: 'ลบโน้ตถาวรเรียบร้อยแล้ว', isPermanent: true, noteId: id });
       } else {
         // Move to trash
-        await prisma.note.update({
+        const updated = await prisma.note.update({
           where: { id },
           data: { isArchived: true, isPinned: false },
+          include: {
+            attachments: true,
+            notebook: {
+              select: { id: true, name: true, color: true },
+            },
+            board: {
+              select: { id: true, name: true, color: true, theme: true },
+            },
+            labels: {
+              include: {
+                label: true,
+              },
+            },
+          },
         });
-        return res.json({ message: 'ย้ายโน้ตไปที่ถังขยะแล้ว' });
+        const formatted = {
+          ...updated,
+          labels: updated.labels.map((l) => l.label),
+        };
+        return res.json({ message: 'ย้ายโน้ตไปที่ถังขยะแล้ว', isPermanent: false, noteId: id, note: formatted });
       }
     } catch (error) {
       return res.status(500).json({ error: 'Failed to delete note' });
@@ -448,9 +466,28 @@ export class NoteController {
       const restored = await prisma.note.update({
         where: { id },
         data: { isArchived: false },
+        include: {
+          attachments: true,
+          notebook: {
+            select: { id: true, name: true, color: true },
+          },
+          board: {
+            select: { id: true, name: true, color: true, theme: true },
+          },
+          labels: {
+            include: {
+              label: true,
+            },
+          },
+        },
       });
 
-      return res.json({ message: 'กู้คืนโน้ตเรียบร้อยแล้ว', note: restored });
+      const formatted = {
+        ...restored,
+        labels: restored.labels.map((l) => l.label),
+      };
+
+      return res.json({ message: 'กู้คืนโน้ตเรียบร้อยแล้ว', note: formatted });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to restore note' });
     }

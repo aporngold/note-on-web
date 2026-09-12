@@ -772,3 +772,34 @@ Mobile และ Tablet ควรสร้างเป็น:
 2. ใช้ conventional commit format (feat:, fix:, chore:)
 3. ทำ git add, commit, แล้ว push ขึ้น remote ทันที
 
+---
+
+# Note State & Trash Count Realtime Synchronization Policy
+
+## 1. Single Source of Truth for Notes & Trash
+- ห้ามให้แต่ละ Component (เช่น Sidebar, Topbar, Mobile Nav, Trash Page) แยกนับหรือเก็บจำนวน Trash Count เองโดยเด็ดขาด
+- ให้ใช้ `trashNotes: Note[]` ใน Zustand `useNoteStore` เป็น **Single Source of Truth** เพียงจุดเดียว
+- ตัวเลข Trash Count ต้องคำนวณจาก `trashNotes.length` เสมอ
+
+## 2. Realtime Optimistic UI Update (0ms)
+- เมื่อผู้ใช้กดลบโน้ต (Delete / Move to Trash):
+  1. ต้องตัดโน้ตออกจาก `notes` ทันที และเพิ่มโน้ตเข้า `trashNotes` ทันที (0ms Latency) ในระดับ UI โดยไม่ต้องรอ Network Roundtrip
+  2. ตัวเลขที่แสดงข้าง "ถังขยะ" (Trash Count) ทั้งบน Desktop Sidebar และ Mobile ต้องเปลี่ยนทันทีในเสี้ยววินาทีเดียวกับที่โน้ตหายไป
+  3. ห้ามใช้ `setTimeout` หรือเทคนิคหลอกตัวเลข ให้แก้ที่ Data Flow / Zustand State Management
+- เมื่อผู้ใช้กู้คืนโน้ต (Restore):
+  1. ต้องตัดออกจาก `trashNotes` ทันที และนำกลับเข้า `notes` ทันที
+- เมื่อผู้ใช้ลบถาวร (Permanent Delete):
+  1. ตัดออกจาก `trashNotes` ทันที
+- เมื่อล้างถังขยะ (Empty Trash):
+  1. เซ็ต `trashNotes: []` ทันที
+
+## 3. Data Integrity & Deduplication
+- **ป้องกันการนับซ้ำ (Deduplication):** ทุกครั้งที่ย้ายโน้ตเข้า `trashNotes` ต้องกรองรายการที่มี `id` เดียวกันออกก่อนเสมอ (`.filter(n => n.id !== id)`)
+- **ป้องกันค่าติดลบ:** ป้องกันไม่ให้ Count หรือ Note Count ของ Board ติดลบ โดยใช้ `Math.max(0, ...)` เสมอ
+- **Error Rollback:** หาก Backend API ตอบกลับด้วย Error ให้ทำ State Rollback คืนค่าเดิมทันที และแสดง `toast.error` แจ้งเตือนผู้ใช้
+
+## 4. Backend Response Standard for Notes
+- `DELETE /notes/:id`: Backend ต้องส่งสถานะที่ชัดเจนกลับมาเสมอ:
+  `{ message: string, isPermanent: boolean, noteId: string, note?: Note }`
+- `POST /notes/:id/restore`: Backend ต้องส่ง `{ message: string, note: Note }` กลับมาเสมอ
+

@@ -672,7 +672,18 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       return;
     }
     if (confirm('ย้ายโน้ตนี้ไปยังถังขยะหรือไม่?')) {
-      await deleteNote(initialNoteId);
+      await deleteNote(initialNoteId, {
+        id: initialNoteId,
+        title,
+        content: editor ? editor.getHTML() : content,
+        color,
+        textColor,
+        notebookId,
+        boardId,
+        isPinned,
+        isLocked,
+        isArchived: true,
+      });
       router.push('/dashboard');
     }
   };
