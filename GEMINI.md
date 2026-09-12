@@ -776,6 +776,35 @@ Mobile และ Tablet ควรสร้างเป็น:
 
 # Note State & Trash Count Realtime Synchronization Policy
 
+### Data Flow Architecture
+
+```
+                   Notes Store
+                        │
+        ┌───────────────┼───────────────┐
+        ↓               ↓               ↓
+    All Notes         Trash          Sidebar
+                        │
+                        ↓
+                   Trash Count
+```
+
+### Realtime Deletion Flow
+
+```
+กด "ลบ"
+   ↓
+API DELETE สำเร็จ
+   ↓
+อัปเดต Notes Store
+   ↓
+คำนวณ Trash Count ใหม่
+   ↓
+Sidebar เปลี่ยนทันที
+   ↓
+หน้า Trash เปลี่ยนทันที
+```
+
 ## 1. Single Source of Truth for Notes & Trash
 - ห้ามให้แต่ละ Component (เช่น Sidebar, Topbar, Mobile Nav, Trash Page) แยกนับหรือเก็บจำนวน Trash Count เองโดยเด็ดขาด
 - ให้ใช้ `trashNotes: Note[]` ใน Zustand `useNoteStore` เป็น **Single Source of Truth** เพียงจุดเดียว
