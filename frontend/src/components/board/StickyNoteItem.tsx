@@ -815,19 +815,18 @@ export default function StickyNoteItem({
             <button
               type="button"
               onClick={() => onStartConnect && onStartConnect(note.id)}
-              className={`p-1.5 rounded-lg transition text-xs flex items-center justify-center shadow-xs active:scale-95 ${
-                isConnectingSource
-                  ? 'bg-blue-700 text-white ring-2 ring-blue-300 scale-105'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25'
+              className={`p-1 rounded hover:bg-black/10 transition ${
+                isConnectingSource ? 'bg-indigo-600 text-white shadow-xs' : ''
               }`}
+              style={{ color: isConnectingSource ? '#FFFFFF' : textColor }}
               title="เชื่อมโยงโน้ตนี้กับโน้ตอื่นด้วยเส้นลูกศร"
             >
-              <Link2 size={14} className="stroke-[2.5]" />
+              <Link2 size={12} />
             </button>
           </div>
 
           {/* Styling controls (Adaptive based on width) */}
-          <div className="flex items-center gap-1 opacity-100 transition shrink-0">
+          <div className="flex items-center gap-0.5 opacity-90 hover:opacity-100 transition shrink-0">
             {/* Attach File Button (hidden on narrow) */}
             {!isNarrow && (
               <>
@@ -1171,10 +1170,11 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 setIsShareModalOpen(true);
               }}
-              className="p-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition shadow-xs shadow-purple-500/25 flex items-center justify-center active:scale-95"
+              className="p-1 rounded hover:bg-black/10 transition"
+              style={{ color: textColor }}
               title="แชร์โน้ตนี้"
             >
-              <Share2 size={14} className="stroke-[2.5]" />
+              <Share2 size={12} className={note.shareCode ? 'text-indigo-600' : ''} />
             </button>
 
             {/* Open note in Fullscreen focus mode */}
@@ -1184,10 +1184,11 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 if (onOpenFullscreen) onOpenFullscreen(note);
               }}
-              className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs shadow-emerald-500/25 flex items-center justify-center active:scale-95"
+              className="p-1 rounded hover:bg-black/10 transition flex items-center justify-center"
+              style={{ color: textColor }}
               title="ขยายขนาดโน้ต"
             >
-              <Maximize2 size={14} className="stroke-[2.5]" />
+              <Maximize2 size={12} />
             </button>
 
             {/* Delete to trash */}

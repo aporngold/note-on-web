@@ -188,10 +188,10 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   router.push(`/notes/${note.id}`);
                 }
               }}
-              className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition shadow-2xs font-bold"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
               title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
             >
-              <Maximize2 size={15} className="stroke-[2.2]" />
+              <Maximize2 size={15} />
             </button>
           </div>
         </div>
