@@ -760,8 +760,7 @@ export default function StickyNoteItem({
 
         {/* ── Top Header Controls (Adaptive to Note Width) ── */}
         <div
-          style={{ touchAction: 'none' }}
-          className="flex items-center justify-between gap-1 mb-1.5 shrink-0 w-full overflow-hidden cursor-grab active:cursor-grabbing select-none"
+          className="no-drag flex items-center justify-between gap-1 mb-1.5 shrink-0 w-full cursor-default select-none relative z-20"
         >
           <div className="flex items-center gap-0.5 shrink-0">
             {/* Rotate Button (ตรงมุมซ้ายบน - ลากขึ้นหมุนขวา ลากลงหมุนซ้าย) */}
@@ -781,8 +780,9 @@ export default function StickyNoteItem({
                   ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-100/70 dark:bg-indigo-950/70 ring-2 ring-indigo-500 scale-105'
                   : rotation !== 0
                   ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-black/5'
-                  : 'opacity-40 hover:opacity-100'
+                  : 'hover:text-indigo-600 dark:hover:text-indigo-400'
               }`}
+              style={{ color: (rotation !== 0 || isRotating) ? undefined : textColor }}
               title={`คลิกค้างแล้วเลื่อนขึ้นเพื่อหมุนขวา / เลื่อนลงเพื่อหมุนซ้าย (ดับเบิลคลิกเพื่อรีเซ็ต 0°)`}
             >
               <RotateCw size={12} className={rotation !== 0 ? 'text-indigo-600' : ''} />
@@ -793,10 +793,12 @@ export default function StickyNoteItem({
 
             {note.isLocked && (
               <button
-                onClick={() => {
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (!isVaultUnlocked && onUnlockRequest) onUnlockRequest();
                 }}
-                className="p-1 rounded hover:bg-black/10 transition"
+                className="p-1 rounded hover:bg-black/10 transition cursor-pointer"
                 title="โน้ตเข้ารหัส E2EE"
               >
                 <Lock size={12} className="text-amber-700" />
@@ -805,10 +807,17 @@ export default function StickyNoteItem({
 
             {/* Pin toggle */}
             <button
-              onClick={() => togglePin(note.id)}
-              className={`p-1 rounded hover:bg-black/10 transition ${
-                note.isPinned ? 'text-indigo-600' : 'opacity-40 hover:opacity-100'
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePin(note.id);
+              }}
+              className={`p-1 rounded hover:bg-black/10 transition cursor-pointer flex items-center justify-center ${
+                note.isPinned
+                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 ring-1 ring-indigo-500/30 font-bold'
+                  : 'hover:text-indigo-600 dark:hover:text-indigo-400'
               }`}
+              style={{ color: note.isPinned ? undefined : textColor }}
               title={note.isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดบนบอร์ด'}
             >
               <Pin size={12} className={note.isPinned ? 'fill-current' : ''} />
@@ -816,10 +825,17 @@ export default function StickyNoteItem({
 
             {/* Favorite toggle */}
             <button
-              onClick={() => toggleFavorite(note.id)}
-              className={`p-1 rounded hover:bg-black/10 transition ${
-                note.isFavorite ? 'text-amber-500' : 'opacity-40 hover:opacity-100'
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(note.id);
+              }}
+              className={`p-1 rounded hover:bg-black/10 transition cursor-pointer flex items-center justify-center ${
+                note.isFavorite
+                  ? 'text-amber-500 bg-amber-500/15 ring-1 ring-amber-500/30 font-bold'
+                  : 'hover:text-amber-500'
               }`}
+              style={{ color: note.isFavorite ? undefined : textColor }}
               title={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
             >
               <Star size={12} className={note.isFavorite ? 'fill-current' : ''} />
@@ -828,8 +844,11 @@ export default function StickyNoteItem({
             {/* Connect Note button */}
             <button
               type="button"
-              onClick={() => onStartConnect && onStartConnect(note.id)}
-              className={`p-1 rounded hover:bg-black/10 transition ${
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartConnect && onStartConnect(note.id);
+              }}
+              className={`p-1 rounded hover:bg-black/10 transition cursor-pointer ${
                 isConnectingSource ? 'bg-indigo-600 text-white shadow-xs' : ''
               }`}
               style={{ color: isConnectingSource ? '#FFFFFF' : textColor }}
@@ -840,14 +859,19 @@ export default function StickyNoteItem({
           </div>
 
           {/* Styling controls (Adaptive based on width) */}
-          <div className="flex items-center gap-0.5 opacity-90 hover:opacity-100 transition shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             {/* Attach File Button (hidden on narrow) */}
             {!isNarrow && (
               <>
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
                   disabled={isUploading}
-                  className="p-1 rounded hover:bg-black/10 transition relative"
+                  className="p-1 rounded hover:bg-black/10 transition relative cursor-pointer"
+                  style={{ color: textColor }}
                   title="แนบไฟล์ (รูปภาพ, PDF, เอกสาร ฯลฯ)"
                 >
                   <Paperclip size={12} />
@@ -870,15 +894,18 @@ export default function StickyNoteItem({
             {!isCompact && (
               <div className="relative">
                 <button
+                  type="button"
                   ref={fontFamilyBtnRef}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setIsFontFamilyOpen(!isFontFamilyOpen);
                     setIsColorPickerOpen(false);
                     setIsTextColorOpen(false);
                     setIsMoveBoardOpen(false);
                     setIsKanbanStatusOpen(false);
                   }}
-                  className="px-1 py-0.5 rounded hover:bg-black/10 transition text-[9px] font-bold"
+                  className="px-1 py-0.5 rounded hover:bg-black/10 transition text-[9px] font-bold cursor-pointer"
+                  style={{ color: textColor }}
                   title="เปลี่ยนแบบอักษร (Sans / ลายมือ / Serif / Mono)"
                 >
                   ฟอนต์
@@ -896,9 +923,10 @@ export default function StickyNoteItem({
                     <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">แบบอักษร:</p>
                     {FONT_FAMILIES.map((ff) => (
                       <button
+                        type="button"
                         key={ff.value}
                         onClick={() => handleFontFamilyChange(ff.value)}
-                        className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between ${
+                        className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between cursor-pointer ${
                           fontFamily === ff.value
                             ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
                             : 'hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -916,15 +944,18 @@ export default function StickyNoteItem({
             {/* Paper Color button */}
             <div className="relative">
               <button
+                type="button"
                 ref={paperColorBtnRef}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsColorPickerOpen(!isColorPickerOpen);
                   setIsTextColorOpen(false);
                   setIsFontFamilyOpen(false);
                   setIsMoveBoardOpen(false);
                   setIsKanbanStatusOpen(false);
                 }}
-                className="p-1 rounded hover:bg-black/10 transition"
+                className="p-1 rounded hover:bg-black/10 transition cursor-pointer"
+                style={{ color: textColor }}
                 title="เปลี่ยนสีกระดาษโน้ต"
               >
                 <Palette size={12} />
@@ -959,15 +990,18 @@ export default function StickyNoteItem({
             {!isNarrow && (
               <div className="relative">
                 <button
+                  type="button"
                   ref={textColorBtnRef}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setIsTextColorOpen(!isTextColorOpen);
                     setIsColorPickerOpen(false);
                     setIsFontFamilyOpen(false);
                     setIsMoveBoardOpen(false);
                     setIsKanbanStatusOpen(false);
                   }}
-                  className="p-1 rounded hover:bg-black/10 transition font-bold text-xs"
+                  className="p-1 rounded hover:bg-black/10 transition font-bold text-xs cursor-pointer"
+                  style={{ color: textColor }}
                   title="เปลี่ยนสีหมึกตัวอักษร"
                 >
                   <Type size={12} />
@@ -985,9 +1019,10 @@ export default function StickyNoteItem({
                     <p className="w-full text-[10px] font-bold text-slate-400 mb-1 px-1">สีหมึกตัวอักษร:</p>
                     {TEXT_COLORS.map((tc) => (
                       <button
+                        type="button"
                         key={tc.name}
                         onClick={() => handleTextColorChange(tc.color)}
-                        className="w-5 h-5 rounded-full border border-slate-300 shadow-sm transition hover:scale-110 flex items-center justify-center text-[10px]"
+                        className="w-5 h-5 rounded-full border border-slate-300 shadow-sm transition hover:scale-110 flex items-center justify-center text-[10px] cursor-pointer"
                         style={{ backgroundColor: tc.color }}
                         title={tc.name}
                       >
@@ -1004,11 +1039,16 @@ export default function StickyNoteItem({
               <div className="flex bg-black/10 rounded overflow-hidden">
                 {FONT_SIZES.map((fs) => (
                   <button
+                    type="button"
                     key={fs.value}
-                    onClick={() => handleFontSizeChange(fs.value)}
-                    className={`px-1 py-0.5 text-[8px] font-bold ${
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFontSizeChange(fs.value);
+                    }}
+                    className={`px-1 py-0.5 text-[8px] font-bold cursor-pointer ${
                       fontSize === fs.value ? 'bg-black/20' : 'hover:bg-black/5'
                     }`}
+                    style={{ color: textColor }}
                     title={`ขนาดตัวอักษร: ${fs.label}`}
                   >
                     {fs.label}
@@ -1020,15 +1060,18 @@ export default function StickyNoteItem({
             {/* More Menu (Move board, font sizes in compact mode, etc.) */}
             <div className="relative">
               <button
+                type="button"
                 ref={moreBtnRef}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsMoveBoardOpen(!isMoveBoardOpen);
                   setIsColorPickerOpen(false);
                   setIsTextColorOpen(false);
                   setIsFontFamilyOpen(false);
                   setIsKanbanStatusOpen(false);
                 }}
-                className="p-1 rounded hover:bg-black/10 transition"
+                className="p-1 rounded hover:bg-black/10 transition cursor-pointer"
+                style={{ color: textColor }}
                 title="ตัวเลือกเพิ่มเติม"
               >
                 <MoreHorizontal size={12} />
@@ -1050,9 +1093,10 @@ export default function StickyNoteItem({
                       <div className="flex bg-slate-100 dark:bg-slate-700 p-0.5 rounded-lg">
                         {FONT_SIZES.map((fs) => (
                           <button
+                            type="button"
                             key={fs.value}
                             onClick={() => handleFontSizeChange(fs.value)}
-                            className={`flex-1 py-1 text-center text-xs font-bold rounded ${
+                            className={`flex-1 py-1 text-center text-xs font-bold rounded cursor-pointer ${
                               fontSize === fs.value
                                 ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-xs'
                                 : 'hover:bg-slate-200 dark:hover:bg-slate-600'
@@ -1073,9 +1117,10 @@ export default function StickyNoteItem({
                       <div className="grid grid-cols-2 gap-1">
                         {FONT_FAMILIES.map((ff) => (
                           <button
+                            type="button"
                             key={ff.value}
                             onClick={() => handleFontFamilyChange(ff.value)}
-                            className={`px-2 py-1 text-xs rounded transition flex items-center justify-between ${
+                            className={`px-2 py-1 text-xs rounded transition flex items-center justify-between cursor-pointer ${
                               fontFamily === ff.value
                                 ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
                                 : 'hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -1096,9 +1141,10 @@ export default function StickyNoteItem({
                       <div className="flex gap-1.5 flex-wrap">
                         {TEXT_COLORS.map((tc) => (
                           <button
+                            type="button"
                             key={tc.name}
                             onClick={() => handleTextColorChange(tc.color)}
-                            className="w-5 h-5 rounded-full border border-slate-300 shadow-xs transition hover:scale-110 flex items-center justify-center text-[10px]"
+                            className="w-5 h-5 rounded-full border border-slate-300 shadow-xs transition hover:scale-110 flex items-center justify-center text-[10px] cursor-pointer"
                             style={{ backgroundColor: tc.color }}
                             title={tc.name}
                           >
@@ -1113,12 +1159,13 @@ export default function StickyNoteItem({
                   {isNarrow && (
                     <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
                       <button
+                        type="button"
                         onClick={() => {
                           fileInputRef.current?.click();
                           setIsMoveBoardOpen(false);
                         }}
                         disabled={isUploading}
-                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left"
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left cursor-pointer"
                       >
                         <Paperclip size={13} className="text-slate-500" />
                         <span>แนบไฟล์รูปภาพ/เอกสาร</span>
@@ -1132,13 +1179,14 @@ export default function StickyNoteItem({
                     <div className="space-y-0.5 max-h-36 overflow-y-auto">
                       {boards.map((b) => (
                         <button
+                          type="button"
                           key={b.id}
                           onClick={async () => {
                             await updateNote(note.id, { boardId: b.id });
                             setIsMoveBoardOpen(false);
                             toast.success(`ย้ายโน้ตไปที่กระดาน "${b.name}" แล้ว`);
                           }}
-                          className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between ${
+                          className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between cursor-pointer ${
                             note.boardId === b.id
                               ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
                               : 'hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -1160,7 +1208,7 @@ export default function StickyNoteItem({
                         deleteNote(note.id);
                         setIsMoveBoardOpen(false);
                       }}
-                      className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition text-left"
+                      className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition text-left cursor-pointer"
                     >
                       <Trash2 size={13} />
                       <span>ย้ายโน้ตไปที่ถังขยะ</span>
@@ -1177,7 +1225,7 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 setIsShareModalOpen(true);
               }}
-              className="p-1 rounded hover:bg-black/10 transition"
+              className="p-1 rounded hover:bg-black/10 transition cursor-pointer"
               style={{ color: textColor }}
               title="แชร์โน้ตนี้"
             >
@@ -1191,7 +1239,7 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 if (onOpenFullscreen) onOpenFullscreen(note);
               }}
-              className="p-1 rounded hover:bg-black/10 transition flex items-center justify-center"
+              className="p-1 rounded hover:bg-black/10 transition flex items-center justify-center cursor-pointer"
               style={{ color: textColor }}
               title="ขยายขนาดโน้ต"
             >
