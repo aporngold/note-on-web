@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { Editor } from '@tiptap/react';
 import {
   RotateCcw,
@@ -35,6 +35,7 @@ import {
   Code,
   Check,
   ChevronDown,
+  ChevronUp,
   Printer,
   Table as TableIcon,
   FileText,
@@ -163,6 +164,52 @@ export default function NoteRichToolbar({
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [historyStack, setHistoryStack] = useState<string[]>([content]);
   const [historyIndex, setHistoryIndex] = useState(0);
+
+  // Collapsible toolbar states (Remembered with localStorage, default collapsed on mobile < 1024px)
+  const [isTopPaletteCollapsed, setIsTopPaletteCollapsed] = useState(false);
+  const [isFormattingCollapsed, setIsFormattingCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedTop = localStorage.getItem('note_top_palette_collapsed');
+        const savedFormat = localStorage.getItem('note_formatting_collapsed');
+        if (savedTop !== null) {
+          setIsTopPaletteCollapsed(savedTop === 'true');
+        } else if (window.innerWidth < 1024) {
+          setIsTopPaletteCollapsed(true);
+        }
+
+        if (savedFormat !== null) {
+          setIsFormattingCollapsed(savedFormat === 'true');
+        } else if (window.innerWidth < 1024) {
+          setIsFormattingCollapsed(true);
+        }
+      } catch (e) {
+        // ignore localStorage error
+      }
+    }
+  }, []);
+
+  const handleToggleTopPalette = useCallback(() => {
+    setIsTopPaletteCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('note_top_palette_collapsed', String(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
+
+  const handleToggleFormatting = useCallback(() => {
+    setIsFormattingCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('note_formatting_collapsed', String(next));
+      } catch (e) {}
+      return next;
+    });
+  }, []);
 
   const customColorInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -797,93 +844,107 @@ export default function NoteRichToolbar({
               <X size={16} />
             </button>
           )}
+
+          {/* Toggle Top Palette Collapse Button */}
+          <button
+            type="button"
+            onClick={handleToggleTopPalette}
+            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-lg transition text-slate-600 dark:text-slate-300 ml-1 flex items-center justify-center shrink-0"
+            title={isTopPaletteCollapsed ? 'ขยายแถบสีและหมุด (Expand palette)' : 'ย่อ/พับเก็บแถบสีและหมุด (Collapse palette)'}
+            aria-label={isTopPaletteCollapsed ? 'ขยายแถบสี' : 'พับเก็บแถบสี'}
+          >
+            {isTopPaletteCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+          </button>
         </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          แถวที่ 2: แถบจานสีพาสเทล, หมุดแดง, Borderless Checkbox
+          แถวที่ 2: แถบจานสีพาสเทล, หมุดแดง, Borderless Checkbox (พับเก็บได้)
          ══════════════════════════════════════════════════════ */}
-      <div className="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap bg-slate-50/50 dark:bg-slate-800/30">
-        {/* Pastel Swatches & Color Picker */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {PASTEL_PALETTE.map((p) => {
-            const isSelected = color?.toLowerCase() === p.bg.toLowerCase();
-            return (
-              <button
-                key={p.bg}
-                type="button"
-                onClick={() => onColorChange(p.bg)}
-                style={{ backgroundColor: p.bg }}
-                className={`w-6 h-6 rounded-sm border transition-all duration-150 flex items-center justify-center ${
-                  isSelected
-                    ? 'border-indigo-600 ring-2 ring-indigo-400 scale-110 z-10 shadow-sm'
-                    : 'border-slate-300 dark:border-slate-600 hover:scale-105'
-                }`}
-                title={p.name}
-              >
-                {isSelected && <Check size={12} className="text-slate-900" />}
-              </button>
-            );
-          })}
+      {!isTopPaletteCollapsed && (
+        <div className="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap bg-slate-50/50 dark:bg-slate-800/30 transition-all">
+          {/* Pastel Swatches & Color Picker */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {PASTEL_PALETTE.map((p) => {
+              const isSelected = color?.toLowerCase() === p.bg.toLowerCase();
+              return (
+                <button
+                  key={p.bg}
+                  type="button"
+                  onClick={() => onColorChange(p.bg)}
+                  style={{ backgroundColor: p.bg }}
+                  className={`w-6 h-6 rounded-sm border transition-all duration-150 flex items-center justify-center ${
+                    isSelected
+                      ? 'border-indigo-600 ring-2 ring-indigo-400 scale-110 z-10 shadow-sm'
+                      : 'border-slate-300 dark:border-slate-600 hover:scale-105'
+                  }`}
+                  title={p.name}
+                >
+                  {isSelected && <Check size={12} className="text-slate-900" />}
+                </button>
+              );
+            })}
 
-          {/* Color Wheel / Custom Picker */}
-          <div className="relative ml-1">
+            {/* Color Wheel / Custom Picker */}
+            <div className="relative ml-1">
+              <button
+                type="button"
+                onClick={() => customColorInputRef.current?.click()}
+                className="w-6 h-6 rounded-full bg-gradient-to-tr from-rose-400 via-amber-300 to-indigo-400 border border-slate-300 shadow-xs hover:scale-110 transition flex items-center justify-center"
+                title="เลือกสีอื่นตามใจชอบ..."
+              >
+                <span className="text-[10px] font-bold text-white drop-shadow-xs">🎨</span>
+              </button>
+              <input
+                ref={customColorInputRef}
+                type="color"
+                value={color || '#FEF08A'}
+                onChange={(e) => onColorChange(e.target.value)}
+                className="sr-only"
+              />
+            </div>
+          </div>
+
+          {/* Right: Push Pin & Borderless Checkbox */}
+          <div className="flex items-center gap-4">
+            {/* Red Push Pin */}
             <button
               type="button"
-              onClick={() => customColorInputRef.current?.click()}
-              className="w-6 h-6 rounded-full bg-gradient-to-tr from-rose-400 via-amber-300 to-indigo-400 border border-slate-300 shadow-xs hover:scale-110 transition flex items-center justify-center"
-              title="เลือกสีอื่นตามใจชอบ..."
+              onClick={onTogglePin}
+              className="flex items-center gap-1 text-xs font-semibold cursor-pointer group"
+              title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้ไว้ด้านบน'}
             >
-              <span className="text-[10px] font-bold text-white drop-shadow-xs">🎨</span>
+              <div
+                className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+                  isPinned
+                    ? 'bg-red-600 text-white shadow-md scale-110 ring-2 ring-red-300'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-400 group-hover:bg-red-400 group-hover:text-white'
+                }`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-white/90" />
+              </div>
             </button>
-            <input
-              ref={customColorInputRef}
-              type="color"
-              value={color || '#FEF08A'}
-              onChange={(e) => onColorChange(e.target.value)}
-              className="sr-only"
-            />
+
+            {/* Borderless Checkbox */}
+            <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isBorderless}
+                onChange={onToggleBorderless}
+                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <span>Borderless</span>
+            </label>
           </div>
         </div>
-
-        {/* Right: Push Pin & Borderless Checkbox */}
-        <div className="flex items-center gap-4">
-          {/* Red Push Pin */}
-          <button
-            type="button"
-            onClick={onTogglePin}
-            className="flex items-center gap-1 text-xs font-semibold cursor-pointer group"
-            title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้ไว้ด้านบน'}
-          >
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                isPinned
-                  ? 'bg-red-600 text-white shadow-md scale-110 ring-2 ring-red-300'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-400 group-hover:bg-red-400 group-hover:text-white'
-              }`}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-white/90" />
-            </div>
-          </button>
-
-          {/* Borderless Checkbox */}
-          <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isBorderless}
-              onChange={onToggleBorderless}
-              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            />
-            <span>Borderless</span>
-          </label>
-        </div>
-      </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════
           แถวที่ 3: แถบเมนูบาร์ (Menu Bar)
          ══════════════════════════════════════════════════════ */}
-      <div className="px-2 py-1 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 overflow-x-auto scrollbar-none">
-        {/* File Menu */}
+      <div className="px-2 py-1 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1">
+          {/* File Menu */}
         <div className="relative">
           <button
             ref={fileBtnRef}
@@ -1399,13 +1460,26 @@ export default function NoteRichToolbar({
           </ViewportPopover>
         </div>
 
+        </div>
+        {/* Toggle Formatting Toolbar Collapse Button */}
+        <button
+          type="button"
+          onClick={handleToggleFormatting}
+          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-lg transition text-slate-600 dark:text-slate-300 ml-1 flex items-center justify-center shrink-0"
+          title={isFormattingCollapsed ? 'ขยายแถบเครื่องมือจัดข้อความ (Expand formatting tools)' : 'ย่อ/พับเก็บแถบเครื่องมือจัดข้อความ (Collapse formatting tools)'}
+          aria-label={isFormattingCollapsed ? 'ขยายแถบเครื่องมือ' : 'พับเก็บแถบเครื่องมือ'}
+        >
+          {isFormattingCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+        </button>
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          แถวที่ 4: แถบจัดแต่งข้อความแถวที่ 1 (Paragraph, B, I, U, S, Color, Highlight, Link, Lists, Checklist, Image)
-         ══════════════════════════════════════════════════════ */}
-      <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 flex-wrap text-slate-700 dark:text-slate-200">
-        {/* Paragraph Style Dropdown */}
+      {!isFormattingCollapsed && (
+        <>
+          {/* ══════════════════════════════════════════════════════
+              แถวที่ 4: แถบจัดแต่งข้อความแถวที่ 1 (Paragraph, B, I, U, S, Color, Highlight, Link, Lists, Checklist, Image)
+             ══════════════════════════════════════════════════════ */}
+          <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-1.5 flex-wrap text-slate-700 dark:text-slate-200">
+            {/* Paragraph Style Dropdown */}
         <div className="relative">
           <button
             ref={paragraphBtnRef}
@@ -1870,7 +1944,7 @@ export default function NoteRichToolbar({
           <button
             type="button"
             onClick={onOpenOcr}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition shadow-xs"
+            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition shadow-xs"
             title="สแกนข้อความจากรูปภาพ (Free OCR)"
           >
             <ScanText size={14} />
@@ -1883,7 +1957,7 @@ export default function NoteRichToolbar({
           <button
             type="button"
             onClick={onOpenAiAssistant}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white transition shadow-sm"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white transition shadow-sm"
             title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
           >
             <Sparkles size={14} />
@@ -1905,10 +1979,35 @@ export default function NoteRichToolbar({
           <ViewportPopover
             triggerRef={moreOptionsBtnRef}
             isOpen={isMoreMenuOpen}
-
             onClose={() => setIsMoreMenuOpen(false)}
             className="w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 text-xs space-y-0.5"
           >
+            {onOpenAiAssistant && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenAiAssistant();
+                  setIsMoreMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-semibold md:hidden"
+              >
+                <Sparkles size={13} />
+                <span>AI ผู้ช่วย</span>
+              </button>
+            )}
+            {onOpenOcr && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenOcr();
+                  setIsMoreMenuOpen(false);
+                }}
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 md:hidden"
+              >
+                <ScanText size={13} />
+                <span>สแกน OCR จากภาพ</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -1954,6 +2053,17 @@ export default function NoteRichToolbar({
             </button>
           </ViewportPopover>
         </div>
+
+        {/* Direct Collapse Chevron in Row 4 (as shown in user mockup) */}
+        <button
+          type="button"
+          onClick={handleToggleFormatting}
+          className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-lg transition text-slate-600 dark:text-slate-300 ml-auto flex items-center justify-center shrink-0"
+          title="ย่อ/พับเก็บแถบเครื่องมือจัดข้อความ (Collapse formatting tools)"
+          aria-label="พับเก็บแถบเครื่องมือ"
+        >
+          <ChevronUp size={15} />
+        </button>
       </div>
 
       {/* ══════════════════════════════════════════════════════
@@ -2021,7 +2131,7 @@ export default function NoteRichToolbar({
         <button
           type="button"
           onClick={handleChecklist}
-          className={getToolBtnClass(isTaskListActive)}
+          className={`${getToolBtnClass(isTaskListActive)} hidden sm:inline-flex`}
           title="กล่องเช็คลิสต์ (Checklist)"
         >
           <CheckSquare size={16} />
@@ -2031,7 +2141,7 @@ export default function NoteRichToolbar({
         <button
           type="button"
           onClick={handleInsertImageClick}
-          className={getToolBtnClass(false)}
+          className={`${getToolBtnClass(false)} hidden sm:inline-flex`}
           title="แทรกรูปภาพ"
         >
           <ImageIcon size={16} />
@@ -2057,6 +2167,8 @@ export default function NoteRichToolbar({
           <Code size={16} />
         </button>
       </div>
+        </>
+      )}
     </div>
   );
 }

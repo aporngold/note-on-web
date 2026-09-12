@@ -950,7 +950,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           {initialNoteId && (
             <button
               onClick={() => setIsShareModalOpen(true)}
-              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              className="hidden sm:flex p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
               title="แชร์โน้ตนี้"
             >
               <Share2 size={17} />
