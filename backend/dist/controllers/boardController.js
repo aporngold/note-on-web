@@ -20,6 +20,16 @@ class BoardController {
     static async getBoards(req, res) {
         try {
             const userId = req.userId;
+            // Map any stray notes with null boardId to the default board
+            const defaultBoardRec = await database_1.prisma.board.findFirst({
+                where: { userId, isDefault: true },
+            });
+            if (defaultBoardRec) {
+                await database_1.prisma.note.updateMany({
+                    where: { userId, boardId: null },
+                    data: { boardId: defaultBoardRec.id },
+                });
+            }
             let boards = await database_1.prisma.board.findMany({
                 where: { userId },
                 orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
@@ -27,7 +37,7 @@ class BoardController {
                     _count: {
                         select: {
                             notes: {
-                                where: { isArchived: false },
+                                where: { isArchived: false, userId },
                             },
                         },
                     },
@@ -228,22 +238,41 @@ class BoardController {
             if (!board) {
                 return res.status(404).json({ error: 'Board not found' });
             }
-            const count = await database_1.prisma.board.count({ where: { userId } });
-            if (count <= 1) {
-                return res.status(400).json({ error: 'ไม่สามารถลบกระดานสุดท้ายได้ (Must have at least one board)' });
-            }
-            // Reassign notes to another board
-            const otherBoard = await database_1.prisma.board.findFirst({
-                where: { userId, id: { not: id } },
-            });
-            if (otherBoard) {
+            // If user deletes the default board ("กระดานหลัก"): clear all notes on it into Trash, but keep the board intact!
+            if (board.isDefault) {
                 await database_1.prisma.note.updateMany({
+                    where: {
+                        userId,
+                        OR: [{ boardId: id }, { boardId: null }],
+                    },
+                    data: { isArchived: true },
+                });
+                await database_1.prisma.noteConnection.deleteMany({
                     where: { boardId: id },
-                    data: { boardId: otherBoard.id },
+                });
+                return res.json({
+                    message: 'ลบโน้ตทั้งหมดบนกระดานหลักเรียบร้อยแล้ว (ย้ายไปที่ถังขยะ)',
+                    isDefaultBoardCleared: true,
+                    boardId: id,
                 });
             }
+            // If it's another board: move all its notes to Trash and delete the board
+            await database_1.prisma.note.updateMany({
+                where: { userId, boardId: id },
+                data: { isArchived: true },
+            });
+            await database_1.prisma.noteConnection.deleteMany({
+                where: { boardId: id },
+            });
+            const fallbackBoard = await database_1.prisma.board.findFirst({
+                where: { userId, id: { not: id } },
+                orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+            });
             await database_1.prisma.board.delete({ where: { id } });
-            return res.json({ message: 'ลบกระดานเรียบร้อยแล้ว', fallbackBoardId: otherBoard?.id });
+            return res.json({
+                message: 'ลบกระดานเรียบร้อยแล้ว (โน้ตทั้งหมดถูกย้ายไปที่ถังขยะ)',
+                fallbackBoardId: fallbackBoard?.id,
+            });
         }
         catch (error) {
             console.error('deleteBoard error:', error);

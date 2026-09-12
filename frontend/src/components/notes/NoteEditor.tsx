@@ -31,6 +31,7 @@ import {
   Sparkles,
   LayoutGrid,
   MoreHorizontal,
+  Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -112,6 +113,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
 
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -700,43 +703,69 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4 pb-12 animate-fade-in">
+    <div className="max-w-5xl mx-auto h-full flex flex-col lg:space-y-4 lg:pb-12 animate-fade-in">
       {/* Mobile Compact Top Bar (GEMINI.md STEP 3) */}
-      <div className="flex lg:hidden items-center justify-between gap-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-2.5 rounded-2xl shadow-sm">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex lg:hidden items-center justify-between gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 z-10 shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <button
             type="button"
             onClick={() => router.push('/dashboard')}
-            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-1.5 -ml-1 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition shrink-0"
             title="กลับไปหน้าหลัก"
             aria-label="กลับ"
           >
-            <ArrowLeft size={19} />
+            <ArrowLeft size={20} />
           </button>
 
-          {/* Quick Notebook Selector */}
-          <select
-            value={notebookId || ''}
-            onChange={(e) => setNotebookId(e.target.value || null)}
-            className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[130px] truncate"
-            title="เลือกสมุดบันทึก"
-          >
-            <option value="">(ไม่มีสมุด)</option>
-            {notebooks.map((nb) => (
-              <option key={nb.id} value={nb.id}>
-                {nb.name}
-              </option>
-            ))}
-          </select>
+          {/* Quick Notebook Selector Pill */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-2 py-1 gap-1 min-w-0 max-w-[140px] sm:max-w-[200px]">
+            <Book size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <select
+              value={notebookId || ''}
+              onChange={(e) => setNotebookId(e.target.value || null)}
+              className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none p-0 focus:ring-0 outline-none w-full truncate cursor-pointer"
+              title="เลือกสมุดบันทึก"
+            >
+              <option value="">(ไม่มีสมุด)</option>
+              {notebooks.map((nb) => (
+                <option key={nb.id} value={nb.id}>
+                  {nb.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Live Auto-save status indicator */}
+          <div className="flex items-center shrink-0">
+            {isAutoSaving ? (
+              <span className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+                <span className="hidden xs:inline">บันทึก...</span>
+              </span>
+            ) : lastSaved ? (
+              <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium" title={`บันทึกแล้ว: ${lastSaved}`}>
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="hidden xs:inline">บันทึกแล้ว</span>
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          {/* Live Auto-save indicator dot */}
-          {isAutoSaving ? (
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping mr-1" title="กำลังบันทึกอัตโนมัติ..." />
-          ) : lastSaved ? (
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1" title={`บันทึกอัตโนมัติแล้ว: ${lastSaved}`} />
-          ) : null}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* In-Note Search Toggle */}
+          <button
+            type="button"
+            onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+            className={`p-2 rounded-xl transition ${
+              isMobileSearchOpen
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="ค้นหาข้อความในโน้ต"
+            aria-label="ค้นหา"
+          >
+            <Search size={18} />
+          </button>
 
           {/* Quick Save */}
           <button
@@ -746,7 +775,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95 disabled:opacity-50"
           >
             <Save size={14} />
-            <span>{isSaving ? 'บันทึก...' : 'บันทึก'}</span>
+            <span className="hidden sm:inline">{isSaving ? 'บันทึก...' : 'บันทึก'}</span>
           </button>
 
           {/* More Options Sheet Trigger */}
@@ -754,13 +783,42 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             type="button"
             onClick={() => setIsMobileMoreOpen(true)}
             className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            title="เครื่องมือเพิ่มเติม"
+            title="เครื่องมือและการตั้งค่าเพิ่มเติม"
             aria-label="เครื่องมือเพิ่มเติม"
           >
             <MoreHorizontal size={20} />
           </button>
         </div>
       </div>
+
+      {/* Mobile Search Bar (Collapsible) */}
+      {isMobileSearchOpen && (
+        <div className="flex lg:hidden items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 shrink-0">
+          <Search size={16} className="text-slate-400 shrink-0" />
+          <input
+            type="text"
+            placeholder="ค้นหาข้อความในโน้ต..."
+            value={mobileSearchQuery}
+            onChange={(e) => setMobileSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent text-xs text-slate-900 dark:text-white outline-none"
+            autoFocus
+          />
+          {mobileSearchQuery && (
+            <button
+              onClick={() => setMobileSearchQuery('')}
+              className="p-1 text-slate-400 hover:text-slate-600 text-xs font-bold"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            onClick={() => setIsMobileSearchOpen(false)}
+            className="text-xs text-indigo-600 font-semibold px-1"
+          >
+            ปิด
+          </button>
+        </div>
+      )}
 
       {/* Desktop Top Action Bar (Preserved 100% for lg screens) */}
       <div className="hidden lg:flex items-center justify-between gap-3 flex-wrap bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl shadow-sm">
@@ -1015,8 +1073,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         </div>
       </div>
 
-      {/* Metadata Bar (Notebook, Board, Color, Labels) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
+      {/* Metadata Bar (Notebook, Board, Color, Labels) - Desktop Only */}
+      <div className="hidden lg:block bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4 flex-wrap">
             {/* Notebook Selector */}
@@ -1155,7 +1213,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden flex flex-col min-h-[550px] transition-all ${
+        className={`relative bg-white dark:bg-slate-900 border-x-0 border-b-0 lg:border border-slate-200/80 dark:border-slate-800 rounded-none lg:rounded-3xl shadow-none lg:shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 lg:min-h-[550px] transition-all ${
           isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
         }`}
         style={{ borderTop: `6px solid ${color}` }}
@@ -1168,13 +1226,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           </div>
         )}
         {/* Title Input */}
-        <div className="p-6 pb-3 border-b border-slate-100 dark:border-slate-800/80">
+        <div className="p-3.5 sm:p-6 pb-2 sm:pb-3 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
           <input
             type="text"
             placeholder="ชื่อเรื่องโน้ต..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white bg-transparent placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none tracking-tight"
+            className="w-full text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white bg-transparent placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none tracking-tight"
           />
         </div>
 
@@ -1249,7 +1307,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         />
 
         {/* Content Area (TipTap Editor / Preview) */}
-        <div className="flex-1 p-4 sm:p-6 pb-28 lg:pb-6 flex flex-col">
+        <div className="flex-1 p-3.5 sm:p-6 pb-20 lg:pb-6 flex flex-col min-h-0 overflow-y-auto">
           {isPreview ? (
             <div
               className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed"
@@ -1259,7 +1317,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             />
           ) : (
             <div
-              className="flex-1 min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed font-sans"
+              className="flex-1 min-h-[160px] lg:min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed font-sans"
               onClick={() => {
                 if (editor && !editor.isFocused) {
                   editor.commands.focus();
@@ -1425,7 +1483,153 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         onClose={() => setIsMobileMoreOpen(false)}
         title="เมนูและการตั้งค่าโน้ต"
       >
-        <div className="space-y-1">
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto no-scrollbar pb-6">
+          {/* Note Color Swatches Section */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+              <Palette size={15} className="text-indigo-600 dark:text-indigo-400" />
+              <span>สีขอบและธีมโน้ต:</span>
+            </div>
+            <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={`w-7 h-7 rounded-full shrink-0 transition-transform ${
+                    color === c ? 'scale-125 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900' : 'hover:scale-110'
+                  }`}
+                  style={{ backgroundColor: c }}
+                  aria-label={`เลือกสี ${c}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Board & Notebook Selectors Section */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl space-y-3">
+            {/* Board Selector */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 shrink-0">
+                <LayoutGrid size={15} className="text-indigo-600 dark:text-indigo-400" />
+                <span>กระดาน (Board):</span>
+              </div>
+              <select
+                value={boardId || ''}
+                onChange={(e) => setBoardId(e.target.value || null)}
+                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[160px] truncate"
+              >
+                <option value="">(ทั่วไป / ไม่ระบุ)</option>
+                {boards.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.isDefault ? '⭐' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Notebook Selector */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 shrink-0">
+                <Book size={15} className="text-indigo-600 dark:text-indigo-400" />
+                <span>สมุดบันทึก:</span>
+              </div>
+              <select
+                value={notebookId || ''}
+                onChange={(e) => setNotebookId(e.target.value || null)}
+                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[160px] truncate"
+              >
+                <option value="">(ไม่มีสมุดบันทึก)</option>
+                {notebooks.map((nb) => (
+                  <option key={nb.id} value={nb.id}>
+                    {nb.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Labels / Tags Section */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                <Tag size={15} className="text-indigo-600 dark:text-indigo-400" />
+                <span>ป้ายกำกับ (Tags):</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddingTag(true)}
+                className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline flex items-center gap-0.5"
+              >
+                <Plus size={12} />
+                <span>เพิ่มป้าย</span>
+              </button>
+            </div>
+
+            {isAddingTag && (
+              <div className="flex items-center gap-1.5 pt-1">
+                <input
+                  type="text"
+                  placeholder="ชื่อป้ายใหม่..."
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreateTag();
+                    }
+                  }}
+                  className="flex-1 px-2.5 py-1 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 outline-none focus:ring-1 focus:ring-indigo-500"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateTag}
+                  className="px-2.5 py-1 rounded-xl bg-indigo-600 text-white text-xs font-bold"
+                >
+                  เพิ่ม
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingTag(false);
+                    setNewTagName('');
+                  }}
+                  className="p-1 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-1.5 flex-wrap items-center pt-1">
+              {labels.map((lbl) => {
+                const isSelected = selectedLabelIds.includes(lbl.id);
+                return (
+                  <button
+                    key={lbl.id}
+                    type="button"
+                    onClick={() => toggleLabel(lbl.id)}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-xl transition ${
+                      isSelected ? 'ring-1 font-bold shadow-xs' : 'opacity-60 hover:opacity-100'
+                    }`}
+                    style={{
+                      backgroundColor: `${lbl.color}20`,
+                      color: lbl.color,
+                      borderColor: isSelected ? lbl.color : 'transparent',
+                    }}
+                  >
+                    #{lbl.name}
+                  </button>
+                );
+              })}
+              {labels.length === 0 && !isAddingTag && (
+                <p className="text-xs text-slate-400 italic">ยังไม่มีป้ายกำกับ</p>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1">
           {/* Lock E2EE */}
           <button
             type="button"
@@ -1602,6 +1806,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               <span>ลบโน้ตนี้</span>
             </button>
           )}
+          </div>
         </div>
       </BottomSheet>
     </div>

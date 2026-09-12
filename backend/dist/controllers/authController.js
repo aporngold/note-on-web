@@ -193,9 +193,23 @@ class AuthController {
         try {
             const clientId = process.env.GOOGLE_CLIENT_ID;
             const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            // Determine the originating frontend URL
+            let targetFrontend = req.query.origin || req.query.frontend;
+            if (!targetFrontend && req.headers.referer) {
+                try {
+                    targetFrontend = new URL(req.headers.referer).origin;
+                }
+                catch (e) { }
+            }
+            if (!targetFrontend) {
+                targetFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+            }
+            // If pointing to render backend domain by mistake, fallback to vercel app
+            if (targetFrontend.includes('note-on-web.onrender.com')) {
+                targetFrontend = 'https://note-on-web.vercel.app';
+            }
             if (!clientId || clientId.trim() === '') {
-                return res.redirect(`${frontendUrl}/login?error=google_oauth_not_configured`);
+                return res.redirect(`${targetFrontend}/login?error=google_oauth_not_configured`);
             }
             const params = new URLSearchParams({
                 client_id: clientId,
@@ -204,17 +218,38 @@ class AuthController {
                 scope: 'openid email profile',
                 access_type: 'offline',
                 prompt: 'select_account',
+                state: targetFrontend,
             });
             return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
         }
         catch (error) {
             console.error('Google auth error:', error);
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-            return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+            const safeFrontend = frontendUrl.includes('note-on-web.onrender.com') ? 'https://note-on-web.vercel.app' : frontendUrl;
+            return res.redirect(`${safeFrontend}/login?error=google_auth_failed`);
         }
     }
     static async googleCallback(req, res) {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        // Parse state returned by Google
+        const stateUrl = typeof req.query.state === 'string' ? req.query.state : '';
+        if (stateUrl) {
+            try {
+                const parsed = new URL(stateUrl);
+                if (parsed.hostname === 'localhost' ||
+                    parsed.hostname === '127.0.0.1' ||
+                    parsed.hostname.endsWith('vercel.app') ||
+                    parsed.hostname.endsWith('onrender.com') ||
+                    (process.env.FRONTEND_URL && parsed.origin === new URL(process.env.FRONTEND_URL).origin)) {
+                    frontendUrl = parsed.origin;
+                }
+            }
+            catch (e) { }
+        }
+        // Safety fallback: if frontendUrl points to the backend on Render, redirect to Vercel frontend
+        if (frontendUrl.includes('note-on-web.onrender.com')) {
+            frontendUrl = 'https://note-on-web.vercel.app';
+        }
         try {
             const { code, error } = req.query;
             if (error || !code) {

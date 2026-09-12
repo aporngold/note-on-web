@@ -99,7 +99,11 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-16 px-4 sm:px-8 flex items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
+        <header
+          className={`h-16 px-4 sm:px-8 items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10 ${
+            router.pathname.startsWith('/notes/') ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
           <div className="flex items-center gap-3 flex-1 max-w-xl">
             {/* Mobile Menu Button */}
             <button
@@ -316,7 +320,9 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
           className={`flex-1 ${
             viewMode === 'board' || router.pathname === '/board'
               ? 'overflow-hidden flex flex-col p-2 sm:p-3'
-              : `overflow-y-auto p-4 sm:p-8 ${!router.pathname.startsWith('/notes/') ? 'pb-24 lg:pb-8' : ''}`
+              : router.pathname.startsWith('/notes/')
+              ? 'flex flex-col min-h-0 overflow-hidden p-0 lg:p-8 lg:overflow-y-auto'
+              : 'overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8'
           }`}
         >
           {children}

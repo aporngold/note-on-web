@@ -135,7 +135,9 @@ export default function MobileEditorToolbar({
       {/* Docked Mobile Toolbar (Adapts dynamically to soft keyboard) */}
       <div
         style={{ bottom: `${keyboardOffset}px` }}
-        className="fixed left-0 right-0 z-30 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800 px-2 py-1.5 shadow-2xl transition-all duration-100 ease-out"
+        className={`fixed left-0 right-0 z-30 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/90 dark:border-slate-800 px-2 pt-1.5 shadow-2xl transition-all duration-100 ease-out ${
+          keyboardOffset === 0 ? 'pb-[max(8px,env(safe-area-inset-bottom))]' : 'pb-1.5'
+        }`}
       >
         <div className="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
           {/* 1. Bold */}
