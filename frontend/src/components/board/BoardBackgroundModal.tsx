@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Palette, Image as ImageIcon, X, Check, Sparkles, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ViewportPortal from '@/components/ui/ViewportPortal';
 
 export interface BoardPattern {
   id: string;
@@ -419,8 +420,15 @@ export default function BoardBackgroundModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in select-none">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
+    <ViewportPortal>
+      <div
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in select-none"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col max-h-[90vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -620,5 +628,6 @@ export default function BoardBackgroundModal({
         </div>
       </div>
     </div>
+  </ViewportPortal>
   );
 }
