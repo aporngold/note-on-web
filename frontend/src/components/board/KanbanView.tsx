@@ -57,17 +57,18 @@ export default function KanbanView({ notes }: KanbanViewProps) {
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
+  const [activeMobileCol, setActiveMobileCol] = useState<string>('todo');
 
-  const handleOpenFullscreen = (note: Note) => {
+  const handleOpenFullscreen = (n: Note) => {
     if (typeof document !== 'undefined' && !document.fullscreenElement) {
       document.documentElement.requestFullscreen?.().catch(() => {});
     }
-    setFullscreenNote(note);
+    setFullscreenNote(n);
   };
 
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.setData('text/plain', id);
-    setDraggedNoteId(id);
+  const handleDragStart = (e: React.DragEvent, noteId: string) => {
+    e.dataTransfer.setData('text/plain', noteId);
+    setDraggedNoteId(noteId);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -104,8 +105,33 @@ export default function KanbanView({ notes }: KanbanViewProps) {
   };
 
   return (
-    <div className="flex-1 w-full h-full overflow-x-auto p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-950/50">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 min-w-[780px] h-full items-start">
+    <div className="flex-1 w-full h-full overflow-x-hidden md:overflow-x-auto p-2.5 sm:p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col">
+      {/* Mobile Column Switcher Tabs */}
+      <div className="flex md:hidden items-center gap-1.5 p-1 bg-slate-200/70 dark:bg-slate-800/70 rounded-2xl mb-2.5 shrink-0 border border-slate-200/80 dark:border-slate-700/80">
+        {COLUMNS.map((col) => {
+          const count = notes.filter((n) => (n.kanbanStatus || 'todo') === col.id).length;
+          const isSelected = activeMobileCol === col.id;
+          const ColIcon = col.icon;
+          return (
+            <button
+              key={col.id}
+              type="button"
+              onClick={() => setActiveMobileCol(col.id)}
+              className={`flex-1 py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                isSelected
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <ColIcon size={14} className={isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
+              <span className="truncate">{col.title.split(' ')[0]}</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${col.badgeBg}`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex-1 w-full min-w-0 md:min-w-[780px] md:grid md:grid-cols-3 gap-4 sm:gap-6 items-start">
         {COLUMNS.map((col) => {
           const colNotes = notes.filter((n) => {
             const status = n.kanbanStatus || 'todo';
@@ -119,7 +145,9 @@ export default function KanbanView({ notes }: KanbanViewProps) {
               key={col.id}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, col.id)}
-              className={`flex flex-col h-[calc(100vh-210px)] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm ${col.columnBg} ${col.headerBorder} backdrop-blur-sm overflow-hidden`}
+              className={`${
+                activeMobileCol === col.id ? 'flex' : 'hidden md:flex'
+              } flex-col w-full min-w-0 h-[calc(100vh-230px)] md:h-[calc(100vh-210px)] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm ${col.columnBg} ${col.headerBorder} backdrop-blur-sm overflow-hidden`}
             >
               {/* Column Header */}
               <div className="flex items-center justify-between p-3.5 border-b border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70">

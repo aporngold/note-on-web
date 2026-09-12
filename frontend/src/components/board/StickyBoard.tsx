@@ -17,6 +17,7 @@ import {
   Compass,
   Image as ImageIcon,
   Sparkles,
+  ChevronDown,
 } from 'lucide-react';
 import StickyNoteItem from './StickyNoteItem';
 import NoteConnectionCanvas from './NoteConnectionCanvas';
@@ -27,6 +28,7 @@ import BoardBackgroundModal, { BOARD_PATTERNS, CURATED_WALLPAPERS } from './Boar
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
 import { Note, Board, BoardViewMode } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
+import { useAuthStore } from '@/store/authStore';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
 import toast from 'react-hot-toast';
 
@@ -67,6 +69,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     notes: allNotes,
   } = useNoteStore();
 
+  const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>('cork');
+
   // Real-time note count per board from reactive store state
   const getBoardNoteCount = (b: Board) => {
     const isActive = b.id === activeBoardId || (!activeBoardId && b.isDefault);
@@ -76,7 +81,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     return b.noteCount ?? 0;
   };
 
-  const [boardTheme, setBoardTheme] = useState<BoardTheme>('cork');
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [isArranging, setIsArranging] = useState(false);
@@ -95,6 +99,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Modals / Dropdowns for Board Management
   const [isAddBoardModalOpen, setIsAddBoardModalOpen] = useState(false);
+  const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
   const [newBoardName, setNewBoardName] = useState('');
   const [newBoardColor, setNewBoardColor] = useState(TAB_COLORS[0]);
 
@@ -113,6 +118,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const highestZRef = useRef<number>(50);
   const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
   const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(null);
+  const focusTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reservation of slots to prevent overlapping when creating notes rapidly
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
@@ -131,7 +137,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     };
   }, [notes]);
 
-  // Zoom level state (0.3 to 3.0, default 1.0 as in zoom.mp4)
+  // Zoom level state (0.15 to 3.0, allows seeing entire board)
   const [zoom, setZoom] = useState<number>(1.0);
   const [isZoomOverlayVisible, setIsZoomOverlayVisible] = useState<boolean>(false);
   const zoomTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -145,7 +151,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   };
 
   const handleZoomChange = (newZoom: number) => {
-    const clamped = Math.max(0.3, Math.min(3.0, Math.round(newZoom * 100) / 100));
+    const clamped = Math.max(0.15, Math.min(3.0, Math.round(newZoom * 100) / 100));
     setZoom(clamped);
     showZoomOverlay();
   };
@@ -160,7 +166,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         e.preventDefault();
         const delta = e.deltaY < 0 ? 0.08 : -0.08;
         setZoom((prev) => {
-          const next = Math.max(0.3, Math.min(3.0, Math.round((prev + delta) * 100) / 100));
+          const next = Math.max(0.15, Math.min(3.0, Math.round((prev + delta) * 100) / 100));
           showZoomOverlay();
           return next;
         });
@@ -173,10 +179,88 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     };
   }, []);
 
+  // Two-finger pinch-to-zoom on mobile touchscreens for empty canvas area
+  useEffect(() => {
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    let initialDistance = 0;
+    let baseZoom = 1.0;
+
+    const calcDistance = (e: TouchEvent) => {
+      if (e.touches.length < 2) return 0;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      return Math.hypot(dx, dy);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const target = e.target as HTMLElement;
+        if (target && (target.closest('.sticky-note-item') || target.closest('[data-note-card="true"]'))) {
+          return;
+        }
+        initialDistance = calcDistance(e);
+        baseZoom = zoom;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialDistance > 0) {
+        const target = e.target as HTMLElement;
+        if (target && (target.closest('.sticky-note-item') || target.closest('[data-note-card="true"]'))) {
+          return;
+        }
+        const dist = calcDistance(e);
+        if (dist > 0) {
+          if (e.cancelable) e.preventDefault();
+          const scale = dist / initialDistance;
+          const newZoom = Math.max(0.15, Math.min(3.0, Math.round(baseZoom * scale * 100) / 100));
+          setZoom(newZoom);
+          showZoomOverlay();
+        }
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        initialDistance = 0;
+      }
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [zoom]);
+
+  // Clean up focus timer on unmount
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    };
+  }, []);
+
   const bringToFront = (noteId: string) => {
     highestZRef.current += 1;
     const newZ = highestZRef.current;
     setNoteZIndices((prev) => ({ ...prev, [noteId]: newZ }));
+  };
+
+  const handleNoteFocus = (noteId: string) => {
+    bringToFront(noteId);
+    setFocusedNoteId(noteId);
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    focusTimerRef.current = setTimeout(() => {
+      setFocusedNoteId(null);
+    }, 1000);
   };
 
   // Automatically scroll to top-left when board changes
@@ -529,9 +613,86 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   return (
     <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden animate-fade-in relative select-none">
-      {/* ── TOP SECTION 1: Multi-Board Tabs Bar (Note Board style) ── */}
-      <div className="bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-4 pt-2.5 flex items-center justify-between gap-3 overflow-x-auto select-none z-30">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+      {/* ── TOP SECTION 1: Multi-Board Tabs Bar (Note Board style / Mobile Dropdown) ── */}
+      <div className="bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 pt-2 pb-1.5 flex items-center justify-between gap-2 overflow-visible select-none z-30 relative">
+        {/* Mobile Dropdown Board Selector (md:hidden) */}
+        <div className="relative md:hidden flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setIsBoardDropdownOpen((prev) => !prev)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 shadow-sm border border-slate-200 dark:border-slate-700 active:scale-95 transition"
+            title="คลิกเพื่อเลือกกระดาน หรือ เพิ่มกระดานใหม่"
+          >
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+              style={{ backgroundColor: activeBoard?.color || '#4F46E5' }}
+            />
+            <span className="max-w-[130px] truncate">{activeBoard?.name || 'กระดานหลัก'}</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 font-semibold">
+              {activeBoard ? getBoardNoteCount(activeBoard) : 0}
+            </span>
+            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${isBoardDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isBoardDropdownOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsBoardDropdownOpen(false)}
+              />
+              {/* Dropdown Menu */}
+              <div className="absolute left-0 top-full mt-1.5 w-60 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-1.5 z-50 animate-in fade-in zoom-in-95 space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 px-2.5 py-1 uppercase tracking-wider">เลือกกระดาน</p>
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {boards.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveBoardId(b.id);
+                        setIsBoardDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition ${
+                        b.id === activeBoardId
+                          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs"
+                          style={{ backgroundColor: b.color || '#4F46E5' }}
+                        />
+                        <span className="truncate">{b.name}</span>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 font-semibold">
+                        {getBoardNoteCount(b)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t border-slate-200/80 dark:border-slate-700 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBoardDropdownOpen(false);
+                      setNewBoardColor(TAB_COLORS[Math.floor(Math.random() * TAB_COLORS.length)]);
+                      setIsAddBoardModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl transition"
+                  >
+                    <Plus size={14} className="stroke-[2.5]" />
+                    <span>+ เพิ่มกระดานใหม่</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Desktop Multi-Board Tabs (hidden md:flex) */}
+        <div className="hidden md:flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
           {boards.map((b) => {
             const isActive = b.id === activeBoardId;
             return (
@@ -590,7 +751,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         </div>
 
         {/* Right side controls in Header (Active Board Info) */}
-        <div className="flex items-center gap-2 shrink-0 pb-2">
+        <div className="flex items-center gap-2 shrink-0 pb-1">
           {/* Active Board Toolbar Info & Edit / Delete */}
           {activeBoard && (
             <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-200/50 dark:bg-slate-800/50 px-2.5 py-1 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
@@ -623,44 +784,52 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       {/* ── TOP SECTION 2: Control Toolbar (Freeform Canvas Only - Docked cleanly beneath tabs) ── */}
       {boardViewMode === 'freeform' && (
         <div className="w-full shrink-0 z-20 flex items-center justify-between gap-3 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
-          {/* Quick Add Sticky Note Buttons */}
+          {/* Quick Add Sticky Note Buttons - 4 Circular Buttons with Plus */}
           <div className="flex items-center gap-2 overflow-x-auto">
             <button
+              type="button"
               onClick={() => handleQuickAdd('#FEF08A')}
-              className="px-3 py-1.5 bg-amber-300 hover:bg-amber-400 text-amber-950 font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+              className="w-8 h-8 rounded-full bg-[#FEF08A] hover:bg-amber-300 text-amber-950 flex items-center justify-center shadow-sm border border-amber-400/40 transition active:scale-90 shrink-0"
+              title="แปะโน้ตสีเหลือง"
+              aria-label="แปะโน้ตสีเหลือง"
             >
-              <Plus size={15} />
-              <span>แปะโน้ตเหลือง</span>
+              <Plus size={17} className="stroke-[2.5]" />
             </button>
             <button
+              type="button"
               onClick={() => handleQuickAdd('#FBCFE8')}
-              className="hidden sm:flex px-3 py-1.5 bg-pink-300 hover:bg-pink-400 text-pink-950 font-bold rounded-xl text-xs items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+              className="w-8 h-8 rounded-full bg-[#FBCFE8] hover:bg-pink-300 text-pink-950 flex items-center justify-center shadow-sm border border-pink-400/40 transition active:scale-90 shrink-0"
+              title="แปะโน้ตสีชมพู"
+              aria-label="แปะโน้ตสีชมพู"
             >
-              <Plus size={15} />
-              <span>ชมพู</span>
+              <Plus size={17} className="stroke-[2.5]" />
             </button>
             <button
+              type="button"
               onClick={() => handleQuickAdd('#BBF7D0')}
-              className="hidden sm:flex px-3 py-1.5 bg-emerald-300 hover:bg-emerald-400 text-emerald-950 font-bold rounded-xl text-xs items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+              className="w-8 h-8 rounded-full bg-[#BBF7D0] hover:bg-emerald-300 text-emerald-950 flex items-center justify-center shadow-sm border border-emerald-400/40 transition active:scale-90 shrink-0"
+              title="แปะโน้ตสีเขียว"
+              aria-label="แปะโน้ตสีเขียว"
             >
-              <Plus size={15} />
-              <span>เขียว</span>
+              <Plus size={17} className="stroke-[2.5]" />
             </button>
             <button
+              type="button"
               onClick={() => handleQuickAdd('#BAE6FD')}
-              className="hidden sm:flex px-3 py-1.5 bg-sky-300 hover:bg-sky-400 text-sky-950 font-bold rounded-xl text-xs items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+              className="w-8 h-8 rounded-full bg-[#BAE6FD] hover:bg-sky-300 text-sky-950 flex items-center justify-center shadow-sm border border-sky-400/40 transition active:scale-90 shrink-0"
+              title="แปะโน้ตสีฟ้า"
+              aria-label="แปะโน้ตสีฟ้า"
             >
-              <Plus size={15} />
-              <span>ฟ้า</span>
+              <Plus size={17} className="stroke-[2.5]" />
             </button>
 
-            {/* + โน้ตใหม่ - Navigate to /notes/new editor matching all other pages */}
+            {/* + โน้ตใหม่ - Desktop only (Mobile has bottom-right FAB) */}
             <button
               onClick={() => {
                 const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
                 router.push(url);
               }}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-full text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all duration-200 active:scale-95 shrink-0"
+              className="hidden md:flex px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-full text-xs items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all duration-200 active:scale-95 shrink-0"
               title="สร้างโน้ตใหม่"
             >
               <Plus size={15} className="stroke-[2.5]" />
@@ -777,10 +946,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     onOpenFullscreen={handleOpenFullscreen}
                     isConnectingSource={connectingSourceId === note.id}
                     isConnectingMode={!!connectingSourceId}
-                    onBringToFront={() => {
-                      bringToFront(note.id);
-                      setFocusedNoteId(note.id);
-                    }}
+                    onBringToFront={() => handleNoteFocus(note.id)}
                     customZIndex={noteZIndices[note.id]}
                     isFocused={focusedNoteId === note.id}
                     isHighlighted={highlightedNoteId === note.id}
@@ -821,7 +987,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           <button
             type="button"
             onClick={() => handleZoomChange(zoom - 0.1)}
-            disabled={zoom <= 0.3}
+            disabled={zoom <= 0.15}
             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-slate-700 dark:text-slate-200 transition active:scale-90"
             title="ซูมออก (-10%)"
           >
@@ -831,7 +997,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           {/* Zoom Slider */}
           <input
             type="range"
-            min="30"
+            min="15"
             max="300"
             step="5"
             value={Math.round(zoom * 100)}

@@ -682,7 +682,8 @@ export default function StickyNoteItem({
             ? 'none'
             : 'box-shadow 0.25s ease-out, transform 0.2s ease-out, opacity 0.25s ease-out',
         }}
-        className={`absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 transition-all duration-200 ${
+        data-note-card="true"
+        className={`sticky-note-item absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 transition-all duration-200 ${
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${
           isHighlighted
