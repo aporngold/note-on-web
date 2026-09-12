@@ -11,11 +11,12 @@ interface TooltipState {
 
 /**
  * Global In-App Tooltip Engine
- * - Automatically intercepts any HTML element with `title="..."` or `data-app-tooltip="..."`
+ * - Intercepts interactive controls (button, a, select, [role="button"]) with `title` or `data-app-tooltip`
  * - Strips native `title` from the DOM to permanently prevent the Windows OS empty box bug
- * - Renders via ViewportPortal to document.body (immune to overflow:hidden and z-index issues)
- * - Auto-flips and auto-shifts near screen boundaries to prevent clipping
- * - Works universally across Note Editor, Toolbars, Sticky Board, and Sidebar
+ * - Uses a standard 450ms hover dwell time: moving the mouse across the page does NOT trigger unwanted tooltips
+ * - Auto-dismiss: automatically fades out after 3.5 seconds so tooltips NEVER get stuck on screen
+ * - Mouse tracking: disappears instantly the moment the mouse leaves the button or clicks
+ * - Renders via ViewportPortal to document.body with collision detection (flips & shifts at viewport boundaries)
  */
 export default function GlobalTooltip() {
   const [state, setState] = useState<TooltipState>({
@@ -31,29 +32,44 @@ export default function GlobalTooltip() {
     isReady: false,
   });
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoHideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const activeTriggerRef = useRef<HTMLElement | null>(null);
   const floatingRef = useRef<HTMLDivElement | null>(null);
 
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+  const clearTimers = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    if (autoHideTimerRef.current) {
+      clearTimeout(autoHideTimerRef.current);
+      autoHideTimerRef.current = null;
     }
   };
 
+  const handleDismiss = () => {
+    activeTriggerRef.current = null;
+    clearTimers();
+    setState((prev) => (prev.isOpen ? { ...prev, isOpen: false, triggerEl: null } : prev));
+  };
+
   useEffect(() => {
-    // Only run on client-side desktop / pointer devices
     if (typeof window === 'undefined') return;
+
+    // Trigger tooltips ONLY on interactive buttons and controls
+    const getInteractiveTarget = (el: HTMLElement | null): HTMLElement | null => {
+      if (!el) return null;
+      return el.closest<HTMLElement>(
+        'button, a, select, [role="button"], [data-app-tooltip]'
+      );
+    };
 
     const handlePointerOver = (e: PointerEvent) => {
       // Ignore touch devices to prevent stuck tooltips on mobile/tablet
       if (e.pointerType === 'touch') return;
 
-      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-        '[title], [data-app-tooltip]'
-      );
-
+      const target = getInteractiveTarget(e.target as HTMLElement | null);
       if (!target) return;
 
       // Extract tooltip text
@@ -71,13 +87,15 @@ export default function GlobalTooltip() {
         target.removeAttribute('title');
       }
 
-      activeTriggerRef.current = target;
-      clearTimer();
+      // If already hovering this exact button, don't restart
+      if (activeTriggerRef.current === target) return;
 
-      // Show after 150ms gentle delay
-      timerRef.current = setTimeout(() => {
+      activeTriggerRef.current = target;
+      clearTimers();
+
+      // Standard hover dwell time: 450ms (doesn't trigger when casually sweeping the mouse)
+      hoverTimerRef.current = setTimeout(() => {
         if (activeTriggerRef.current === target) {
-          // Choose placement based on element position
           const rect = target.getBoundingClientRect();
           let placement: Placement = 'top-center';
           if (rect.top < 45) {
@@ -90,29 +108,34 @@ export default function GlobalTooltip() {
             triggerEl: target,
             placement,
           });
+
+          // Auto-hide after 3.5 seconds: never stays stuck on screen!
+          autoHideTimerRef.current = setTimeout(() => {
+            handleDismiss();
+          }, 3500);
         }
-      }, 150);
+      }, 450);
     };
 
-    const handlePointerOut = (e: PointerEvent) => {
-      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-app-tooltip]');
-      if (target && activeTriggerRef.current === target) {
-        activeTriggerRef.current = null;
-        clearTimer();
-        setState((prev) => (prev.isOpen ? { ...prev, isOpen: false, triggerEl: null } : prev));
+    // Track mouse movement: if mouse leaves the active button bounds, dismiss immediately
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!activeTriggerRef.current) return;
+      const target = e.target as HTMLElement | null;
+      if (!target || !activeTriggerRef.current.contains(target)) {
+        handleDismiss();
       }
     };
 
-    const handleDismiss = () => {
-      activeTriggerRef.current = null;
-      clearTimer();
-      setState((prev) => (prev.isOpen ? { ...prev, isOpen: false, triggerEl: null } : prev));
+    const handlePointerOut = (e: PointerEvent) => {
+      if (!activeTriggerRef.current) return;
+      const related = e.relatedTarget as HTMLElement | null;
+      if (!related || !activeTriggerRef.current.contains(related)) {
+        handleDismiss();
+      }
     };
 
     const handleFocusIn = (e: FocusEvent) => {
-      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-        '[title], [data-app-tooltip]'
-      );
+      const target = getInteractiveTarget(e.target as HTMLElement | null);
       if (!target) return;
 
       let text = target.getAttribute('title') || target.getAttribute('data-app-tooltip') || '';
@@ -125,8 +148,8 @@ export default function GlobalTooltip() {
       }
 
       activeTriggerRef.current = target;
-      clearTimer();
-      timerRef.current = setTimeout(() => {
+      clearTimers();
+      hoverTimerRef.current = setTimeout(() => {
         if (activeTriggerRef.current === target) {
           const rect = target.getBoundingClientRect();
           let placement: Placement = 'top-center';
@@ -139,16 +162,20 @@ export default function GlobalTooltip() {
             triggerEl: target,
             placement,
           });
+          autoHideTimerRef.current = setTimeout(() => {
+            handleDismiss();
+          }, 3500);
         }
-      }, 150);
+      }, 450);
     };
 
     const handleFocusOut = () => {
       handleDismiss();
     };
 
-    // Listeners on document with capture
+    // Document listeners
     document.addEventListener('pointerover', handlePointerOver, { passive: true });
+    document.addEventListener('pointermove', handlePointerMove, { passive: true });
     document.addEventListener('pointerout', handlePointerOut, { passive: true });
     document.addEventListener('focusin', handleFocusIn, { passive: true });
     document.addEventListener('focusout', handleFocusOut, { passive: true });
@@ -158,8 +185,9 @@ export default function GlobalTooltip() {
     window.addEventListener('keydown', handleDismiss, { passive: true });
 
     return () => {
-      clearTimer();
+      clearTimers();
       document.removeEventListener('pointerover', handlePointerOver);
+      document.removeEventListener('pointermove', handlePointerMove);
       document.removeEventListener('pointerout', handlePointerOut);
       document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('focusout', handleFocusOut);
@@ -214,7 +242,7 @@ export default function GlobalTooltip() {
           zIndex: 999999,
           opacity: coords.isReady ? 1 : 0,
           visibility: coords.isReady ? 'visible' : 'hidden',
-          transition: 'opacity 0.1s ease-out',
+          transition: 'opacity 0.12s ease-out',
         }}
         className="pointer-events-none select-none"
       >
