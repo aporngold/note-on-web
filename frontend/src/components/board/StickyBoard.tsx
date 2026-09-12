@@ -265,18 +265,29 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
     focusTimerRef.current = setTimeout(() => {
       setFocusedNoteId(null);
-    }, 1000);
+    }, 500);
 
-    // If currently zoomed out in fit-board view, restore zoom to 100% immediately!
+    // If currently zoomed out in fit-board view, restore zoom to 100% and scroll to the clicked note!
     if (zoom < 0.85) {
       setZoom(1.0);
       showZoomOverlay();
-      const note = notes.find((n) => n.id === noteId);
-      if (note && canvasContainerRef.current) {
-        const targetX = Math.max(0, (note.posX ?? 0) - 20);
-        const targetY = Math.max(0, (note.posY ?? 0) - 20);
-        canvasContainerRef.current.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
-      }
+      setTimeout(() => {
+        const container = canvasContainerRef.current;
+        if (!container) return;
+        const el = document.getElementById(`note-card-${noteId}`);
+        if (el) {
+          const targetX = Math.max(0, el.offsetLeft - 24);
+          const targetY = Math.max(0, el.offsetTop - 24);
+          container.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+        } else {
+          const note = notes.find((n) => n.id === noteId);
+          if (note) {
+            const targetX = Math.max(0, (note.posX ?? 80) - 24);
+            const targetY = Math.max(0, (note.posY ?? 80) - 24);
+            container.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+          }
+        }
+      }, 60);
     }
   };
 
@@ -464,14 +475,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         }
       }, 50);
 
-      // Complete subtle highlight and finish all effects within 1.0 second (1000ms)
+      // Complete subtle highlight and finish all effects within 0.50 second (500ms)
       setTimeout(() => {
         setHighlightedNoteId(null);
-      }, 650);
+      }, 350);
 
       setTimeout(() => {
         setFocusedNoteId((curr) => (curr === newNote.id ? null : curr));
-      }, 1000);
+      }, 500);
     }
   };
 

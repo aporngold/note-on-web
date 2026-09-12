@@ -114,15 +114,30 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const lastHtmlRef = useRef(html);
+  const isInitializedRef = useRef(false);
   const [isEmpty, setIsEmpty] = useState(() => {
     return !html || html.replace(/<[^>]*>/g, '').trim() === '';
   });
 
+  // 1. Initialize DOM on mount
+  useEffect(() => {
+    if (ref.current && !isInitializedRef.current) {
+      ref.current.innerHTML = html || '';
+      lastHtmlRef.current = html;
+      isInitializedRef.current = true;
+      setIsEmpty(!html || html.replace(/<[^>]*>/g, '').trim() === '');
+    }
+  }, []);
+
+  // 2. Synchronize external HTML changes ONLY if the element is NOT currently being typed in (focused)
   useEffect(() => {
     if (ref.current && html !== lastHtmlRef.current) {
       lastHtmlRef.current = html;
-      ref.current.innerHTML = html;
-      setIsEmpty(!html || html.replace(/<[^>]*>/g, '').trim() === '');
+      const isFocused = document.activeElement === ref.current;
+      if (!isFocused) {
+        ref.current.innerHTML = html || '';
+        setIsEmpty(!html || html.replace(/<[^>]*>/g, '').trim() === '');
+      }
     }
   }, [html]);
 
@@ -144,7 +159,6 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
         onBlur={onBlur}
         className={`${className} px-2 py-1 focus:outline-none select-text cursor-text no-drag min-h-full`}
         style={style}
-        dangerouslySetInnerHTML={{ __html: html }}
       />
       {isEmpty && (
         <div
