@@ -1302,7 +1302,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         />
 
         {/* Content Area (TipTap Editor / Preview) */}
-        <div className="flex-1 p-3.5 sm:p-6 pb-20 lg:pb-6 flex flex-col min-h-0 overflow-y-auto">
+        <div className="flex-1 px-4 py-3.5 sm:p-6 pb-20 lg:pb-6 flex flex-col min-h-0 overflow-y-auto">
           {isPreview ? (
             <div
               className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed"

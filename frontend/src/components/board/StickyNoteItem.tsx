@@ -142,13 +142,13 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
         onInput={handleInput}
         onFocus={onFocus}
         onBlur={onBlur}
-        className={`${className} focus:outline-none select-text cursor-text no-drag min-h-full`}
+        className={`${className} px-2 py-1 focus:outline-none select-text cursor-text no-drag min-h-full`}
         style={style}
         dangerouslySetInnerHTML={{ __html: html }}
       />
       {isEmpty && (
         <div
-          className="absolute top-0 left-0 pointer-events-none opacity-30 select-none leading-relaxed text-inherit"
+          className="absolute top-1 left-2 pointer-events-none opacity-30 select-none leading-relaxed text-inherit"
           style={style}
         >
           {placeholder}
@@ -683,7 +683,7 @@ export default function StickyNoteItem({
             : 'box-shadow 0.25s ease-out, transform 0.2s ease-out, opacity 0.25s ease-out',
         }}
         data-note-card="true"
-        className={`sticky-note-item absolute rounded-sm p-3 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 transition-all duration-200 ${
+        className={`sticky-note-item absolute rounded-sm p-3.5 sm:p-4 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 transition-all duration-200 ${
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${
           isHighlighted
@@ -814,14 +814,14 @@ export default function StickyNoteItem({
             {/* Connect Note button */}
             <button
               onClick={() => onStartConnect && onStartConnect(note.id)}
-              className={`p-1 rounded transition text-xs flex items-center gap-0.5 ${
+              className={`p-1 rounded-md transition text-xs flex items-center justify-center ${
                 isConnectingSource
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'hover:bg-black/10 text-indigo-700 dark:text-indigo-300'
+                  ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400'
+                  : 'bg-black/10 dark:bg-white/15 hover:bg-black/20 dark:hover:bg-white/25 text-slate-800 dark:text-slate-100 shadow-2xs'
               }`}
               title="เชื่อมโยงโน้ตนี้กับโน้ตอื่นด้วยเส้นลูกศร"
             >
-              <Link2 size={12} />
+              <Link2 size={13} className="stroke-[2.2]" />
             </button>
           </div>
 
@@ -1170,10 +1170,10 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 setIsShareModalOpen(true);
               }}
-              className="p-1 rounded hover:bg-black/10 transition text-slate-700 dark:text-slate-200"
+              className="p-1 rounded-md bg-black/10 dark:bg-white/15 hover:bg-black/20 dark:hover:bg-white/25 text-slate-800 dark:text-slate-100 transition shadow-2xs flex items-center justify-center"
               title="แชร์โน้ตนี้"
             >
-              <Share2 size={12} className={note.shareCode ? 'text-indigo-600 dark:text-indigo-400' : ''} />
+              <Share2 size={13} className={`stroke-[2.2] ${note.shareCode ? 'text-indigo-600 dark:text-indigo-400' : ''}`} />
             </button>
 
             {/* Open note in Fullscreen focus mode */}
@@ -1183,10 +1183,10 @@ export default function StickyNoteItem({
                 e.stopPropagation();
                 if (onOpenFullscreen) onOpenFullscreen(note);
               }}
-              className="p-1 rounded hover:bg-black/10 transition text-slate-700 dark:text-slate-200 flex items-center justify-center"
+              className="p-1 rounded-md bg-black/10 dark:bg-white/15 hover:bg-black/20 dark:hover:bg-white/25 text-slate-800 dark:text-slate-100 transition shadow-2xs flex items-center justify-center"
               title="ขยายขนาดโน้ต"
             >
-              <Maximize2 size={12} />
+              <Maximize2 size={13} className="stroke-[2.2]" />
             </button>
 
             {/* Delete to trash */}
@@ -1248,9 +1248,9 @@ export default function StickyNoteItem({
         </div>
 
         {/* ── Note Title Input ── */}
-        <div className="mb-1.5 shrink-0">
+        <div className="mb-1.5 shrink-0 px-1">
           {note.isLocked && !isVaultUnlocked ? (
-            <div className="font-bold text-sm tracking-tight line-clamp-1 opacity-80">
+            <div className="font-bold text-sm tracking-tight line-clamp-1 opacity-80 px-1">
               {note.title || 'โน้ตที่เข้ารหัสลับ'}
             </div>
           ) : (
@@ -1261,7 +1261,7 @@ export default function StickyNoteItem({
               onFocus={() => onBringToFront?.()}
               onBlur={handleBlur}
               placeholder="หัวข้อโน้ต..."
-              className={`w-full font-bold bg-transparent border-b border-black/10 focus:border-black/30 focus:outline-none pb-0.5 placeholder-black/30 ${getFontFamilyClass()}`}
+              className={`w-full font-bold bg-transparent border-b border-black/10 focus:border-black/30 focus:outline-none px-1.5 pb-0.5 placeholder-black/30 ${getFontFamilyClass()}`}
               style={{ color: textColor }}
             />
           )}

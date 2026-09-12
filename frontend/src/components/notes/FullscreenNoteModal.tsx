@@ -591,8 +591,9 @@ export default function FullscreenNoteModal({
         </div>
 
         {/* ── FOOTER STATUS & ACTION BAR ── */}
-        <div className="p-3 px-6 border-t border-black/10 flex items-center justify-between text-xs opacity-90 bg-black/5 shrink-0 flex-wrap gap-2">
-          <div className="flex items-center gap-3 opacity-75">
+        <div className="p-2.5 sm:p-3 px-3 sm:px-6 border-t border-black/10 flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs opacity-90 bg-black/5 shrink-0 gap-2">
+          {/* Word & Char statistics */}
+          <div className="flex items-center gap-3 opacity-75 text-[11px] sm:text-xs">
             <span>
               จำนวนคำ: <b>{wordCount}</b> คำ
             </span>
@@ -602,36 +603,41 @@ export default function FullscreenNoteModal({
             <span className="hidden sm:inline">
               ซูม: <b>{zoomLevel}%</b>
             </span>
-            {note.notebook && <span>📁 {note.notebook.name}</span>}
+            {note.notebook && <span className="hidden xs:inline">📁 {note.notebook.name}</span>}
           </div>
 
-          <ActiveCollaboratorsBar noteId={note.id} />
+          {/* Action Row: ActiveCollaboratorsBar ("กำลังดู") + CANCEL + ACCEPT together on the SAME row */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+            <div className="shrink-0">
+              <ActiveCollaboratorsBar noteId={note.id} />
+            </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1 mr-2 hidden sm:flex">
-              <Check size={14} />
-              <span>
-                {isAutoSaving
-                  ? 'กำลังบันทึกอัตโนมัติ...'
-                  : lastSavedTime
-                  ? `บันทึกแล้ว: ${lastSavedTime}`
-                  : 'บันทึกอัตโนมัติ'}
+            <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+              <span className="text-emerald-700 dark:text-emerald-300 font-bold items-center gap-1 mr-2 hidden md:flex">
+                <Check size={14} />
+                <span>
+                  {isAutoSaving
+                    ? 'กำลังบันทึกอัตโนมัติ...'
+                    : lastSavedTime
+                    ? `บันทึกแล้ว: ${lastSavedTime}`
+                    : 'บันทึกอัตโนมัติ'}
+                </span>
               </span>
-            </span>
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="px-5 py-2 rounded-xl bg-black/10 hover:bg-black/20 text-slate-800 dark:text-white font-bold transition text-xs shadow-xs"
-            >
-              CANCEL
-            </button>
-            <button
-              type="button"
-              onClick={handleAcceptModal}
-              className="px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold transition text-xs shadow-md shadow-emerald-600/20"
-            >
-              ACCEPT
-            </button>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="px-4 sm:px-5 py-2 rounded-xl bg-black/10 hover:bg-black/20 text-slate-800 dark:text-white font-bold transition text-xs shadow-xs active:scale-95"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptModal}
+                className="px-5 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold transition text-xs shadow-md shadow-emerald-600/20 active:scale-95"
+              >
+                ACCEPT
+              </button>
+            </div>
           </div>
         </div>
       </div>

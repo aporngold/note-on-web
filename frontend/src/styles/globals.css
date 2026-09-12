@@ -110,6 +110,8 @@ body {
   outline: none;
   min-height: 420px;
   cursor: text;
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
 .tiptap.ProseMirror p.is-editor-empty:first-child::before {
