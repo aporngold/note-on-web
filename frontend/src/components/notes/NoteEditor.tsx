@@ -8,6 +8,7 @@ import {
   Pin,
   Trash2,
   Copy,
+  CopyPlus,
   Download,
   Printer,
   Eye,
@@ -946,14 +947,14 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </button>
           )}
 
-          {/* Share Button */}
+          {/* Duplicate Note Button */}
           {initialNoteId && (
             <button
-              onClick={() => setIsShareModalOpen(true)}
-              className="hidden sm:flex p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-              title="แชร์โน้ตนี้"
+              onClick={handleDuplicate}
+              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              title="ทำสำเนาโน้ตนี้ (Duplicate Note)"
             >
-              <Share2 size={17} />
+              <CopyPlus size={17} />
             </button>
           )}
 
@@ -973,17 +974,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             {isPreview ? <Edit3 size={15} /> : <Eye size={15} />}
             <span className="hidden sm:inline">{isPreview ? 'แก้ไข' : 'ดูตัวอย่าง'}</span>
           </button>
-
-          {/* Duplicate Button */}
-          {initialNoteId && (
-            <button
-              onClick={handleDuplicate}
-              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-              title="คัดลอกโน้ตนี้"
-            >
-              <Copy size={17} />
-            </button>
-          )}
 
           {/* Share Button */}
           {initialNoteId && (
@@ -1111,25 +1101,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
-
-          {/* Color Picker Swatches */}
-          <div className="flex items-center gap-2">
-            <Palette size={16} className="text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500">สีขอบ:</span>
-            <div className="flex items-center gap-1.5">
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={`w-5 h-5 rounded-full transition ${
-                    color === c ? 'scale-125 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900' : 'hover:scale-110'
-                  }`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
             </div>
           </div>
         </div>
@@ -1275,19 +1246,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
             }}
             onDownloadMd={handleExportMarkdown}
-            onPrint={handlePrint}
-            onShare={() => {
-              const textContent = editor ? editor.getText() : stripHtmlTags(content);
-              if (typeof navigator !== 'undefined' && navigator.share) {
-                navigator.share({ title, text: textContent }).catch(() => {});
-              } else {
-                const fullText = `${title}\n\n${textContent}`;
-                navigator.clipboard.writeText(fullText);
-                toast.success('คัดลอกข้อความโน้ตแล้ว');
-              }
-            }}
-            onDelete={handleDelete}
-            onCancel={() => router.push('/dashboard')}
             onAccept={handleSave}
             isSaving={isSaving}
           />

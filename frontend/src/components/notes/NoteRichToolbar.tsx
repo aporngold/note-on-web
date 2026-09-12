@@ -114,7 +114,7 @@ interface NoteRichToolbarProps {
   onDelete?: () => void;
   isTrulyFullscreen?: boolean;
   onToggleTrulyFullscreen?: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   onAccept: () => void;
   showSpeechToText?: boolean;
   isSaving?: boolean;
@@ -735,20 +735,7 @@ export default function NoteRichToolbar({
             </button>
           )}
 
-          {onTextColorChange && (
-            <button
-              ref={pipetteBtnRef}
-              type="button"
-              onClick={() => {
-                setActiveColorTrigger('pipette');
-                setIsTextColorMenuOpen(!isTextColorMenuOpen);
-              }}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-              title="สีหมึกตัวอักษร"
-            >
-              <Pipette size={16} />
-            </button>
-          )}
+
 
           {onCopyNote && (
             <button
@@ -805,14 +792,7 @@ export default function NoteRichToolbar({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={handleInsertDate}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-indigo-600 dark:text-indigo-400 font-bold"
-            title="แทรกวันที่ปัจจุบัน (เช่น วันที่ 27/2/2569)"
-          >
-            <Calendar size={16} />
-          </button>
+
 
           {onMoveBoard && (
             <button
@@ -1027,18 +1007,20 @@ export default function NoteRichToolbar({
                 </button>
               )}
             </div>
-            <div className="py-1">
-              <button
-                type="button"
-                onClick={() => {
-                  onCancel();
-                  setActiveMenu(null);
-                }}
-                className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
-              >
-                ปิดหน้าต่าง (Close)
-              </button>
-            </div>
+            {onCancel && (
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCancel();
+                    setActiveMenu(null);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                  ปิดหน้าต่าง (Close)
+                </button>
+              </div>
+            )}
           </ViewportPopover>
         </div>
 
