@@ -191,7 +191,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               >
                 <Grid size={17} />
                 {defaultViewMode === 'grid' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />
                 )}
               </button>
               <button
@@ -210,7 +210,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               >
                 <List size={17} />
                 {defaultViewMode === 'list' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />
                 )}
               </button>
               <button
@@ -231,7 +231,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 <Columns size={17} />
                 <span className="hidden md:inline text-[11px] font-bold">คัมบัง</span>
                 {defaultViewMode === 'kanban' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />
                 )}
               </button>
               <button
@@ -252,7 +252,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 <span>📌</span>
                 <span className="hidden md:inline text-[11px]">บอร์ด</span>
                 {defaultViewMode === 'board' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-800" title="โหมดหลักเริ่มต้น" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-800" />
                 )}
               </button>
 

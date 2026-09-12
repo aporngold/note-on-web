@@ -1009,6 +1009,7 @@ export default function StickyNoteItem({
                     className={`px-1 py-0.5 text-[8px] font-bold ${
                       fontSize === fs.value ? 'bg-black/20' : 'hover:bg-black/5'
                     }`}
+                    title={`ขนาดตัวอักษร: ${fs.label}`}
                   >
                     {fs.label}
                   </button>
@@ -1051,11 +1052,12 @@ export default function StickyNoteItem({
                           <button
                             key={fs.value}
                             onClick={() => handleFontSizeChange(fs.value)}
-                            className={`flex-1 py-0.5 text-[9px] font-bold rounded ${
+                            className={`flex-1 py-1 text-center text-xs font-bold rounded ${
                               fontSize === fs.value
-                                ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                                : 'text-slate-600 dark:text-slate-300'
+                                ? 'bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 shadow-xs'
+                                : 'hover:bg-slate-200 dark:hover:bg-slate-600'
                             }`}
+                            title={`ขนาดตัวอักษร: ${fs.label}`}
                           >
                             {fs.label}
                           </button>
@@ -1073,13 +1075,14 @@ export default function StickyNoteItem({
                           <button
                             key={ff.value}
                             onClick={() => handleFontFamilyChange(ff.value)}
-                            className={`px-1.5 py-1 text-[10px] rounded text-left truncate ${
+                            className={`px-2 py-1 text-xs rounded transition flex items-center justify-between ${
                               fontFamily === ff.value
-                                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 font-bold'
-                                : 'hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'
+                                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
+                                : 'hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                           >
-                            {ff.label}
+                            <span className={ff.className}>{ff.label}</span>
+                            {fontFamily === ff.value && <Check size={11} />}
                           </button>
                         ))}
                       </div>
@@ -1090,15 +1093,17 @@ export default function StickyNoteItem({
                   {isNarrow && (
                     <div className="border-b border-slate-100 dark:border-slate-700 pb-2">
                       <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">สีหมึกตัวอักษร:</p>
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex gap-1.5 flex-wrap">
                         {TEXT_COLORS.map((tc) => (
                           <button
                             key={tc.name}
                             onClick={() => handleTextColorChange(tc.color)}
-                            className="w-4 h-4 rounded-full border border-slate-300 shadow-sm"
+                            className="w-5 h-5 rounded-full border border-slate-300 shadow-xs transition hover:scale-110 flex items-center justify-center text-[10px]"
                             style={{ backgroundColor: tc.color }}
                             title={tc.name}
-                          />
+                          >
+                            {textColor === tc.color && <Check size={10} className={tc.color === '#F8FAFC' ? 'text-slate-800' : 'text-white'} />}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -1106,66 +1111,54 @@ export default function StickyNoteItem({
 
                   {/* Narrow Mode: Attach File */}
                   {isNarrow && (
-                    <div className="border-b border-slate-100 dark:border-slate-700 pb-2">
+                    <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
                       <button
                         onClick={() => {
                           fileInputRef.current?.click();
                           setIsMoveBoardOpen(false);
                         }}
-                        className="w-full flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                        disabled={isUploading}
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left"
                       >
-                        <Paperclip size={12} />
-                        <span>แนบไฟล์ ({attachments.length})</span>
+                        <Paperclip size={13} className="text-slate-500" />
+                        <span>แนบไฟล์รูปภาพ/เอกสาร</span>
                       </button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileSelect}
-                        className="hidden"
-                      />
                     </div>
                   )}
 
                   {/* Move to Board */}
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 mb-1.5 px-1">ย้ายไปที่กระดาน:</p>
-                    <div className="space-y-1 max-h-36 overflow-y-auto">
-                      {boards.map((b) => {
-                        const isCurrent = note.boardId === b.id;
-                        return (
-                          <button
-                            key={b.id}
-                            onClick={async () => {
-                              await updateNote(note.id, { boardId: b.id });
-                              setIsMoveBoardOpen(false);
-                              fetchNotes({ isArchived: false });
-                            }}
-                            className={`w-full flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-semibold text-left transition ${
-                              isCurrent
-                                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
-                                : 'hover:bg-slate-100 dark:hover:bg-slate-700'
-                            }`}
-                          >
-                            <span
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{ backgroundColor: b.color || '#4F46E5' }}
-                            />
-                            <span className="truncate flex-1">{b.name}</span>
-                            {isCurrent && <Check size={12} />}
-                          </button>
-                        );
-                      })}
+                    <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">ย้ายโน้ตไปที่กระดาน:</p>
+                    <div className="space-y-0.5 max-h-36 overflow-y-auto">
+                      {boards.map((b) => (
+                        <button
+                          key={b.id}
+                          onClick={async () => {
+                            await updateNote(note.id, { boardId: b.id });
+                            setIsMoveBoardOpen(false);
+                            toast.success(`ย้ายโน้ตไปที่กระดาน "${b.name}" แล้ว`);
+                          }}
+                          className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between ${
+                            note.boardId === b.id
+                              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          <span className="truncate">{b.name}</span>
+                          {note.boardId === b.id && <Check size={11} />}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   {/* Delete to Trash option in menu */}
-                  <div className="border-t border-slate-100 dark:border-slate-700 pt-1.5">
+                  <div className="border-t border-slate-100 dark:border-slate-700 pt-1">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setIsMoveBoardOpen(false);
                         deleteNote(note.id);
+                        setIsMoveBoardOpen(false);
                       }}
                       className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition text-left"
                     >
@@ -1228,6 +1221,7 @@ export default function StickyNoteItem({
               ref={kanbanBtnRef}
               onClick={() => setIsKanbanStatusOpen(!isKanbanStatusOpen)}
               className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 transition ${currentKanbanObj.color}`}
+              title={`สถานะงาน: ${currentKanbanObj.label} (คลิกเพื่อเปลี่ยน)`}
             >
               <span>{currentKanbanObj.label}</span>
               <span className="text-[9px]">▾</span>

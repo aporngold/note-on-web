@@ -380,9 +380,10 @@ ul[data-type="taskList"] li[data-type="taskItem"][data-checked="true"] > div {
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
 }
 
-/* Ensure button SVG icons do not intercept hover events or trigger empty tooltips */
-button svg {
+/* Ensure all child elements inside buttons do not intercept hover events or trigger empty tooltips */
+button * {
   pointer-events: none;
 }
+
 
 

@@ -143,7 +143,7 @@ export default function NoteAttachmentDrawer({
                       {getFileIcon(att.mimeType, att.originalName || att.filename)}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={att.originalName}>
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={att.originalName || att.filename || undefined}>
                         {att.originalName || att.filename}
                       </div>
                       <div className="text-[10px] text-slate-400">

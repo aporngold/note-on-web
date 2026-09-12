@@ -934,6 +934,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
               activeMenu === 'file' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="เมนูไฟล์ (File)"
           >
             File
           </button>
@@ -1032,6 +1033,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
               activeMenu === 'edit' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="เมนูแก้ไข (Edit)"
           >
             Edit
           </button>
@@ -1096,6 +1098,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
               activeMenu === 'view' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="เมนูมุมมอง (View)"
           >
             View
           </button>
@@ -1150,6 +1153,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition font-bold text-indigo-600 dark:text-indigo-400 ${
               activeMenu === 'insert' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="เมนูแทรก (Insert)"
           >
             Insert
           </button>
@@ -1165,10 +1169,10 @@ export default function NoteRichToolbar({
                 handleInsertDate();
                 setActiveMenu(null);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
             >
-              <Calendar size={14} />
-              <span>วันที่และเวลาปัจจุบัน</span>
+              <span>ใส่วันที่และเวลา</span>
+              <Calendar size={13} className="text-slate-400" />
             </button>
             <button
               type="button"
@@ -1176,10 +1180,10 @@ export default function NoteRichToolbar({
                 handleLink();
                 setActiveMenu(null);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
             >
-              <LinkIcon size={14} />
-              <span>ลิงก์เชื่อมโยง (Link)</span>
+              <span>แทรกลิงก์ (Link)</span>
+              <LinkIcon size={13} className="text-slate-400" />
             </button>
             <button
               type="button"
@@ -1187,10 +1191,10 @@ export default function NoteRichToolbar({
                 handleChecklist();
                 setActiveMenu(null);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
             >
-              <CheckSquare size={14} />
-              <span>กล่องเช็คลิสต์ (Checklist)</span>
+              <span>กล่องเช็คลิสต์ (Task list)</span>
+              <CheckSquare size={13} className="text-slate-400" />
             </button>
             <button
               type="button"
@@ -1198,10 +1202,10 @@ export default function NoteRichToolbar({
                 handleInsertImageClick();
                 setActiveMenu(null);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
             >
-              <ImageIcon size={14} />
               <span>แทรกรูปภาพ (จากไฟล์ในเครื่อง)</span>
+              <ImageIcon size={13} className="text-slate-400" />
             </button>
             <button
               type="button"
@@ -1209,10 +1213,10 @@ export default function NoteRichToolbar({
                 handleInsertImageUrl();
                 setActiveMenu(null);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
             >
-              <ImageIcon size={14} />
-              <span>แทรกรูปภาพ (จาก URL ลิงก์)</span>
+              <span>แทรกรูปภาพ (จากลิงก์ URL)</span>
+              <LinkIcon size={13} className="text-slate-400" />
             </button>
             <button
               type="button"
@@ -1220,18 +1224,21 @@ export default function NoteRichToolbar({
                 handleHorizontalRule();
                 setActiveMenu(null);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
             >
-              <Minus size={14} />
-              <span>เส้นแบ่งบรรทัด (Divider)</span>
+              <span>เส้นคั่นบรรทัด (Divider)</span>
+              <Minus size={13} className="text-slate-400" />
             </button>
             <button
               type="button"
-              onClick={() => handleInsertTable(2, 2)}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2"
+              onClick={() => {
+                handleInsertTable(2, 2);
+                setActiveMenu(null);
+              }}
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
             >
-              <TableIcon size={14} />
-              <span>ตาราง 2x2</span>
+              <span>แทรกตาราง 2x2</span>
+              <TableIcon size={13} className="text-slate-400" />
             </button>
           </ViewportPopover>
         </div>
@@ -1245,6 +1252,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
               activeMenu === 'format' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="เมนูจัดรูปแบบ (Format)"
           >
             Format
           </button>
@@ -1326,6 +1334,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
               activeMenu === 'table' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="เมนูตาราง (Table)"
           >
             Table
           </button>
@@ -1368,6 +1377,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
               activeMenu === 'tools' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="เครื่องมือสถิติและจำนวนคำ (Tools)"
           >
             Tools
           </button>
@@ -1407,6 +1417,7 @@ export default function NoteRichToolbar({
             className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
               activeMenu === 'help' ? 'bg-slate-200 dark:bg-slate-700' : ''
             }`}
+            title="ช่วยเหลือและคีย์ลัด (Help)"
           >
             Help
           </button>
