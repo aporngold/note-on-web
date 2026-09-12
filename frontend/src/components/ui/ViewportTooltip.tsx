@@ -125,7 +125,7 @@ export default function ViewportTooltip({
           zIndex={999999}
           className="pointer-events-none select-none"
         >
-          <div className="bg-slate-900/95 dark:bg-slate-800/95 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg shadow-xl border border-slate-700/60 backdrop-blur-md whitespace-nowrap animate-fade-in">
+          <div className="bg-white/95 dark:bg-slate-800/95 text-slate-800 dark:text-slate-100 text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-md shadow-slate-900/10 dark:shadow-2xl border border-slate-200/90 dark:border-slate-700/80 backdrop-blur-md whitespace-nowrap animate-fade-in">
             {content}
           </div>
         </ViewportPopover>
