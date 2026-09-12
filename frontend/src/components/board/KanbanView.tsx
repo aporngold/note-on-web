@@ -239,14 +239,22 @@ export default function KanbanView({ notes }: KanbanViewProps) {
 
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                             <button
-                              onClick={() => handleOpenFullscreen(note)}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenFullscreen(note);
+                              }}
                               className="p-1 rounded hover:bg-black/10 text-black/60"
                               title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ"
                             >
                               <Maximize2 size={12} />
                             </button>
                             <button
-                              onClick={() => deleteNote(note.id)}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNote(note.id);
+                              }}
                               className="p-1 rounded hover:bg-rose-500/20 text-rose-600"
                               title="ลบลงถังขยะ"
                             >
@@ -278,7 +286,11 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                           <div className="flex items-center gap-1">
                             {col.id !== 'todo' && (
                               <button
-                                onClick={() => moveNote(note.id, col.id === 'done' ? 'doing' : 'todo')}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveNote(note.id, col.id === 'done' ? 'doing' : 'todo');
+                                }}
                                 className="p-1 rounded hover:bg-black/10 transition"
                                 title="ย้ายไปคอลัมน์ก่อนหน้า"
                               >
@@ -287,7 +299,11 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                             )}
                             {col.id !== 'done' && (
                               <button
-                                onClick={() => moveNote(note.id, col.id === 'todo' ? 'doing' : 'done')}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveNote(note.id, col.id === 'todo' ? 'doing' : 'done');
+                                }}
                                 className="p-1 rounded hover:bg-black/10 transition"
                                 title="ย้ายไปคอลัมน์ถัดไป"
                               >
