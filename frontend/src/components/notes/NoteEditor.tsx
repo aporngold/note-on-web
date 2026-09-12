@@ -695,6 +695,62 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     }
   };
 
+  const handleOpenFullscreen = async () => {
+    if (typeof document !== 'undefined' && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+
+    const currentHtml = editor ? editor.getHTML() : content;
+    const currentNoteId = noteIdRef.current || initialNoteId;
+
+    if (currentNoteId) {
+      setActiveNoteForModal({
+        id: currentNoteId,
+        title,
+        content: currentHtml,
+        color,
+        textColor,
+        fontFamily: 'sans',
+        fontSize: 'normal',
+        isPinned,
+        isFavorite,
+        isLocked,
+        isArchived: false,
+        attachments,
+        notebookId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      setIsFullscreenModalOpen(true);
+    } else {
+      try {
+        const newNote = await createNote({
+          title: title || 'โน้ตใหม่',
+          content: currentHtml,
+          color,
+          textColor,
+          fontFamily: 'sans',
+          fontSize: 'normal',
+          notebookId: notebookId || undefined,
+          boardId: boardId || activeBoardId || undefined,
+          isPinned,
+          isFavorite,
+          isLocked,
+        });
+        if (newNote?.id) {
+          noteIdRef.current = newNote.id;
+          if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', `/notes/${newNote.id}`);
+          }
+          setActiveNoteForModal(newNote);
+          setIsFullscreenModalOpen(true);
+        }
+      } catch (err) {
+        toast.error('ไม่สามารถเปิดโหมดเต็มจอได้');
+      }
+    }
+  };
+
   if (!isLoaded) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -998,57 +1054,15 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             </button>
           )}
 
-          {/* Fullscreen Focus Modal (เหมือนหน้าคัมบัง) */}
+          {/* Fullscreen Mode Button */}
           <button
-            onClick={async () => {
-              if (initialNoteId) {
-                setActiveNoteForModal({
-                  id: initialNoteId,
-                  title,
-                  content: editor ? editor.getHTML() : content,
-                  color,
-                  textColor,
-                  fontFamily: 'sans',
-                  fontSize: 'normal',
-                  isPinned,
-                  isFavorite,
-                  isLocked,
-                  isArchived: false,
-                  attachments,
-                  notebookId,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                });
-                setIsFullscreenModalOpen(true);
-              } else {
-                try {
-                  const newNote = await createNote({
-                    title: title || 'โน้ตใหม่',
-                    content: editor ? editor.getHTML() : content,
-                    color,
-                    textColor,
-                    fontFamily: 'sans',
-                    fontSize: 'normal',
-                    notebookId: notebookId || undefined,
-                    boardId: boardId || activeBoardId || undefined,
-                    isPinned,
-                    isFavorite,
-                    isLocked,
-                  });
-                  if (newNote?.id) {
-                    router.replace(`/notes/${newNote.id}`);
-                    setActiveNoteForModal(newNote);
-                    setIsFullscreenModalOpen(true);
-                  }
-                } catch (err) {
-                  toast.error('ไม่สามารถเปิดโหมดเต็มจอได้');
-                }
-              }
-            }}
+            type="button"
+            onClick={handleOpenFullscreen}
             className="p-2 sm:px-3 sm:py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition flex items-center gap-1.5 font-bold text-xs shadow-md shadow-indigo-500/20 active:scale-95"
-            title="เปิดแก้ไขแบบขยาย (เหมือนหน้าคัมบัง)"
+            title="เปิดแก้ไขแบบเต็มจอ (Fullscreen)"
           >
             <Maximize2 size={15} />
+            <span className="hidden sm:inline">เต็มจอ</span>
           </button>
 
           {/* Save Button */}
@@ -1349,7 +1363,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           onClose={async () => {
             setIsFullscreenModalOpen(false);
             setActiveNoteForModal(null);
-            const targetId = initialNoteId || activeNoteForModal?.id;
+            if (typeof document !== 'undefined' && document.fullscreenElement) {
+              document.exitFullscreen?.().catch(() => {});
+            }
+            const targetId = noteIdRef.current || initialNoteId || activeNoteForModal?.id;
             if (targetId) {
               try {
                 const res = await api.get(`/notes/${targetId}`);
@@ -1369,6 +1386,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 }
               } catch (e) {
                 // ignore
+              }
+              if (router.pathname === '/notes/new') {
+                router.replace(`/notes/${targetId}`);
               }
             }
           }}
@@ -1733,6 +1753,19 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               <span>ทำสำเนาโน้ต (Duplicate)</span>
             </button>
           )}
+
+          {/* Fullscreen Mode */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMoreOpen(false);
+              handleOpenFullscreen();
+            }}
+            className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition text-indigo-600 dark:text-indigo-400"
+          >
+            <Maximize2 size={18} />
+            <span className="font-bold">เปิดโหมดเต็มจอ (Fullscreen)</span>
+          </button>
 
           {/* Export Markdown */}
           <button

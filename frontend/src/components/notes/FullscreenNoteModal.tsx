@@ -239,11 +239,17 @@ export default function FullscreenNoteModal({
     if (hasUnsavedChangesRef.current && note) {
       await performSave();
     }
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
     onClose();
   };
 
   const handleAcceptModal = async () => {
     await performSave();
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
     toast.success('บันทึกเรียบร้อย');
     onClose();
   };
@@ -592,7 +598,7 @@ export default function FullscreenNoteModal({
             <span>
               ความยาว: <b>{charCount}</b> ตัวอักษร
             </span>
-            <span>
+            <span className="hidden sm:inline">
               ซูม: <b>{zoomLevel}%</b>
             </span>
             {note.notebook && <span>📁 {note.notebook.name}</span>}

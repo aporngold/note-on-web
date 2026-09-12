@@ -58,6 +58,13 @@ export default function KanbanView({ notes }: KanbanViewProps) {
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
 
+  const handleOpenFullscreen = (note: Note) => {
+    if (typeof document !== 'undefined' && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+    setFullscreenNote(note);
+  };
+
   const handleDragStart = (e: React.DragEvent, id: string) => {
     e.dataTransfer.setData('text/plain', id);
     setDraggedNoteId(id);
@@ -174,8 +181,8 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                         key={note.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, note.id)}
-                        onClick={() => setFullscreenNote(note)}
-                        onDoubleClick={() => setFullscreenNote(note)}
+                        onClick={() => handleOpenFullscreen(note)}
+                        onDoubleClick={() => handleOpenFullscreen(note)}
                         style={{
                           backgroundColor: note.color || '#FEF08A',
                           color: note.textColor || '#0F172A',
@@ -204,7 +211,7 @@ export default function KanbanView({ notes }: KanbanViewProps) {
 
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                             <button
-                              onClick={() => setFullscreenNote(note)}
+                              onClick={() => handleOpenFullscreen(note)}
                               className="p-1 rounded hover:bg-black/10 text-black/60"
                               title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ"
                             >
@@ -276,7 +283,12 @@ export default function KanbanView({ notes }: KanbanViewProps) {
         <FullscreenNoteModal
           note={fullscreenNote}
           isOpen={!!fullscreenNote}
-          onClose={() => setFullscreenNote(null)}
+          onClose={() => {
+            if (typeof document !== 'undefined' && document.fullscreenElement) {
+              document.exitFullscreen?.().catch(() => {});
+            }
+            setFullscreenNote(null);
+          }}
         />
       )}
     </div>

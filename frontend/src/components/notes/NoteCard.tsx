@@ -251,20 +251,6 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
           <button
             onClick={(e) => {
               e.stopPropagation();
-              if (onOpenFullscreen) {
-                onOpenFullscreen(note);
-              } else {
-                router.push(`/notes/${note.id}`);
-              }
-            }}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
-            title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ"
-          >
-            <Maximize2 size={14} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
               duplicateNote(note.id);
             }}
             className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"

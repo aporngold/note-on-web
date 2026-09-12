@@ -39,6 +39,13 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites'>('all');
   const [isAiSearchOpen, setIsAiSearchOpen] = useState(false);
 
+  const handleOpenFullscreen = (n: Note) => {
+    if (typeof document !== 'undefined' && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+    setFullscreenNote(n);
+  };
+
   useEffect(() => {
     if (user) {
       fetchNotes({ isArchived: false });
@@ -254,7 +261,7 @@ export default function Dashboard() {
                       key={note.id}
                       note={note}
                       onUnlockRequest={() => setIsVaultModalOpen(true)}
-                      onOpenFullscreen={(n) => setFullscreenNote(n)}
+                      onOpenFullscreen={handleOpenFullscreen}
                     />
                   ))}
                 </div>
@@ -275,7 +282,7 @@ export default function Dashboard() {
                       key={note.id}
                       note={note}
                       onUnlockRequest={() => setIsVaultModalOpen(true)}
-                      onOpenFullscreen={(n) => setFullscreenNote(n)}
+                      onOpenFullscreen={handleOpenFullscreen}
                     />
                   ))}
                 </div>
@@ -287,7 +294,7 @@ export default function Dashboard() {
           <NoteList
             notes={filteredNotes}
             onUnlockRequest={() => setIsVaultModalOpen(true)}
-            onOpenFullscreen={(n) => setFullscreenNote(n)}
+            onOpenFullscreen={handleOpenFullscreen}
           />
         )}
       </div>
@@ -304,6 +311,9 @@ export default function Dashboard() {
           note={fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {
+            if (typeof document !== 'undefined' && document.fullscreenElement) {
+              document.exitFullscreen?.().catch(() => {});
+            }
             setFullscreenNote(null);
             fetchNotes({ isArchived: false });
           }}

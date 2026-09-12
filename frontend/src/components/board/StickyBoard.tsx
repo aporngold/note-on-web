@@ -81,6 +81,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [isArranging, setIsArranging] = useState(false);
 
+  const handleOpenFullscreen = (n: Note) => {
+    if (typeof document !== 'undefined' && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+    setFullscreenNote(n);
+  };
+
   // Modals for Sharing, Web Sticky, and Backgrounds
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isWebStickyModalOpen, setIsWebStickyModalOpen] = useState(false);
@@ -767,7 +774,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     onUnlockRequest={() => setIsVaultModalOpen(true)}
                     onStartConnect={handleStartConnect}
                     onTargetConnect={handleTargetConnect}
-                    onOpenFullscreen={(n) => setFullscreenNote(n)}
+                    onOpenFullscreen={handleOpenFullscreen}
                     isConnectingSource={connectingSourceId === note.id}
                     isConnectingMode={!!connectingSourceId}
                     onBringToFront={() => {
@@ -793,9 +800,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         </div>
       )}
 
-      {/* ── Floating Zoom Controller Bar (Right-side widget as in zoom.mp4) ── */}
+      {/* ── Floating Zoom Controller Bar (Right-side widget as in zoom.mp4, desktop/tablet only) ── */}
       {boardViewMode === 'freeform' && (
-        <div className="absolute right-6 bottom-6 z-30 flex items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 px-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 select-none animate-fade-in">
+        <div className="hidden md:flex absolute right-6 bottom-6 z-30 items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 px-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 select-none animate-fade-in">
           {/* 100% Reset Button */}
           <button
             type="button"
@@ -1057,6 +1064,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           note={fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {
+            if (typeof document !== 'undefined' && document.fullscreenElement) {
+              document.exitFullscreen?.().catch(() => {});
+            }
             setFullscreenNote(null);
             fetchNotes({ isArchived: false });
           }}
