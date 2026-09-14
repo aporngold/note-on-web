@@ -132,6 +132,22 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
+  const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
+  const tagDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
+        setIsTagMenuOpen(false);
+      }
+    };
+    if (isTagMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTagMenuOpen]);
 
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -787,7 +803,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto h-full flex flex-col lg:space-y-4 lg:pb-12 animate-fade-in">
+    <div className="max-w-5xl mx-auto h-full flex flex-col lg:space-y-2 lg:pb-6 animate-fade-in">
       {/* Mobile Compact Top Bar (GEMINI.md STEP 3) */}
       <div className="flex lg:hidden items-center justify-between gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 z-10 shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -916,15 +932,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         </div>
       )}
 
-      {/* Desktop Top Action Bar (Preserved 100% for lg screens) */}
-      <div className="hidden lg:flex items-center justify-between gap-3 flex-wrap bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 rounded-2xl shadow-sm">
+      {/* Desktop Top Action Bar (Compact & Icon-Only, Preserved 100% for lg screens) */}
+      <div className="hidden lg:flex items-center justify-between gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs">
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.push('/dashboard')}
-            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+            className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
             title="กลับไปหน้าหลัก"
+            aria-label="กลับ"
           >
-            <ArrowLeft size={19} />
+            <ArrowLeft size={18} />
           </button>
 
           {/* Auto-save live indicator */}
@@ -934,8 +951,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               กำลังบันทึกอัตโนมัติ...
             </span>
           ) : lastSaved ? (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-              <CheckCircle2 size={13} /> บันทึกอัตโนมัติแล้ว: {lastSaved}
+            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium" title={`บันทึกแล้ว: ${lastSaved}`}>
+              <CheckCircle2 size={13} /> {lastSaved}
             </span>
           ) : (
             <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
@@ -944,54 +961,57 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {/* Lock / E2EE Button */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {/* Lock / E2EE Button (Icon-only) */}
           <button
             onClick={handleLockToggle}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+            className={`p-1.5 rounded-xl transition ${
               isLocked
                 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-1 ring-amber-400/50'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
-            title={isLocked ? 'ปลดล็อกหรือจัดการการเข้ารหัส' : 'เปิดการเข้ารหัสลับแบบ E2EE'}
+            title={isLocked ? 'ปลดล็อกหรือจัดการการเข้ารหัส (E2EE)' : 'เปิดการเข้ารหัสลับแบบ E2EE'}
+            aria-label="ล็อก E2EE"
           >
-            {isLocked ? <Lock size={14} /> : <Unlock size={14} />}
-            <span>{isLocked ? 'ล็อก E2EE' : 'ไม่ล็อก'}</span>
+            {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
           </button>
 
           {/* Pin Button */}
           <button
             onClick={() => setIsPinned(!isPinned)}
-            className={`p-2 rounded-xl transition ${
+            className={`p-1.5 rounded-xl transition ${
               isPinned
                 ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 ring-1 ring-indigo-500/20'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้'}
+            aria-label="ปักหมุด"
           >
-            <Pin size={17} className={isPinned ? 'fill-current' : ''} />
+            <Pin size={16} className={isPinned ? 'fill-current' : ''} />
           </button>
 
           {/* Favorite Button */}
           <button
             onClick={() => setIsFavorite(!isFavorite)}
-            className={`p-2 rounded-xl transition ${
+            className={`p-1.5 rounded-xl transition ${
               isFavorite
                 ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 ring-1 ring-amber-500/20'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title={isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด (Favorite)'}
+            aria-label="รายการโปรด"
           >
-            <Star size={17} className={isFavorite ? 'fill-current' : ''} />
+            <Star size={16} className={isFavorite ? 'fill-current' : ''} />
           </button>
 
           {/* Attachment Drawer Toggle */}
           <button
             onClick={() => setIsAttachmentDrawerOpen(true)}
-            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition relative"
+            className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition relative"
             title={`ไฟล์แนบ (${attachments.length} รายการ)`}
+            aria-label="ไฟล์แนบ"
           >
-            <Paperclip size={17} />
+            <Paperclip size={16} />
             {attachments.length > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
                 {attachments.length}
@@ -1002,43 +1022,45 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           {/* Voice Memo Button */}
           <button
             onClick={() => setIsAudioModalOpen(true)}
-            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
+            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
             title="อัดเสียงบันทึก (Voice Memo)"
+            aria-label="อัดเสียง"
           >
-            <AudioLines size={17} />
+            <AudioLines size={16} />
           </button>
 
           {/* Speech-to-Text Live Dictation */}
           <SpeechToTextButton editor={editor || null} />
 
-          {/* OCR Image Button */}
+          {/* OCR Image Button (Icon-only) */}
           <button
             onClick={() => setIsOcrModalOpen(true)}
-            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
-            title="สแกนข้อความจากรูปภาพ (Free OCR)"
+            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
+            title="สแกนข้อความจากรูปภาพ (OCR)"
+            aria-label="OCR"
           >
-            <ScanText size={17} />
-            <span className="hidden md:inline">OCR</span>
+            <ScanText size={16} />
           </button>
 
-          {/* AI Assistant Button */}
+          {/* AI Assistant Button (Icon-only) */}
           <button
             onClick={() => setIsAiModalOpen(true)}
-            className="p-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition flex items-center gap-1 text-xs font-semibold"
-            title="ผู้ช่วย AI สรุปและเรียบเรียง (ฟรี 100%)"
+            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
+            title="ผู้ช่วย AI สรุปและเรียบเรียง"
+            aria-label="ผู้ช่วย AI"
           >
             <Sparkles size={16} />
-            <span className="hidden md:inline">AI</span>
           </button>
 
           {/* Version History Button */}
           {initialNoteId && (
             <button
               onClick={() => setIsVersionDrawerOpen(true)}
-              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
               title="ประวัติเวอร์ชัน (Version History)"
+              aria-label="ประวัติเวอร์ชัน"
             >
-              <History size={17} />
+              <History size={16} />
             </button>
           )}
 
@@ -1046,39 +1068,40 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           {initialNoteId && (
             <button
               onClick={handleDuplicate}
-              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
               title="ทำสำเนาโน้ตนี้ (Duplicate Note)"
+              aria-label="ทำสำเนา"
             >
-              <CopyPlus size={17} />
+              <CopyPlus size={16} />
             </button>
           )}
 
           {/* Active Collaborators presence */}
           {initialNoteId && <ActiveCollaboratorsBar noteId={initialNoteId} />}
 
-          {/* Preview Toggle */}
+          {/* Preview Toggle (Icon-only) */}
           <button
             onClick={() => setIsPreview(!isPreview)}
-            className={`p-2 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold ${
+            className={`p-1.5 rounded-xl transition ${
               isPreview
                 ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-none'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title={isPreview ? 'แก้ไขเนื้อหา' : 'ดูตัวอย่าง'}
+            aria-label={isPreview ? 'แก้ไข' : 'ดูตัวอย่าง'}
           >
-            {isPreview ? <Edit3 size={15} /> : <Eye size={15} />}
-            <span className="hidden sm:inline">{isPreview ? 'แก้ไข' : 'ดูตัวอย่าง'}</span>
+            {isPreview ? <Edit3 size={16} /> : <Eye size={16} />}
           </button>
 
-          {/* Share Button */}
+          {/* Share Button (Icon-only) */}
           {initialNoteId && (
             <button
               onClick={() => setIsShareModalOpen(true)}
-              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition flex items-center gap-1.5 font-bold text-xs active:scale-95 border border-slate-200/80 dark:border-slate-700"
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
               title="แชร์โน้ตนี้"
+              aria-label="แชร์"
             >
-              <Share2 size={15} />
-              <span className="hidden sm:inline">แชร์</span>
+              <Share2 size={16} />
             </button>
           )}
 
@@ -1086,10 +1109,11 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           {initialNoteId && (
             <button
               onClick={handleDelete}
-              className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition"
+              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition"
               title="ลบโน้ตนี้"
+              aria-label="ลบโน้ต"
             >
-              <Trash2 size={17} />
+              <Trash2 size={16} />
             </button>
           )}
 
@@ -1097,18 +1121,21 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           <button
             type="button"
             onClick={handleOpenFullscreen}
-            className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition flex items-center justify-center font-medium text-xs active:scale-95"
+            className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
             title="เปิดแก้ไขแบบเต็มจอ (Fullscreen)"
             aria-label="เต็มจอ"
           >
             <Maximize2 size={16} />
           </button>
 
+          {/* Vertical divider */}
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 my-auto mx-0.5" />
+
           {/* Save Button (Icon-only) */}
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="ml-1 p-2 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center justify-center transition active:scale-95 disabled:opacity-50"
+            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center transition active:scale-95 disabled:opacity-50 shadow-xs"
             title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
             aria-label="บันทึก"
           >
@@ -1119,128 +1146,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           <button
             type="button"
             onClick={() => router.push('/dashboard')}
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition ml-1"
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition"
             title="ปิด / ยกเลิก (Close)"
             aria-label="ปิดโน้ต"
           >
             <X size={18} />
           </button>
-        </div>
-      </div>
-
-      {/* Metadata Bar (Notebook, Board, Color, Labels) - Desktop Only */}
-      <div className="hidden lg:block bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm space-y-3">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Notebook Selector */}
-            <div className="flex items-center gap-2">
-              <Book size={16} className="text-slate-400" />
-              <span className="text-xs font-semibold text-slate-500">สมุดบันทึก:</span>
-              <select
-                value={notebookId || ''}
-                onChange={(e) => setNotebookId(e.target.value || null)}
-                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
-              >
-                <option value="">(ไม่มีสมุดบันทึก)</option>
-                {notebooks.map((nb) => (
-                  <option key={nb.id} value={nb.id}>
-                    {nb.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Board Selector */}
-            <div className="flex items-center gap-2">
-              <LayoutGrid size={16} className="text-slate-400" />
-              <span className="text-xs font-semibold text-slate-500">กระดาน (Board):</span>
-              <select
-                value={boardId || ''}
-                onChange={(e) => setBoardId(e.target.value || null)}
-                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
-              >
-                <option value="">(ไม่ระบุบอร์ด / ทั่วไป)</option>
-                {boards.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} {b.isDefault ? '(บอร์ดเริ่มต้น)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Labels multi-selector with Add Tag button */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex-wrap">
-          <Tag size={15} className="text-slate-400" />
-          <span className="text-xs font-semibold text-slate-500">ป้ายกำกับ:</span>
-          <div className="flex gap-1.5 flex-wrap items-center">
-            {labels.map((lbl) => {
-              const isSelected = selectedLabelIds.includes(lbl.id);
-              return (
-                <button
-                  key={lbl.id}
-                  type="button"
-                  onClick={() => toggleLabel(lbl.id)}
-                  className={`text-[11px] font-medium px-2.5 py-1 rounded-lg transition ${
-                    isSelected ? 'ring-1 font-bold shadow-xs' : 'opacity-50 hover:opacity-80'
-                  }`}
-                  style={{
-                    backgroundColor: `${lbl.color}20`,
-                    color: lbl.color,
-                    borderColor: isSelected ? lbl.color : 'transparent',
-                  }}
-                >
-                  #{lbl.name}
-                </button>
-              );
-            })}
-
-            {isAddingTag ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  placeholder="ชื่อป้าย..."
-                  value={newTagName}
-                  onChange={(e) => setNewTagName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleCreateTag();
-                    }
-                  }}
-                  className="px-2 py-0.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 w-24"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={handleCreateTag}
-                  className="p-1 rounded bg-indigo-600 text-white text-[10px] font-bold"
-                >
-                  เพิ่ม
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddingTag(false);
-                    setNewTagName('');
-                  }}
-                  className="p-1 text-slate-400 hover:text-slate-600"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setIsAddingTag(true)}
-                className="text-[11px] font-semibold px-2 py-1 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 text-slate-500 hover:text-indigo-600 transition flex items-center gap-1"
-              >
-                <Plus size={12} />
-                <span>สร้างป้ายใหม่</span>
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -1261,15 +1172,171 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">รองรับรูปภาพ, เสียง, เอกสาร PDF, ZIP ฯลฯ</p>
           </div>
         )}
-        {/* Title Input */}
-        <div className="px-4 py-2 sm:px-6 sm:py-2.5 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+
+        {/* Title & Metadata Row (Desktop combines Title + Metadata in one unified row; Mobile keeps clean full-width Title) */}
+        <div className="px-4 py-2 sm:px-6 sm:py-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
           <input
             type="text"
             placeholder="ชื่อเรื่องโน้ต..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-lg sm:text-xl font-bold text-slate-900 dark:text-white bg-transparent placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none tracking-tight"
+            className="w-full lg:flex-1 text-lg sm:text-xl font-bold text-slate-900 dark:text-white bg-transparent placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none tracking-tight min-w-0"
           />
+
+          {/* Desktop-Only Compact Metadata Pills (Embedded in Title Row) */}
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            {/* Notebook Pill Dropdown */}
+            <div className="flex items-center bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 rounded-xl px-2.5 py-1 gap-1.5 transition border border-slate-200/60 dark:border-slate-700/60 max-w-[170px]" title="สมุดบันทึก">
+              <Book size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <select
+                value={notebookId || ''}
+                onChange={(e) => setNotebookId(e.target.value || null)}
+                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none p-0 focus:ring-0 outline-none w-full truncate cursor-pointer"
+                title="เลือกสมุดบันทึก"
+              >
+                <option value="">(ไม่มีสมุดบันทึก)</option>
+                {notebooks.map((nb) => (
+                  <option key={nb.id} value={nb.id}>
+                    {nb.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Board Pill Dropdown */}
+            <div className="flex items-center bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 rounded-xl px-2.5 py-1 gap-1.5 transition border border-slate-200/60 dark:border-slate-700/60 max-w-[180px]" title="กระดาน (Board)">
+              <LayoutGrid size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <select
+                value={boardId || ''}
+                onChange={(e) => setBoardId(e.target.value || null)}
+                className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none p-0 focus:ring-0 outline-none w-full truncate cursor-pointer"
+                title="เลือกกระดาน (Board)"
+              >
+                <option value="">(ไม่ระบุบอร์ด / ทั่วไป)</option>
+                {boards.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.isDefault ? '(เริ่มต้น)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tags Dropdown Popover */}
+            <div className="relative" ref={tagDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsTagMenuOpen(!isTagMenuOpen)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition border ${
+                  selectedLabelIds.length > 0
+                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 shadow-2xs'
+                    : 'bg-slate-100/90 dark:bg-slate-800/90 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border-slate-200/60 dark:border-slate-700/60'
+                }`}
+                title="จัดการป้ายกำกับ (Tags)"
+              >
+                <Tag size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <span>{selectedLabelIds.length > 0 ? `ป้าย (${selectedLabelIds.length})` : 'ป้ายกำกับ'}</span>
+              </button>
+
+              {/* Tags Popover Panel */}
+              {isTagMenuOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 z-50 animate-fade-in space-y-2.5">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                      <Tag size={13} className="text-indigo-600 dark:text-indigo-400" />
+                      เลือกป้ายกำกับ
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsTagMenuOpen(false)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+
+                  {/* Label items list */}
+                  <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                    {labels.length === 0 ? (
+                      <p className="text-xs text-slate-400 py-1">ยังไม่มีป้ายกำกับ</p>
+                    ) : (
+                      labels.map((lbl) => {
+                        const isSelected = selectedLabelIds.includes(lbl.id);
+                        return (
+                          <button
+                            key={lbl.id}
+                            type="button"
+                            onClick={() => toggleLabel(lbl.id)}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs transition ${
+                              isSelected
+                                ? 'bg-slate-100 dark:bg-slate-800 font-semibold'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <span className="flex items-center gap-2 truncate mr-2">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full shrink-0"
+                                style={{ backgroundColor: lbl.color }}
+                              />
+                              <span className="text-slate-800 dark:text-slate-200 truncate">#{lbl.name}</span>
+                            </span>
+                            {isSelected && <Check size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* Add new tag form */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    {isAddingTag ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          placeholder="ชื่อป้ายใหม่..."
+                          value={newTagName}
+                          onChange={(e) => setNewTagName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleCreateTag();
+                            }
+                          }}
+                          className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCreateTag}
+                          className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition shrink-0"
+                        >
+                          เพิ่ม
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingTag(false);
+                            setNewTagName('');
+                          }}
+                          className="p-1 text-slate-400 hover:text-slate-600 shrink-0"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingTag(true)}
+                        className="w-full text-xs font-semibold py-1.5 px-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 text-slate-500 hover:text-indigo-600 transition flex items-center justify-center gap-1.5"
+                      >
+                        <Plus size={13} />
+                        <span>สร้างป้ายใหม่</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Desktop Full Toolbar (Preserved 100% for lg screens) */}
