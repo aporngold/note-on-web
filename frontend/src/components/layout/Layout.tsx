@@ -99,7 +99,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300">
         {/* Top Navbar */}
         <header
           className={`h-16 px-4 sm:px-8 items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10 ${
@@ -324,7 +324,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
             router.pathname === '/board' || (router.pathname === '/dashboard' && viewMode === 'board')
               ? 'overflow-hidden flex flex-col p-2 sm:p-3'
               : router.pathname.startsWith('/notes/')
-              ? 'flex flex-col min-h-0 overflow-hidden p-0 lg:p-8 lg:overflow-y-auto'
+              ? 'flex flex-col min-h-0 overflow-hidden p-0 lg:px-6 lg:pt-2.5 lg:pb-4 lg:overflow-y-auto transition-all duration-300'
               : 'overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8'
           }`}
         >

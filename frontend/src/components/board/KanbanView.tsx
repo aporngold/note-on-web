@@ -12,6 +12,8 @@ import {
   Trash2,
   Maximize2,
   Pin,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
@@ -22,6 +24,7 @@ import { stripHtmlTags } from '@/utils/editorHelper';
 
 interface KanbanViewProps {
   notes: Note[];
+  onUnlockRequest?: () => void;
 }
 
 const COLUMNS = [
@@ -51,9 +54,9 @@ const COLUMNS = [
   },
 ];
 
-export default function KanbanView({ notes }: KanbanViewProps) {
+export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) {
   const router = useRouter();
-  const { updateNote, deleteNote, createNote, activeBoardId, togglePin } = useNoteStore();
+  const { updateNote, deleteNote, createNote, activeBoardId, togglePin, toggleNoteLock } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
@@ -233,9 +236,39 @@ export default function KanbanView({ notes }: KanbanViewProps) {
                         )}
 
                         <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <h4 className="font-bold text-sm line-clamp-2">
-                            {note.title || 'ไม่มีชื่อ'}
-                          </h4>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <h4 className="font-bold text-sm line-clamp-2">
+                              {note.title || 'ไม่มีชื่อ'}
+                            </h4>
+                            {/* Lock / E2EE status button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleNoteLock(note, onUnlockRequest);
+                              }}
+                              className={`p-0.5 rounded transition shrink-0 ${
+                                note.isLocked
+                                  ? isVaultUnlocked
+                                    ? 'text-emerald-700 hover:text-emerald-800'
+                                    : 'text-amber-700 hover:text-amber-800 animate-pulse'
+                                  : 'opacity-40 hover:opacity-100 hover:text-amber-600'
+                              }`}
+                              title={
+                                note.isLocked
+                                  ? isVaultUnlocked
+                                    ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
+                                    : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อก)'
+                                  : 'คลิกเพื่อเข้ารหัสและล็อกโน้ตนี้ (E2EE)'
+                              }
+                            >
+                              {note.isLocked ? (
+                                isVaultUnlocked ? <Unlock size={12} /> : <Lock size={12} />
+                              ) : (
+                                <Unlock size={12} />
+                              )}
+                            </button>
+                          </div>
 
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                             <button

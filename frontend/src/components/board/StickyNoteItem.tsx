@@ -5,6 +5,8 @@ import {
   Trash2,
   Maximize2,
   Lock,
+  Unlock,
+  Pipette,
   Palette,
   Type,
   Check,
@@ -194,6 +196,7 @@ export default function StickyNoteItem({
     deleteNote,
     togglePin,
     toggleFavorite,
+    toggleNoteLock,
     boards,
     fetchNotes,
     uploadAttachment,
@@ -791,19 +794,35 @@ export default function StickyNoteItem({
               )}
             </button>
 
-            {note.isLocked && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isVaultUnlocked && onUnlockRequest) onUnlockRequest();
-                }}
-                className="p-1 rounded hover:bg-black/10 transition cursor-pointer"
-                title="โน้ตเข้ารหัส E2EE"
-              >
-                <Lock size={12} className="text-amber-700" />
-              </button>
-            )}
+            {/* Lock / E2EE toggle button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNoteLock(note, onUnlockRequest);
+              }}
+              className={`p-1 rounded transition cursor-pointer flex items-center justify-center ${
+                note.isLocked
+                  ? isVaultUnlocked
+                    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
+                    : 'text-amber-700 dark:text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 animate-pulse'
+                  : 'opacity-40 hover:opacity-100 hover:text-amber-600'
+              }`}
+              style={{ color: note.isLocked ? undefined : textColor }}
+              title={
+                note.isLocked
+                  ? isVaultUnlocked
+                    ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
+                    : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
+                  : 'คลิกเพื่อล็อกและเข้ารหัสโน้ตนี้ (E2EE)'
+              }
+            >
+              {note.isLocked ? (
+                isVaultUnlocked ? <Unlock size={12} /> : <Lock size={12} />
+              ) : (
+                <Unlock size={12} />
+              )}
+            </button>
 
             {/* Pin toggle */}
             <button
@@ -982,6 +1001,20 @@ export default function StickyNoteItem({
                       {paperColor === c.bg && <Check size={10} className="text-slate-800" />}
                     </button>
                   ))}
+                  {/* Custom Paper Color */}
+                  <div className="w-full pt-1.5 mt-1 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <label className="text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
+                      <Pipette size={11} className="text-indigo-500" />
+                      <span>กำหนดสีเอง</span>
+                    </label>
+                    <input
+                      type="color"
+                      value={paperColor || '#FEF08A'}
+                      onChange={(e) => handleColorChange(e.target.value)}
+                      className="w-5 h-5 rounded cursor-pointer border border-slate-300 dark:border-slate-600 p-0 bg-transparent"
+                      title="เลือกสีกระดาษแบบอิสระ"
+                    />
+                  </div>
                 </ViewportPopover>
               )}
             </div>
@@ -1029,6 +1062,20 @@ export default function StickyNoteItem({
                         {textColor === tc.color && <Check size={10} className={tc.color === '#F8FAFC' ? 'text-slate-800' : 'text-white'} />}
                       </button>
                     ))}
+                    {/* Custom Text Ink Color */}
+                    <div className="w-full pt-1.5 mt-1 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                      <label className="text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
+                        <Pipette size={11} className="text-indigo-500" />
+                        <span>กำหนดสีเอง</span>
+                      </label>
+                      <input
+                        type="color"
+                        value={textColor || '#0F172A'}
+                        onChange={(e) => handleTextColorChange(e.target.value)}
+                        className="w-5 h-5 rounded cursor-pointer border border-slate-300 dark:border-slate-600 p-0 bg-transparent"
+                        title="เลือกสีหมึกตัวอักษรแบบอิสระ"
+                      />
+                    </div>
                   </ViewportPopover>
                 )}
               </div>
@@ -1569,6 +1616,25 @@ export default function StickyNoteItem({
           >
             <Star size={13} className={note.isFavorite ? 'fill-current text-amber-500' : 'text-slate-400'} />
             <span>{note.isFavorite ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              toggleNoteLock(note, onUnlockRequest);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition"
+          >
+            {note.isLocked ? (
+              isVaultUnlocked ? (
+                <Unlock size={13} className="text-emerald-500" />
+              ) : (
+                <Lock size={13} className="text-amber-500" />
+              )
+            ) : (
+              <Unlock size={13} className="text-slate-400" />
+            )}
+            <span>{note.isLocked ? (isVaultUnlocked ? 'ยกเลิกการเข้ารหัสและปลดล็อก' : 'ปลดล็อกโน้ตที่เข้ารหัส') : 'เข้ารหัสและล็อกโน้ตนี้ (E2EE)'}</span>
           </button>
           <button
             type="button"

@@ -248,6 +248,62 @@ export class NoteController {
         }
       }
 
+      let resolvedPosX = posX;
+      let resolvedPosY = posY;
+
+      // Query existing active notes on this board to verify coordinates and prevent overlapping notes
+      const existingNotes = await prisma.note.findMany({
+        where: { userId, boardId: boardId || null, isArchived: false },
+        select: { posX: true, posY: true, width: true, height: true },
+      });
+
+      const isSlotColliding = (candX: number, candY: number, candW = 260, candH = 260) => {
+        const margin = 16;
+        return existingNotes.some((n) => {
+          const nx = n.posX ?? 24;
+          const ny = n.posY ?? 24;
+          const nw = n.width ?? 260;
+          const nh = n.height ?? 260;
+          return (
+            candX < nx + nw + margin &&
+            candX + candW + margin > nx &&
+            candY < ny + nh + margin &&
+            candY + candH + margin > ny
+          );
+        });
+      };
+
+      if (
+        resolvedPosX === undefined ||
+        resolvedPosY === undefined ||
+        isSlotColliding(resolvedPosX, resolvedPosY)
+      ) {
+        const cols = 7;
+        const spacingX = 285;
+        const spacingY = 295;
+        const startX = 16;
+        const startY = 16;
+        let found = false;
+
+        for (let slot = 0; slot < existingNotes.length + 100; slot++) {
+          const col = slot % cols;
+          const row = Math.floor(slot / cols);
+          const candX = startX + col * spacingX;
+          const candY = startY + row * spacingY;
+          if (!isSlotColliding(candX, candY)) {
+            resolvedPosX = candX;
+            resolvedPosY = candY;
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          resolvedPosX = startX;
+          resolvedPosY = startY;
+        }
+      }
+
       const newNote = await prisma.note.create({
         data: {
           title: title || 'ไม่มีชื่อ',
@@ -258,8 +314,8 @@ export class NoteController {
           fontFamily: fontFamily || 'sans',
           kanbanStatus: kanbanStatus || 'todo',
           rotation: rotation !== undefined ? rotation : 0,
-          posX: posX !== undefined ? posX : 100,
-          posY: posY !== undefined ? posY : 100,
+          posX: resolvedPosX,
+          posY: resolvedPosY,
           width: width !== undefined ? width : 260,
           height: height !== undefined ? height : 240,
           isLocked: !!isLocked,

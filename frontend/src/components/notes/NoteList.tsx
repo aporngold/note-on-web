@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
-import { Pin, Trash2, Copy, Lock, Book, Tag, Maximize2, Share2 } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Unlock, Book, Tag, Maximize2, Share2 } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -15,7 +15,7 @@ interface NoteListProps {
 
 export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: NoteListProps) {
   const router = useRouter();
-  const { deleteNote, duplicateNote, togglePin } = useNoteStore();
+  const { deleteNote, duplicateNote, togglePin, toggleNoteLock } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [shareNote, setShareNote] = useState<Note | null>(null);
 
@@ -56,14 +56,34 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
                   {note.isPinned && (
                     <Pin size={13} className="text-indigo-500 fill-indigo-500 flex-shrink-0" />
                   )}
-                  {note.isLocked && (
-                    <Lock
-                      size={13}
-                      className={
-                        isVaultUnlocked ? 'text-emerald-500' : 'text-amber-500'
-                      }
-                    />
-                  )}
+                  {/* Lock / E2EE status button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleNoteLock(note, onUnlockRequest);
+                    }}
+                    className={`p-0.5 rounded transition cursor-pointer shrink-0 ${
+                      note.isLocked
+                        ? isVaultUnlocked
+                          ? 'text-emerald-500 hover:text-emerald-600'
+                          : 'text-amber-500 hover:text-amber-600 animate-pulse'
+                        : 'text-slate-400 opacity-40 hover:opacity-100 hover:text-amber-500'
+                    }`}
+                    title={
+                      note.isLocked
+                        ? isVaultUnlocked
+                          ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
+                          : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อก)'
+                        : 'คลิกเพื่อเข้ารหัสและล็อกโน้ตนี้ (E2EE)'
+                    }
+                  >
+                    {note.isLocked ? (
+                      isVaultUnlocked ? <Unlock size={13} /> : <Lock size={13} />
+                    ) : (
+                      <Unlock size={13} />
+                    )}
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-slate-400">
@@ -101,6 +121,29 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
                 title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
               >
                 <Maximize2 size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNoteLock(note, onUnlockRequest);
+                }}
+                className={`p-1.5 rounded-lg transition hover:bg-slate-200 dark:hover:bg-slate-600 ${
+                  note.isLocked
+                    ? isVaultUnlocked
+                      ? 'text-emerald-500 hover:text-emerald-600'
+                      : 'text-amber-500 hover:text-amber-600'
+                    : 'text-slate-400 hover:text-amber-500'
+                }`}
+                title={
+                  note.isLocked
+                    ? isVaultUnlocked
+                      ? 'ยกเลิกการเข้ารหัสและปลดล็อก'
+                      : 'ปลดล็อกโน้ตที่เข้ารหัส'
+                    : 'เข้ารหัสและล็อกโน้ต (E2EE)'
+                }
+              >
+                {note.isLocked ? (isVaultUnlocked ? <Unlock size={15} /> : <Lock size={15} />) : <Unlock size={15} />}
               </button>
               <button
                 onClick={(e) => {

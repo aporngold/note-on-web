@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { Pin, Trash2, Copy, Lock, Book, Tag, Star, Paperclip, Music, Maximize2, Share2, MoreVertical, Edit3 } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Unlock, Book, Tag, Star, Paperclip, Music, Maximize2, Share2, MoreVertical, Edit3 } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -20,7 +20,7 @@ interface NoteCardProps {
 
 export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: NoteCardProps) {
   const router = useRouter();
-  const { deleteNote, duplicateNote, togglePin, toggleFavorite, setSelectedLabel } = useNoteStore();
+  const { deleteNote, duplicateNote, togglePin, toggleFavorite, toggleNoteLock, setSelectedLabel } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
 
   // Content preview logic
@@ -96,18 +96,35 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
         {/* Header Badges */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-1.5 flex-wrap">
-            {note.isLocked && (
-              <span
-                className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                  isVaultUnlocked
-                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                }`}
-              >
-                <Lock size={12} />
-                {isVaultUnlocked ? 'ปลดล็อกแล้ว' : 'เข้ารหัส E2EE'}
-              </span>
-            )}
+            {/* Lock / E2EE status button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNoteLock(note, onUnlockRequest);
+              }}
+              className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full transition cursor-pointer hover:opacity-80 active:scale-95 ${
+                note.isLocked
+                  ? isVaultUnlocked
+                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/20'
+                    : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20 animate-pulse'
+                  : 'bg-slate-100 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 hover:text-amber-600'
+              }`}
+              title={
+                note.isLocked
+                  ? isVaultUnlocked
+                    ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
+                    : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
+                  : 'คลิกเพื่อเข้ารหัสและล็อกโน้ตนี้ (E2EE)'
+              }
+            >
+              {note.isLocked ? (
+                isVaultUnlocked ? <Unlock size={12} /> : <Lock size={12} />
+              ) : (
+                <Unlock size={12} className="opacity-60" />
+              )}
+              <span>{note.isLocked ? (isVaultUnlocked ? 'ปลดล็อกแล้ว' : 'เข้ารหัส E2EE') : 'ล็อคโน้ต'}</span>
+            </button>
 
             {note.notebook && (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
@@ -319,6 +336,22 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsMoreOpen(false);
+                    toggleNoteLock(note, onUnlockRequest);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                  {note.isLocked ? (
+                    isVaultUnlocked ? <Unlock size={13} className="text-emerald-500" /> : <Lock size={13} className="text-amber-500" />
+                  ) : (
+                    <Unlock size={13} className="text-slate-400" />
+                  )}
+                  <span>{note.isLocked ? (isVaultUnlocked ? 'ยกเลิกการเข้ารหัสและปลดล็อก' : 'ปลดล็อกโน้ตที่เข้ารหัส') : 'เข้ารหัสและล็อกโน้ต (E2EE)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
                     togglePin(note.id);
                   }}
                   className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
@@ -390,6 +423,17 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
             icon={<Star size={14} className={note.isFavorite ? 'fill-amber-500 text-amber-500' : ''} />}
             label={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
             onClick={() => toggleFavorite(note.id)}
+          />
+          <ViewportMenuItem
+            icon={
+              note.isLocked ? (
+                isVaultUnlocked ? <Unlock size={14} className="text-emerald-500" /> : <Lock size={14} className="text-amber-500" />
+              ) : (
+                <Unlock size={14} className="text-slate-400" />
+              )
+            }
+            label={note.isLocked ? (isVaultUnlocked ? 'ยกเลิกการเข้ารหัสและปลดล็อก' : 'ปลดล็อกโน้ตที่เข้ารหัส') : 'เข้ารหัสและล็อกโน้ต (E2EE)'}
+            onClick={() => toggleNoteLock(note, onUnlockRequest)}
           />
           <ViewportMenuItem
             icon={<Pin size={14} className={note.isPinned ? 'fill-indigo-500 text-indigo-500' : ''} />}

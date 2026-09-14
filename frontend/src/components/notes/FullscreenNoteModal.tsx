@@ -40,8 +40,11 @@ import { ResizableImageExtension, AudioExtension } from './editorExtensions';
 
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
+import { useAuthStore } from '@/store/authStore';
+import { EncryptionService } from '@/utils/encryption';
 import toast from 'react-hot-toast';
 import NoteRichToolbar from './NoteRichToolbar';
+import MasterPasswordModal from './MasterPasswordModal';
 import AudioRecorderModal from './AudioRecorderModal';
 import ShareNoteModal from './ShareNoteModal';
 import VersionHistoryDrawer from './VersionHistoryDrawer';
@@ -102,6 +105,10 @@ export default function FullscreenNoteModal({
   const [isTrulyFullscreen, setIsTrulyFullscreen] = useState(true);
   const [isBorderless, setIsBorderless] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [pendingLockAction, setPendingLockAction] = useState<'lock' | 'unlock' | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
@@ -184,8 +191,25 @@ export default function FullscreenNoteModal({
       setTextColor(note.textColor || '#0F172A');
       setFontFamily(note.fontFamily || 'sans');
       setFontSize(note.fontSize || 'normal');
+      setIsLocked(!!note.isLocked);
 
-      const initialHtml = convertLegacyContentToHtml(note.content || '');
+      let rawContent = note.content || '';
+      if (note.isLocked) {
+        if (isVaultUnlocked) {
+          try {
+            const parsed = JSON.parse(note.content || '{}');
+            if (parsed.encrypted && parsed.iv) {
+              rawContent = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+            }
+          } catch (e) {
+            // Not JSON or plain
+          }
+        } else {
+          setIsVaultModalOpen(true);
+        }
+      }
+
+      const initialHtml = convertLegacyContentToHtml(rawContent);
       setContent(initialHtml);
       if (editor) {
         editor.commands.setContent(initialHtml, { emitUpdate: false });
@@ -199,17 +223,33 @@ export default function FullscreenNoteModal({
       };
       hasUnsavedChangesRef.current = false;
     }
-  }, [note, editor]);
+  }, [note, editor, isVaultUnlocked]);
 
   const performSave = useCallback(async (customData?: Partial<Note>) => {
     if (!note) return;
     try {
       setIsAutoSaving(true);
+      let finalContent = latestDataRef.current.content;
+      let iv: string | null = null;
+      let salt: string | null = null;
+      const targetLocked = customData?.isLocked !== undefined ? customData.isLocked : isLocked;
+
+      if (targetLocked) {
+        if (isVaultUnlocked && EncryptionService.getInstance().isUnlocked()) {
+          const encResult = EncryptionService.getInstance().encrypt(finalContent);
+          finalContent = JSON.stringify(encResult);
+          iv = encResult.iv;
+        }
+      }
+
       await updateNote(note.id, {
         title: latestDataRef.current.title,
-        content: latestDataRef.current.content,
+        content: finalContent,
         color: latestDataRef.current.color,
         textColor: latestDataRef.current.textColor,
+        isLocked: targetLocked,
+        iv,
+        salt,
         ...customData,
       });
       hasUnsavedChangesRef.current = false;
@@ -219,7 +259,24 @@ export default function FullscreenNoteModal({
     } finally {
       setIsAutoSaving(false);
     }
-  }, [note, updateNote]);
+  }, [note, updateNote, isLocked, isVaultUnlocked]);
+
+  const handleLockToggle = () => {
+    const isReady = isVaultUnlocked && EncryptionService.getInstance().isUnlocked();
+    if (!isReady) {
+      setPendingLockAction(isLocked ? 'unlock' : 'lock');
+      setIsVaultModalOpen(true);
+      return;
+    }
+    const nextLocked = !isLocked;
+    setIsLocked(nextLocked);
+    if (nextLocked) {
+      toast.success('เปิดระบบป้องกัน E2EE สำหรับโน้ตนี้แล้ว');
+    } else {
+      toast('ปลดล็อกโน้ตแล้ว (ยกเลิกการเข้ารหัส E2EE)', { icon: '🔓' });
+    }
+    performSave({ isLocked: nextLocked });
+  };
 
   // Periodic Auto-Save every 15 minutes (15 * 60 * 1000 ms)
   useEffect(() => {
@@ -434,6 +491,8 @@ export default function FullscreenNoteModal({
               onTogglePin={async () => {
                 await togglePin(note.id);
               }}
+              isLocked={isLocked}
+              onToggleLock={handleLockToggle}
               isBorderless={isBorderless}
               onToggleBorderless={() => setIsBorderless(!isBorderless)}
               zoomLevel={zoomLevel}
@@ -673,6 +732,43 @@ export default function FullscreenNoteModal({
             const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
             const fullUrl = audioUrl.startsWith('http') ? audioUrl : `${apiUrl}${audioUrl}`;
             editor.chain().focus().insertContent(`<p><audio controls src="${fullUrl}"></audio></p>`).run();
+          }
+        }}
+      />
+
+      {/* Master Password Modal for Vault Unlock / E2EE Protection */}
+      <MasterPasswordModal
+        isOpen={isVaultModalOpen}
+        onClose={() => {
+          setIsVaultModalOpen(false);
+          setPendingLockAction(null);
+        }}
+        onSuccess={() => {
+          if (pendingLockAction === 'lock') {
+            setIsLocked(true);
+            performSave({ isLocked: true });
+            toast.success('เปิดระบบป้องกัน E2EE สำหรับโน้ตนี้แล้ว');
+          } else if (pendingLockAction === 'unlock') {
+            setIsLocked(false);
+            performSave({ isLocked: false });
+            toast('ปลดล็อกโน้ตแล้ว (ยกเลิกการเข้ารหัส E2EE)', { icon: '🔓' });
+          }
+          setPendingLockAction(null);
+
+          // Decrypt if note was locked
+          if (note && note.isLocked && note.content) {
+            try {
+              const parsed = JSON.parse(note.content);
+              if (parsed.encrypted && parsed.iv) {
+                const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+                const html = convertLegacyContentToHtml(dec);
+                setContent(html);
+                latestDataRef.current.content = html;
+                if (editor) {
+                  editor.commands.setContent(html, { emitUpdate: false });
+                }
+              }
+            } catch (e) {}
           }
         }}
       />

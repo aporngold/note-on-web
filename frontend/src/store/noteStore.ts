@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import api from '@/utils/api';
 import { Note, Notebook, Label, Board, ViewMode, BoardViewMode, NoteConnection } from '@/types';
 import toast from 'react-hot-toast';
+import { EncryptionService } from '@/utils/encryption';
+import { useAuthStore } from '@/store/authStore';
 
 interface NoteState {
   notes: Note[];
@@ -20,8 +22,12 @@ interface NoteState {
   boardViewMode: BoardViewMode;
   isLoading: boolean;
   isTrashLoading: boolean;
+  pendingLockNote: Note | null;
 
   // Actions
+  setPendingLockNote: (note: Note | null) => void;
+  toggleNoteLock: (note: Note, onNeedMasterPassword?: () => void) => Promise<void>;
+  processPendingLock: () => Promise<void>;
   fetchNotes: (params?: { isArchived?: boolean; isLocked?: boolean; boardId?: string | null }) => Promise<void>;
   fetchTrashNotes: () => Promise<void>;
   fetchNotebooks: () => Promise<void>;
@@ -78,7 +84,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   labels: [],
   boards: [],
   connections: [],
-  activeBoardId: null,
+  activeBoardId: (typeof window !== 'undefined' ? localStorage.getItem('secure_note_active_board_id') : null) || null,
   selectedNotebook: null,
   selectedLabel: null,
   selectedColor: null,
@@ -88,6 +94,9 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   boardViewMode: 'freeform',
   isLoading: false,
   isTrashLoading: false,
+  pendingLockNote: null,
+
+  setPendingLockNote: (note) => set({ pendingLockNote: note }),
 
   fetchNotes: async (params = {}) => {
     set({ isLoading: true });
@@ -167,7 +176,20 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       if (!currentActive || !boards.some((b: Board) => b.id === currentActive)) {
         const defaultBoard = boards.find((b: Board) => b.isDefault) || boards[0];
         if (defaultBoard) {
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('secure_note_active_board_id', defaultBoard.id);
+              if (defaultBoard.theme) localStorage.setItem('secure_note_active_board_theme', defaultBoard.theme);
+            } catch (e) {}
+          }
           set({ activeBoardId: defaultBoard.id });
+        }
+      } else {
+        const found = boards.find((b: Board) => b.id === currentActive);
+        if (found?.theme && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('secure_note_active_board_theme', found.theme);
+          } catch (e) {}
         }
       }
     } catch (error) {
@@ -187,6 +209,12 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   createBoard: async (data) => {
     const res = await api.post('/boards', data);
     const newBoard = res.data;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('secure_note_active_board_id', newBoard.id);
+        if (newBoard.theme) localStorage.setItem('secure_note_active_board_theme', newBoard.theme);
+      } catch (e) {}
+    }
     set((state) => ({
       boards: [...state.boards, newBoard],
       activeBoardId: newBoard.id,
@@ -199,6 +227,11 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   updateBoard: async (id, data) => {
     const res = await api.put(`/boards/${id}`, data);
     const updated = res.data;
+    if (typeof window !== 'undefined' && updated.theme) {
+      try {
+        localStorage.setItem('secure_note_active_board_theme', updated.theme);
+      } catch (e) {}
+    }
     set((state) => ({
       boards: state.boards.map((b) => (b.id === id ? { ...b, ...updated } : b)),
     }));
@@ -244,6 +277,19 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       const remaining = get().boards.filter((b) => b.id !== id);
       const fallback = remaining.find((b) => b.isDefault) || remaining[0] || null;
       const boardNotesToTrash = get().notes.filter((n) => n.boardId === id).map((n) => ({ ...n, isArchived: true }));
+      
+      if (typeof window !== 'undefined') {
+        if (fallback) {
+          try {
+            localStorage.setItem('secure_note_active_board_id', fallback.id);
+            if (fallback.theme) localStorage.setItem('secure_note_active_board_theme', fallback.theme);
+          } catch (e) {}
+        } else {
+          localStorage.removeItem('secure_note_active_board_id');
+          localStorage.removeItem('secure_note_active_board_theme');
+        }
+      }
+
       set({
         boards: remaining,
         activeBoardId: fallback ? fallback.id : null,
@@ -261,6 +307,17 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   setActiveBoardId: (id) => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (id) {
+          localStorage.setItem('secure_note_active_board_id', id);
+          const current = get().boards.find((b) => b.id === id);
+          if (current?.theme) localStorage.setItem('secure_note_active_board_theme', current.theme);
+        } else {
+          localStorage.removeItem('secure_note_active_board_id');
+        }
+      } catch (e) {}
+    }
     set({ activeBoardId: id });
     get().fetchNotes();
   },
@@ -479,6 +536,68 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       ),
     }));
     toast.success(res.data.message);
+  },
+
+  toggleNoteLock: async (note: Note, onNeedMasterPassword?: () => void) => {
+    const isVaultUnlocked = useAuthStore.getState().isVaultUnlocked;
+    const encryption = EncryptionService.getInstance();
+    const isKeyReady = isVaultUnlocked && encryption.isUnlocked();
+
+    if (!isKeyReady) {
+      set({ pendingLockNote: note });
+      if (onNeedMasterPassword) {
+        onNeedMasterPassword();
+      } else {
+        toast.error('กรุณาปลดล็อกห้องนิรภัยด้วย Master Password ก่อนดำเนินการ');
+      }
+      return;
+    }
+
+    try {
+      if (note.isLocked) {
+        // Unlock note: decrypt content and set isLocked = false
+        let decrypted = note.content || '';
+        if (note.content) {
+          try {
+            const parsed = JSON.parse(note.content);
+            if (parsed.encrypted && parsed.iv) {
+              decrypted = encryption.decrypt(parsed.encrypted, parsed.iv);
+            }
+          } catch (e) {
+            // Content might not be JSON or already plain
+          }
+        }
+        await get().updateNote(note.id, {
+          isLocked: false,
+          content: decrypted,
+          iv: null,
+          salt: null,
+        });
+        toast('ยกเลิกการเข้ารหัสและปลดล็อกโน้ตแล้ว', { icon: '🔓' });
+      } else {
+        // Lock note: encrypt content and set isLocked = true
+        const plainContent = note.content || '';
+        const encResult = encryption.encrypt(plainContent);
+        await get().updateNote(note.id, {
+          isLocked: true,
+          content: JSON.stringify(encResult),
+          iv: encResult.iv,
+          salt: null,
+        });
+        toast.success('เข้ารหัสและล็อกโน้ตนี้เรียบร้อยแล้ว (E2EE Active)');
+      }
+    } catch (err: any) {
+      console.error('toggleNoteLock error:', err);
+      toast.error(err.message || 'เกิดข้อผิดพลาดในการล็อก/ปลดล็อกโน้ต');
+    }
+  },
+
+  processPendingLock: async () => {
+    const pending = get().pendingLockNote;
+    if (!pending) return;
+    set({ pendingLockNote: null });
+    const freshNote = get().notes.find((n) => n.id === pending.id) || pending;
+    await get().toggleNoteLock(freshNote);
   },
 
   emptyTrash: async () => {

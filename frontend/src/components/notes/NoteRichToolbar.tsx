@@ -49,8 +49,11 @@ import {
   Sparkles,
   ScanText,
   History,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
 import SpeechToTextButton from './SpeechToTextButton';
 import ViewportPopover from '../ui/ViewportPopover';
 
@@ -95,6 +98,8 @@ interface NoteRichToolbarProps {
   onTextColorChange?: (color: string) => void;
   isPinned: boolean;
   onTogglePin: () => void;
+  isLocked?: boolean;
+  onToggleLock?: () => void;
   isBorderless: boolean;
   onToggleBorderless: () => void;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null> | React.RefObject<HTMLTextAreaElement>;
@@ -131,6 +136,8 @@ export default function NoteRichToolbar({
   onTextColorChange,
   isPinned,
   onTogglePin,
+  isLocked,
+  onToggleLock,
   isBorderless,
   onToggleBorderless,
   textareaRef,
@@ -167,6 +174,7 @@ export default function NoteRichToolbar({
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [historyStack, setHistoryStack] = useState<string[]>([content]);
   const [historyIndex, setHistoryIndex] = useState(0);
+  const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
 
   // Collapsible toolbar states (Remembered with localStorage, default collapsed on mobile < 1024px)
   const [isTopPaletteCollapsed, setIsTopPaletteCollapsed] = useState(false);
@@ -866,28 +874,57 @@ export default function NoteRichToolbar({
               );
             })}
 
-            {/* Color Wheel / Custom Picker */}
-            <div className="relative ml-1">
-              <button
-                type="button"
+            {/* Custom Free Color Picker for Note Color (เหมือนสีตัวอักษรและไฮไลต์) */}
+            <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-slate-200 dark:border-slate-700">
+              <label
                 onClick={() => customColorInputRef.current?.click()}
-                className="w-6 h-6 rounded-full bg-gradient-to-tr from-rose-400 via-amber-300 to-indigo-400 border border-slate-300 shadow-xs hover:scale-110 transition flex items-center justify-center"
-                title="เลือกสีอื่นตามใจชอบ..."
+                className="flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                title="เลือกสีกระดาษโน้ตแบบอิสระ"
               >
-                <span className="text-[10px] font-bold text-white drop-shadow-xs">🎨</span>
-              </button>
+                <Pipette size={13} className="text-indigo-500" />
+                <span>กำหนดสีเอง</span>
+              </label>
               <input
                 ref={customColorInputRef}
                 type="color"
                 value={color || '#FEF08A'}
                 onChange={(e) => onColorChange(e.target.value)}
-                className="sr-only"
+                className="w-5 h-5 rounded-md cursor-pointer border border-slate-300 dark:border-slate-600 p-0 bg-transparent"
+                title="คลิกเพื่อเลือกสีกระดาษโน้ตแบบอิสระ"
               />
             </div>
           </div>
 
-          {/* Right: Push Pin & Borderless Checkbox */}
-          <div className="flex items-center gap-4">
+          {/* Right: Lock, Push Pin & Borderless Checkbox */}
+          <div className="flex items-center gap-3">
+            {/* Lock / E2EE Button */}
+            {onToggleLock && (
+              <button
+                type="button"
+                onClick={onToggleLock}
+                className={`p-1.5 rounded-lg transition cursor-pointer flex items-center justify-center ${
+                  isLocked
+                    ? isVaultUnlocked
+                      ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-500/30 font-bold'
+                      : 'text-amber-700 dark:text-amber-300 bg-amber-500/15 ring-1 ring-amber-500/30 font-bold animate-pulse'
+                    : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+                title={
+                  isLocked
+                    ? isVaultUnlocked
+                      ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
+                      : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
+                    : 'คลิกเพื่อเข้ารหัสและล็อกโน้ตนี้ (E2EE)'
+                }
+              >
+                {isLocked ? (
+                  isVaultUnlocked ? <Unlock size={14} /> : <Lock size={14} />
+                ) : (
+                  <Unlock size={14} className="opacity-40 hover:opacity-100 hover:text-amber-500" />
+                )}
+              </button>
+            )}
+
             {/* Red Push Pin */}
             <button
               type="button"
@@ -1628,7 +1665,7 @@ export default function NoteRichToolbar({
             triggerRef={activeColorTrigger === 'pipette' ? pipetteBtnRef : textColorBtnRef}
             isOpen={isTextColorMenuOpen}
             onClose={() => setIsTextColorMenuOpen(false)}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 w-40"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2.5 w-44"
           >
             <p className="text-[10px] font-bold text-slate-400 mb-1.5">เลือกสีตัวอักษร:</p>
             <div className="grid grid-cols-4 gap-1.5">
@@ -1640,11 +1677,27 @@ export default function NoteRichToolbar({
                     handleSetTextColor(tc.color, tc.name);
                     setIsTextColorMenuOpen(false);
                   }}
-                  className="w-6 h-6 rounded-full border border-slate-300 shadow-xs hover:scale-110 transition flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-slate-300 dark:border-slate-600 shadow-xs hover:scale-110 transition flex items-center justify-center"
                   style={{ backgroundColor: tc.color }}
                   title={tc.name}
                 />
               ))}
+            </div>
+            {/* Custom Free Color Picker */}
+            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+              <label className="text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+                <Pipette size={13} className="text-indigo-500" />
+                <span>กำหนดสีเอง</span>
+              </label>
+              <input
+                type="color"
+                className="w-6 h-6 rounded-md cursor-pointer border border-slate-200 dark:border-slate-600 p-0 bg-transparent"
+                title="เลือกสีตัวอักษรแบบอิสระ"
+                onChange={(e) => {
+                  handleSetTextColor(e.target.value, e.target.value);
+                  setIsTextColorMenuOpen(false);
+                }}
+              />
             </div>
           </ViewportPopover>
         </div>
@@ -1665,7 +1718,7 @@ export default function NoteRichToolbar({
             triggerRef={highlightBtnRef}
             isOpen={isHighlightMenuOpen}
             onClose={() => setIsHighlightMenuOpen(false)}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 w-36"
+            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2.5 w-44"
           >
             <p className="text-[10px] font-bold text-slate-400 mb-1.5">สีไฮไลต์:</p>
             <div className="flex gap-1.5 flex-wrap">
@@ -1677,11 +1730,28 @@ export default function NoteRichToolbar({
                     handleSetHighlight(hc.color, hc.name);
                     setIsHighlightMenuOpen(false);
                   }}
-                  className="w-5 h-5 rounded-md border border-slate-300 shadow-xs hover:scale-110 transition"
+                  className="w-6 h-6 rounded-md border border-slate-300 dark:border-slate-600 shadow-xs hover:scale-110 transition"
                   style={{ backgroundColor: hc.color }}
                   title={hc.name}
                 />
               ))}
+            </div>
+            {/* Custom Free Color Picker for Highlight */}
+            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+              <label className="text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-amber-600 dark:hover:text-amber-400 transition">
+                <Pipette size={13} className="text-amber-500" />
+                <span>กำหนดสีเอง</span>
+              </label>
+              <input
+                type="color"
+                defaultValue="#FEF08A"
+                className="w-6 h-6 rounded-md cursor-pointer border border-slate-200 dark:border-slate-600 p-0 bg-transparent"
+                title="เลือกสีไฮไลต์แบบอิสระ"
+                onChange={(e) => {
+                  handleSetHighlight(e.target.value, e.target.value);
+                  setIsHighlightMenuOpen(false);
+                }}
+              />
             </div>
           </ViewportPopover>
         </div>

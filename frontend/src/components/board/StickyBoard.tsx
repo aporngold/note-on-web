@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import {
   Plus,
@@ -68,8 +68,23 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     notes: allNotes,
   } = useNoteStore();
 
+  const activeBoard = boards.find((b) => b.id === activeBoardId);
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
-  const [boardTheme, setBoardTheme] = useState<BoardTheme>('cork');
+  const [cachedTheme, setCachedTheme] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('secure_note_active_board_theme');
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (activeBoard?.theme) {
+      setCachedTheme(activeBoard.theme);
+      try {
+        localStorage.setItem('secure_note_active_board_theme', activeBoard.theme);
+      } catch (e) { }
+    }
+  }, [activeBoard?.theme]);
 
   // Real-time note count per board from reactive store state
   const getBoardNoteCount = (b: Board) => {
@@ -86,7 +101,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   const handleOpenFullscreen = (n: Note) => {
     if (typeof document !== 'undefined' && !document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
+      document.documentElement.requestFullscreen?.().catch(() => { });
     }
     setFullscreenNote(n);
   };
@@ -117,6 +132,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
   const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(null);
   const focusTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reservation of slots to prevent overlapping when creating notes rapidly
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
@@ -247,53 +263,180 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     };
   }, [zoom]);
 
-  // Clean up focus timer on unmount
+  // Clean up focus & highlight timers on unmount
   useEffect(() => {
     return () => {
       if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
     };
   }, []);
 
-  const bringToFront = (noteId: string) => {
+  const bringToFront = useCallback((noteId: string) => {
     highestZRef.current += 1;
     const newZ = highestZRef.current;
     setNoteZIndices((prev) => ({ ...prev, [noteId]: newZ }));
-  };
+  }, []);
 
-  const handleNoteFocus = (noteId: string) => {
-    bringToFront(noteId);
-    setFocusedNoteId(noteId);
-    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
-    focusTimerRef.current = setTimeout(() => {
-      setFocusedNoteId(null);
-    }, 500);
+  // Ensure a note is completely inside the visible viewport and comfortable to read/edit
+  const ensureNoteInView = useCallback(
+    (targetNote: Note) => {
+      const container = canvasContainerRef.current;
+      if (!container) return;
 
-    // If currently zoomed out in fit-board view, restore zoom to 100% and scroll to the clicked note!
-    if (zoom < 0.85) {
-      setZoom(1.0);
-      showZoomOverlay();
-      setTimeout(() => {
-        const container = canvasContainerRef.current;
-        if (!container) return;
-        const el = document.getElementById(`note-card-${noteId}`);
-        if (el) {
-          const targetX = Math.max(0, el.offsetLeft - 24);
-          const targetY = Math.max(0, el.offsetTop - 24);
-          container.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
-        } else {
-          const note = notes.find((n) => n.id === noteId);
-          if (note) {
-            const targetX = Math.max(0, (note.posX ?? 80) - 24);
-            const targetY = Math.max(0, (note.posY ?? 80) - 24);
-            container.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
-          }
+      const noteWidth = (targetNote.width ?? 260) * zoom;
+      const noteHeight = (targetNote.height ?? 260) * zoom;
+      const noteLeft = (targetNote.posX ?? 16) * zoom;
+      const noteTop = (targetNote.posY ?? 16) * zoom;
+      const noteRight = noteLeft + noteWidth;
+      const noteBottom = noteTop + noteHeight;
+
+      const viewLeft = container.scrollLeft;
+      const viewTop = container.scrollTop;
+      const viewRight = viewLeft + container.clientWidth;
+      const viewBottom = viewTop + container.clientHeight;
+
+      const margin = 36;
+
+      const isFullyVisible =
+        noteLeft >= viewLeft &&
+        noteRight <= viewRight &&
+        noteTop >= viewTop &&
+        noteBottom <= viewBottom;
+
+      if (!isFullyVisible) {
+        let targetX = viewLeft;
+        let targetY = viewTop;
+
+        if (noteRight > viewRight) {
+          targetX = Math.max(0, noteRight - container.clientWidth + margin);
+        } else if (noteLeft < viewLeft) {
+          targetX = Math.max(0, noteLeft - margin);
         }
-      }, 60);
-    }
-  };
 
-  // Automatically scroll to top-left when board changes
+        if (noteBottom > viewBottom) {
+          targetY = Math.max(0, noteBottom - container.clientHeight + margin);
+        } else if (noteTop < viewTop) {
+          targetY = Math.max(0, noteTop - margin);
+        }
+
+        if (targetX !== viewLeft || targetY !== viewTop) {
+          container.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+        }
+      }
+    },
+    [zoom]
+  );
+
+  const handleNoteFocus = useCallback(
+    (noteId: string) => {
+      bringToFront(noteId);
+      setFocusedNoteId(noteId);
+      // Dismiss any active highlight immediately so clicking another note never leaves old highlight stuck
+      setHighlightedNoteId(null);
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => {
+        setFocusedNoteId(null);
+      }, 500);
+
+      const targetNote = notes.find((n) => n.id === noteId);
+      if (targetNote) {
+        ensureNoteInView(targetNote);
+      }
+    },
+    [bringToFront, notes, ensureNoteInView]
+  );
+
+  // Auto-resolve overlapping notes on board load (safely unpack any older notes hidden underneath)
+  const resolvedOverlapsRef = useRef<boolean>(false);
   useEffect(() => {
+    if (notes.length <= 1 || resolvedOverlapsRef.current) return;
+
+    const occupiedSlots: Array<{ id: string; x: number; y: number }> = [];
+    const notesToMove: Array<{ id: string; newX: number; newY: number }> = [];
+
+    const isColliding = (x: number, y: number) => {
+      return occupiedSlots.some((slot) => Math.abs(slot.x - x) < 60 && Math.abs(slot.y - y) < 60);
+    };
+
+    const cols = 7;
+    const spacingX = 285;
+    const spacingY = 295;
+    const startX = 16;
+    const startY = 16;
+
+    const findFreeSlot = () => {
+      for (let slot = 0; slot < notes.length + 100; slot++) {
+        const c = slot % cols;
+        const r = Math.floor(slot / cols);
+        const candX = startX + c * spacingX;
+        const candY = startY + r * spacingY;
+        if (!isColliding(candX, candY)) {
+          return { x: candX, y: candY };
+        }
+      }
+      return { x: startX, y: startY };
+    };
+
+    notes.forEach((note) => {
+      const curX = note.posX ?? 24;
+      const curY = note.posY ?? 24;
+      if (isColliding(curX, curY)) {
+        const free = findFreeSlot();
+        occupiedSlots.push({ id: note.id, x: free.x, y: free.y });
+        notesToMove.push({ id: note.id, newX: free.x, newY: free.y });
+      } else {
+        occupiedSlots.push({ id: note.id, x: curX, y: curY });
+      }
+    });
+
+    if (notesToMove.length > 0) {
+      resolvedOverlapsRef.current = true;
+      useNoteStore.setState((state) => ({
+        notes: state.notes.map((n) => {
+          const move = notesToMove.find((m) => m.id === n.id);
+          return move ? { ...n, posX: move.newX, posY: move.newY } : n;
+        }),
+      }));
+      notesToMove.forEach(({ id, newX, newY }) => {
+        updateNote(id, { posX: newX, posY: newY }).catch(() => { });
+      });
+    }
+  }, [notes, updateNote]);
+
+  // Automatically focus newly created note from other views (ensures note is in view while keeping left notes visible)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const focusNoteId = sessionStorage.getItem('secure_note_focus_note_id');
+    if (!focusNoteId || notes.length === 0) return;
+
+    const targetNote = notes.find((n) => n.id === focusNoteId);
+    if (targetNote) {
+      sessionStorage.removeItem('secure_note_focus_note_id');
+      bringToFront(targetNote.id);
+      setFocusedNoteId(targetNote.id);
+      setHighlightedNoteId(targetNote.id);
+
+      ensureNoteInView(targetNote);
+
+      // Dismiss subtle highlight and focus cleanly with graceful timing
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => {
+        setHighlightedNoteId(null);
+      }, 650);
+
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => {
+        setFocusedNoteId((curr) => (curr === targetNote.id ? null : curr));
+      }, 800);
+    }
+  }, [notes, bringToFront, ensureNoteInView]);
+
+  // Automatically scroll to top-left when board changes (except when focusing a newly created/saved note)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('secure_note_focus_note_id')) {
+      return;
+    }
     if (canvasContainerRef.current) {
       canvasContainerRef.current.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     }
@@ -354,10 +497,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note with proper spacing
   const findNextAvailableSlot = () => {
-    const spacingX = 290;
-    const spacingY = 300;
-    const startX = 24;
-    const startY = 24;
+    const spacingX = 285;
+    const spacingY = 295;
+    const startX = 16;
+    const startY = 16;
     // Support 7 notes horizontally across the board before going down to the next row
     const cols = 7;
 
@@ -435,7 +578,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       setFocusedNoteId(newNote.id);
       setHighlightedNoteId(newNote.id);
 
-      // Smoothly scroll ONLY if the note is outside current viewport (keeps exact safe position if already visible)
+      // Smoothly scroll ONLY if the note is outside current viewport (keeps screen completely calm and still if already visible)
       const container = canvasContainerRef.current;
       if (container) {
         const noteLeft = (newNote.posX ?? 24) * zoom;
@@ -456,8 +599,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
         if (!isFullyVisible) {
           container.scrollTo({
-            left: Math.max(0, noteLeft - 24),
-            top: Math.max(0, noteTop - 24),
+            left: Math.max(0, noteLeft - 48),
+            top: Math.max(0, noteTop - 48),
             behavior: 'smooth',
           });
         }
@@ -478,13 +621,15 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       }, 50);
 
       // Complete subtle highlight and finish all effects within 0.50 second (500ms)
-      setTimeout(() => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => {
         setHighlightedNoteId(null);
-      }, 350);
+      }, 400);
 
-      setTimeout(() => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => {
         setFocusedNoteId((curr) => (curr === newNote.id ? null : curr));
-      }, 500);
+      }, 550);
     }
   };
 
@@ -618,8 +763,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     setEditBoardColor(b.color || TAB_COLORS[0]);
   };
 
-  const activeBoard = boards.find((b) => b.id === activeBoardId);
-
   // Background styling based on board theme or custom image
   const getBoardStyle = () => {
     if (activeBoard?.bgImage) {
@@ -631,14 +774,20 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       };
     }
 
-    const currentThemeId = activeBoard?.theme || boardTheme || 'cork';
-    const pattern = BOARD_PATTERNS.find((p) => p.id === currentThemeId);
-    if (pattern) {
-      return pattern.style;
+    const currentThemeId = activeBoard?.theme || cachedTheme;
+    if (currentThemeId) {
+      const pattern = BOARD_PATTERNS.find((p) => p.id === currentThemeId);
+      if (pattern) {
+        return pattern.style;
+      }
     }
 
-    // Default fallback to cork
-    return BOARD_PATTERNS[0].style;
+    // Neutral subtle canvas fallback to prevent flashing cork on load/refresh
+    return {
+      backgroundColor: '#f8fafc',
+      backgroundImage: 'radial-gradient(#cbd5e1 1.2px, transparent 1.2px)',
+      backgroundSize: '24px 24px',
+    };
   };
 
   return (
@@ -683,11 +832,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                         setActiveBoardId(b.id);
                         setIsBoardDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition ${
-                        b.id === activeBoardId
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition ${b.id === activeBoardId
                           ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
                           : 'hover:bg-slate-100 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 truncate">
                         <span
@@ -730,11 +878,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 key={b.id}
                 onClick={() => setActiveBoardId(b.id)}
                 onDoubleClick={(e) => openEditBoardModal(b, e)}
-                className={`group relative flex items-center gap-2 px-3.5 py-1.5 rounded-t-xl text-xs font-bold cursor-pointer transition-all shrink-0 border-t-2 ${
-                  isActive
+                className={`group relative flex items-center gap-2 px-3.5 py-1.5 rounded-t-xl text-xs font-bold cursor-pointer transition-all shrink-0 border-t-2 ${isActive
                     ? 'bg-white dark:bg-slate-800 shadow-sm text-slate-900 dark:text-white'
                     : 'bg-slate-200/60 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
-                }`}
+                  }`}
                 style={{
                   borderTopColor: b.color || '#4F46E5',
                 }}
@@ -931,13 +1078,26 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       {/* ── MAIN SURFACE: Freeform Canvas OR Kanban View ── */}
       {boardViewMode === 'kanban' ? (
         <div className="flex-1 w-full h-full overflow-hidden">
-          <KanbanView notes={notes} />
+          <KanbanView notes={notes} onUnlockRequest={() => setIsVaultModalOpen(true)} />
         </div>
       ) : (
         <div
           ref={canvasContainerRef}
           style={getBoardStyle()}
-          className="flex-1 w-full h-full min-h-0 overflow-auto relative p-6 sm:p-8 cursor-default board-canvas-container"
+          onClick={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (
+              target === e.currentTarget ||
+              target?.id === 'sticky-board-canvas' ||
+              target?.classList.contains('board-canvas-container')
+            ) {
+              setFocusedNoteId(null);
+              setHighlightedNoteId(null);
+              if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+              if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+            }
+          }}
+          className="flex-1 w-full h-full min-h-0 overflow-auto relative p-3 sm:p-4 cursor-default board-canvas-container"
         >
           {/* Zoom Wrapper to allow accurate container scrolling */}
           <div
@@ -963,24 +1123,24 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
               {/* Sticky Notes */}
               {notes.map((note, idx) => (
-                  <StickyNoteItem
-                    key={note.id}
-                    note={note}
-                    index={idx}
-                    zoom={zoom}
-                    onDragEnd={handleDragEnd}
-                    onUnlockRequest={() => setIsVaultModalOpen(true)}
-                    onStartConnect={handleStartConnect}
-                    onTargetConnect={handleTargetConnect}
-                    onOpenFullscreen={handleOpenFullscreen}
-                    isConnectingSource={connectingSourceId === note.id}
-                    isConnectingMode={!!connectingSourceId}
-                    onBringToFront={() => handleNoteFocus(note.id)}
-                    customZIndex={noteZIndices[note.id]}
-                    isFocused={focusedNoteId === note.id}
-                    isHighlighted={highlightedNoteId === note.id}
-                  />
-                ))}
+                <StickyNoteItem
+                  key={note.id}
+                  note={note}
+                  index={idx}
+                  zoom={zoom}
+                  onDragEnd={handleDragEnd}
+                  onUnlockRequest={() => setIsVaultModalOpen(true)}
+                  onStartConnect={handleStartConnect}
+                  onTargetConnect={handleTargetConnect}
+                  onOpenFullscreen={handleOpenFullscreen}
+                  isConnectingSource={connectingSourceId === note.id}
+                  isConnectingMode={!!connectingSourceId}
+                  onBringToFront={() => handleNoteFocus(note.id)}
+                  customZIndex={noteZIndices[note.id]}
+                  isFocused={focusedNoteId === note.id}
+                  isHighlighted={highlightedNoteId === note.id}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -1002,11 +1162,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           <button
             type="button"
             onClick={() => handleZoomChange(1.0)}
-            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-xl transition active:scale-95 flex items-center justify-center min-w-[52px] shadow-xs ${
-              Math.round(zoom * 100) === 100
+            className={`px-2.5 py-1 text-xs font-mono font-bold rounded-xl transition active:scale-95 flex items-center justify-center min-w-[52px] shadow-xs ${Math.round(zoom * 100) === 100
                 ? 'bg-indigo-600 text-white shadow-indigo-500/20'
                 : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
-            }`}
+              }`}
             title="คลิกเพื่อรีเซ็ตขนาดการซูมเป็น 100%"
           >
             {Math.round(zoom * 100)}%
@@ -1217,10 +1376,15 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       <BoardBackgroundModal
         isOpen={isBackgroundModalOpen}
         onClose={() => setIsBackgroundModalOpen(false)}
-        currentTheme={activeBoard?.theme || boardTheme}
+        currentTheme={activeBoard?.theme || cachedTheme || 'canvas'}
         currentBgImage={activeBoard?.bgImage || null}
         onSelectTheme={async (themeId) => {
-          setBoardTheme(themeId as any);
+          setCachedTheme(themeId);
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('secure_note_active_board_theme', themeId);
+            } catch (e) { }
+          }
           if (activeBoardId) {
             await updateBoard(activeBoardId, { theme: themeId, bgImage: null });
           }
@@ -1254,7 +1418,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           isOpen={!!fullscreenNote}
           onClose={() => {
             if (typeof document !== 'undefined' && document.fullscreenElement) {
-              document.exitFullscreen?.().catch(() => {});
+              document.exitFullscreen?.().catch(() => { });
             }
             setFullscreenNote(null);
             fetchNotes({ isArchived: false });

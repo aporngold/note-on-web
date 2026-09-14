@@ -18,6 +18,7 @@ export default function Dashboard() {
   const { user } = useAuthStore();
   const {
     notes,
+    boards,
     notebooks,
     labels,
     selectedNotebook,
@@ -64,9 +65,14 @@ export default function Dashboard() {
     return titleMatch || contentMatch;
   });
 
+  const defaultBoard = boards.find((b) => b.isDefault) || boards[0];
+  const isViewingDefaultBoard = !activeBoardId || activeBoardId === defaultBoard?.id;
+
   // In board mode, show notes belonging to active board (or unassigned notes if on default board)
   const boardNotes = filteredNotes.filter((n) => {
-    if (!activeBoardId) return true;
+    if (isViewingDefaultBoard) {
+      return !n.boardId || n.boardId === defaultBoard?.id;
+    }
     return n.boardId === activeBoardId;
   });
 

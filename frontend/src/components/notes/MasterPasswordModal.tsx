@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, KeyRound, AlertCircle, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useNoteStore } from '@/store/noteStore';
 import toast from 'react-hot-toast';
 
 interface MasterPasswordModalProps {
@@ -36,6 +37,8 @@ export default function MasterPasswordModal({
       toast.success('ปลดล็อกห้องนิรภัยสำเร็จ!');
       setPassword('');
       setError('');
+      // Execute any pending note lock/unlock action
+      useNoteStore.getState().processPendingLock();
       if (onSuccess) onSuccess();
       onClose();
     } else {
