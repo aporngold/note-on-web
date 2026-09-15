@@ -70,22 +70,27 @@ export const PASTEL_PALETTE = [
 ];
 
 export const INK_COLORS = [
-  { name: 'สีดำเข้ม', color: '#0F172A' },
+  { name: 'สีดำเข้ม (ค่าเริ่มต้น)', color: '#0F172A' },
   { name: 'สีเทาเข้ม', color: '#475569' },
-  { name: 'สีน้ำเงิน', color: '#2563EB' },
-  { name: 'สีแดง', color: '#DC2626' },
-  { name: 'สีเขียวเข้ม', color: '#16A34A' },
-  { name: 'สีม่วง', color: '#9333EA' },
+  { name: 'สีน้ำเงินสด', color: '#2563EB' },
+  { name: 'สีน้ำเงินเข้ม', color: '#1E3A8A' },
+  { name: 'สีแดงเพลิง', color: '#DC2626' },
+  { name: 'สีแดงเลือดหมู', color: '#991B1B' },
+  { name: 'สีเขียวสด', color: '#16A34A' },
+  { name: 'สีเขียวมรกต', color: '#065F46' },
   { name: 'สีส้มอิฐ', color: '#EA580C' },
-  { name: 'สีขาว', color: '#FFFFFF' },
+  { name: 'สีทองอำพัน', color: '#D97706' },
+  { name: 'สีม่วงสด', color: '#9333EA' },
+  { name: 'สีชมพู', color: '#DB2777' },
 ];
 
 export const HIGHLIGHT_COLORS = [
   { name: 'เหลืองเรืองแสง', color: '#FEF08A' },
   { name: 'เขียวมิ้นต์', color: '#86EFAC' },
-  { name: 'ชมพูหวาน', color: '#F472B6' },
-  { name: 'ฟ้าสดใส', color: '#93C5FD' },
-  { name: 'ส้มพีช', color: '#FDBA74' },
+  { name: 'ฟ้าพาสเทล', color: '#BAE6FD' },
+  { name: 'ชมพูพาสเทล', color: '#FBCFE8' },
+  { name: 'ส้มพีช', color: '#FED7AA' },
+  { name: 'ม่วงลาเวนเดอร์', color: '#E9D5FF' },
 ];
 
 interface NoteRichToolbarProps {
@@ -578,27 +583,31 @@ export default function NoteRichToolbar({
     toast.success(`แทรก ${dateStr} แล้ว`);
   };
 
-  const handleSetTextColor = (colorHex: string, colorName: string) => {
+  const handleSetTextColor = (colorHex: string, colorName?: string, shouldClose = false) => {
     if (editor) {
       editor.chain().focus().setColor(colorHex).run();
-      setIsTextColorMenuOpen(false);
-      toast.success(`เปลี่ยนสีตัวอักษรเป็น ${colorName}`);
+      if (shouldClose) setIsTextColorMenuOpen(false);
       return;
     }
     insertFormatting(`<span style="color: ${colorHex}">`, '</span>');
-    setIsTextColorMenuOpen(false);
-    toast.success(`เปลี่ยนสีหมึกเป็น ${colorName}`);
+    if (shouldClose) setIsTextColorMenuOpen(false);
   };
 
-  const handleSetHighlight = (colorHex: string, colorName: string) => {
+  const handleSetHighlight = (colorHex: string, colorName?: string, shouldClose = false) => {
     if (editor) {
       editor.chain().focus().toggleHighlight({ color: colorHex }).run();
-      setIsHighlightMenuOpen(false);
-      toast.success(`ไฮไลต์ ${colorName}`);
+      if (shouldClose) setIsHighlightMenuOpen(false);
       return;
     }
     insertFormatting(`<mark style="background-color: ${colorHex}; padding: 1px 4px; border-radius: 4px;">`, '</mark>');
-    setIsHighlightMenuOpen(false);
+    if (shouldClose) setIsHighlightMenuOpen(false);
+  };
+
+  const handleRemoveHighlight = () => {
+    if (editor) {
+      editor.chain().focus().unsetHighlight().run();
+      return;
+    }
   };
 
   const handleHorizontalRule = () => {
@@ -874,24 +883,23 @@ export default function NoteRichToolbar({
               );
             })}
 
-            {/* Custom Free Color Picker for Note Color (เหมือนสีตัวอักษรและไฮไลต์) */}
-            <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-slate-200 dark:border-slate-700">
+            {/* Custom Color Picker for Note Color (Circular Rainbow Swatch) */}
+            <div className="flex items-center pl-2 ml-1 border-l border-slate-200 dark:border-slate-700">
               <label
-                onClick={() => customColorInputRef.current?.click()}
-                className="flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-                title="เลือกสีกระดาษโน้ตแบบอิสระ"
+                className="w-5 h-5 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden"
+                style={{
+                  background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                }}
+                title="กำหนดสีกระดาษโน้ตเอง (Custom Note Color)"
               >
-                <Pipette size={13} className="text-indigo-500" />
-                <span>กำหนดสีเอง</span>
+                <input
+                  ref={customColorInputRef}
+                  type="color"
+                  value={color || '#FEF08A'}
+                  onChange={(e) => onColorChange(e.target.value)}
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                />
               </label>
-              <input
-                ref={customColorInputRef}
-                type="color"
-                value={color || '#FEF08A'}
-                onChange={(e) => onColorChange(e.target.value)}
-                className="w-5 h-5 rounded-md cursor-pointer border border-slate-300 dark:border-slate-600 p-0 bg-transparent"
-                title="คลิกเพื่อเลือกสีกระดาษโน้ตแบบอิสระ"
-              />
             </div>
           </div>
 
@@ -1646,7 +1654,7 @@ export default function NoteRichToolbar({
           <span className="text-[10px] text-rose-500">x</span>
         </button>
 
-        {/* Text Color Dropdown */}
+        {/* Text Color Dropdown (International Standard Style with Color Indicator Bar) */}
         <div className="relative">
           <button
             ref={textColorBtnRef}
@@ -1655,103 +1663,177 @@ export default function NoteRichToolbar({
               setActiveColorTrigger('toolbar');
               setIsTextColorMenuOpen((prev) => !prev);
             }}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition flex items-center gap-0.5"
-            title="สีตัวอักษร"
+            className={`px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition flex items-center gap-1 ${
+              isTextColorMenuOpen ? 'bg-slate-100 dark:bg-slate-800' : ''
+            }`}
+            title="สีตัวอักษร (Text Color)"
           >
-            <span className="font-bold underline decoration-indigo-500 text-sm leading-none px-0.5">A</span>
-            <ChevronDown size={10} className="opacity-60" />
+            <div className="flex flex-col items-center justify-center leading-none">
+              <span className="font-bold text-[13px] leading-tight">A</span>
+              <span
+                className="w-3.5 h-[3px] rounded-full transition-colors shadow-2xs"
+                style={{ backgroundColor: (editor?.getAttributes('textStyle')?.color as string) || textColor || '#0F172A' }}
+              />
+            </div>
+            <ChevronDown size={10} className="opacity-50" />
           </button>
           <ViewportPopover
             triggerRef={activeColorTrigger === 'pipette' ? pipetteBtnRef : textColorBtnRef}
             isOpen={isTextColorMenuOpen}
             onClose={() => setIsTextColorMenuOpen(false)}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2.5 w-44"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-3 w-52 animate-fade-in"
           >
-            <p className="text-[10px] font-bold text-slate-400 mb-1.5">เลือกสีตัวอักษร:</p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {INK_COLORS.map((tc) => (
-                <button
-                  key={tc.color}
-                  type="button"
-                  onClick={() => {
-                    handleSetTextColor(tc.color, tc.name);
-                    setIsTextColorMenuOpen(false);
-                  }}
-                  className="w-6 h-6 rounded-full border border-slate-300 dark:border-slate-600 shadow-xs hover:scale-110 transition flex items-center justify-center"
-                  style={{ backgroundColor: tc.color }}
-                  title={tc.name}
-                />
-              ))}
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-700/80 mb-2">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">สีตัวอักษร</span>
+              <button
+                type="button"
+                onClick={() => handleSetTextColor('#0F172A', 'สีเริ่มต้น')}
+                className="text-[10px] font-semibold text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+              >
+                ค่าเริ่มต้น
+              </button>
+            </div>
+            <div className="grid grid-cols-6 gap-1.5 mb-2">
+              {INK_COLORS.map((tc) => {
+                const activeColor = (editor?.getAttributes('textStyle')?.color as string) || textColor || '#0F172A';
+                const isSelected = activeColor?.toLowerCase() === tc.color.toLowerCase();
+                return (
+                  <button
+                    key={tc.color}
+                    type="button"
+                    onClick={() => handleSetTextColor(tc.color, tc.name, false)}
+                    className={`w-6 h-6 rounded-full border transition-transform flex items-center justify-center ${
+                      isSelected
+                        ? 'ring-2 ring-indigo-500 scale-110 shadow-sm border-white dark:border-slate-800'
+                        : 'border-slate-300/80 dark:border-slate-600 hover:scale-110 shadow-2xs'
+                    }`}
+                    style={{ backgroundColor: tc.color }}
+                    title={tc.name}
+                  >
+                    {isSelected && <Check size={10} className={tc.color === '#FFFFFF' ? 'text-black' : 'text-white'} />}
+                  </button>
+                );
+              })}
             </div>
             {/* Custom Free Color Picker */}
-            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
-              <label className="text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                 <Pipette size={13} className="text-indigo-500" />
                 <span>กำหนดสีเอง</span>
-              </label>
-              <input
-                type="color"
-                className="w-6 h-6 rounded-md cursor-pointer border border-slate-200 dark:border-slate-600 p-0 bg-transparent"
-                title="เลือกสีตัวอักษรแบบอิสระ"
-                onChange={(e) => {
-                  handleSetTextColor(e.target.value, e.target.value);
-                  setIsTextColorMenuOpen(false);
-                }}
-              />
+              </span>
+              <div className="relative flex items-center">
+                <label
+                  className="w-6 h-6 rounded-full cursor-pointer shadow-xs border-2 border-white dark:border-slate-700 transition-transform hover:scale-110 flex items-center justify-center overflow-hidden"
+                  style={{
+                    background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                  }}
+                  title="เลือกสีตัวอักษรแบบอิสระ"
+                >
+                  <input
+                    type="color"
+                    value={(editor?.getAttributes('textStyle')?.color as string) || textColor || '#0F172A'}
+                    className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    onChange={(e) => {
+                      handleSetTextColor(e.target.value, e.target.value, false);
+                    }}
+                  />
+                </label>
+              </div>
             </div>
           </ViewportPopover>
         </div>
 
-        {/* Highlighter Dropdown */}
+        {/* Highlighter Dropdown (International Standard Style with Color Indicator Bar) */}
         <div className="relative">
           <button
             ref={highlightBtnRef}
             type="button"
             onClick={() => setIsHighlightMenuOpen((prev) => !prev)}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition flex items-center gap-0.5"
-            title="ปากกาไฮไลต์ข้อความ"
+            className={`px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition flex items-center gap-1 ${
+              isHighlightMenuOpen ? 'bg-slate-100 dark:bg-slate-800' : ''
+            }`}
+            title="ปากกาเน้นข้อความ (Highlighter)"
           >
-            <Highlighter size={15} className="text-amber-500" />
-            <ChevronDown size={10} className="opacity-60" />
+            <div className="flex flex-col items-center justify-center leading-none">
+              <Highlighter
+                size={14}
+                className={editor?.isActive('highlight') ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}
+              />
+              <span
+                className="w-3.5 h-[3px] rounded-full transition-colors shadow-2xs"
+                style={{
+                  backgroundColor: editor?.isActive('highlight')
+                    ? ((editor?.getAttributes('highlight')?.color as string) || '#FEF08A')
+                    : '#FEF08A',
+                }}
+              />
+            </div>
+            <ChevronDown size={10} className="opacity-50" />
           </button>
           <ViewportPopover
             triggerRef={highlightBtnRef}
             isOpen={isHighlightMenuOpen}
             onClose={() => setIsHighlightMenuOpen(false)}
-            className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2.5 w-44"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 p-3 w-52 animate-fade-in"
           >
-            <p className="text-[10px] font-bold text-slate-400 mb-1.5">สีไฮไลต์:</p>
-            <div className="flex gap-1.5 flex-wrap">
-              {HIGHLIGHT_COLORS.map((hc) => (
-                <button
-                  key={hc.color}
-                  type="button"
-                  onClick={() => {
-                    handleSetHighlight(hc.color, hc.name);
-                    setIsHighlightMenuOpen(false);
-                  }}
-                  className="w-6 h-6 rounded-md border border-slate-300 dark:border-slate-600 shadow-xs hover:scale-110 transition"
-                  style={{ backgroundColor: hc.color }}
-                  title={hc.name}
-                />
-              ))}
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-700/80 mb-2">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">สีไฮไลต์</span>
+              <button
+                type="button"
+                onClick={() => handleRemoveHighlight()}
+                className="text-[10px] font-semibold text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition flex items-center gap-1"
+                title="ลบไฮไลต์ข้อความ"
+              >
+                <X size={11} />
+                <span>ลบไฮไลต์</span>
+              </button>
+            </div>
+            <div className="grid grid-cols-6 gap-1.5 mb-2">
+              {HIGHLIGHT_COLORS.map((hc) => {
+                const activeColor = (editor?.getAttributes('highlight')?.color as string) || '';
+                const isSelected = editor?.isActive('highlight') && activeColor?.toLowerCase() === hc.color.toLowerCase();
+                return (
+                  <button
+                    key={hc.color}
+                    type="button"
+                    onClick={() => handleSetHighlight(hc.color, hc.name, false)}
+                    className={`w-6 h-6 rounded-full border transition-transform flex items-center justify-center ${
+                      isSelected
+                        ? 'ring-2 ring-indigo-500 scale-110 shadow-sm border-white dark:border-slate-800'
+                        : 'border-slate-300/80 dark:border-slate-600 hover:scale-110 shadow-2xs'
+                    }`}
+                    style={{ backgroundColor: hc.color }}
+                    title={hc.name}
+                  >
+                    {isSelected && <Check size={10} className="text-slate-900" />}
+                  </button>
+                );
+              })}
             </div>
             {/* Custom Free Color Picker for Highlight */}
-            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
-              <label className="text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer hover:text-amber-600 dark:hover:text-amber-400 transition">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+              <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                 <Pipette size={13} className="text-amber-500" />
                 <span>กำหนดสีเอง</span>
-              </label>
-              <input
-                type="color"
-                defaultValue="#FEF08A"
-                className="w-6 h-6 rounded-md cursor-pointer border border-slate-200 dark:border-slate-600 p-0 bg-transparent"
-                title="เลือกสีไฮไลต์แบบอิสระ"
-                onChange={(e) => {
-                  handleSetHighlight(e.target.value, e.target.value);
-                  setIsHighlightMenuOpen(false);
-                }}
-              />
+              </span>
+              <div className="relative flex items-center">
+                <label
+                  className="w-6 h-6 rounded-full cursor-pointer shadow-xs border-2 border-white dark:border-slate-700 transition-transform hover:scale-110 flex items-center justify-center overflow-hidden"
+                  style={{
+                    background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                  }}
+                  title="เลือกสีไฮไลต์แบบอิสระ"
+                >
+                  <input
+                    type="color"
+                    defaultValue="#FEF08A"
+                    className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    onChange={(e) => {
+                      handleSetHighlight(e.target.value, e.target.value, false);
+                    }}
+                  />
+                </label>
+              </div>
             </div>
           </ViewportPopover>
         </div>

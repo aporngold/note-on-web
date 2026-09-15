@@ -584,16 +584,20 @@ export default function StickyNoteItem({
     }
   };
 
-  // Change paper background color
-  const handleColorChange = (newColor: string) => {
+  // Change paper background color (keep popover open for continuous picking)
+  const handleColorChange = (newColor: string, shouldClose = false) => {
     updateNote(note.id, { color: newColor });
-    setIsColorPickerOpen(false);
+    if (shouldClose) {
+      setIsColorPickerOpen(false);
+    }
   };
 
-  // Change text/content ink color
-  const handleTextColorChange = (newTextColor: string) => {
+  // Change text/content ink color (keep popover open for continuous picking)
+  const handleTextColorChange = (newTextColor: string, shouldClose = false) => {
     updateNote(note.id, { textColor: newTextColor });
-    setIsTextColorOpen(false);
+    if (shouldClose) {
+      setIsTextColorOpen(false);
+    }
   };
 
   // Change font size
@@ -1001,19 +1005,26 @@ export default function StickyNoteItem({
                       {paperColor === c.bg && <Check size={10} className="text-slate-800" />}
                     </button>
                   ))}
-                  {/* Custom Paper Color */}
+                  {/* Custom Paper Color (Circular Rainbow Swatch) */}
                   <div className="w-full pt-1.5 mt-1 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                    <label className="text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
+                    <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
                       <Pipette size={11} className="text-indigo-500" />
                       <span>กำหนดสีเอง</span>
+                    </span>
+                    <label
+                      className="w-5 h-5 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden"
+                      style={{
+                        background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                      }}
+                      title="กำหนดสีกระดาษโน้ตเอง (Custom Color)"
+                    >
+                      <input
+                        type="color"
+                        value={paperColor || '#FEF08A'}
+                        onChange={(e) => handleColorChange(e.target.value, false)}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                      />
                     </label>
-                    <input
-                      type="color"
-                      value={paperColor || '#FEF08A'}
-                      onChange={(e) => handleColorChange(e.target.value)}
-                      className="w-5 h-5 rounded cursor-pointer border border-slate-300 dark:border-slate-600 p-0 bg-transparent"
-                      title="เลือกสีกระดาษแบบอิสระ"
-                    />
                   </div>
                 </ViewportPopover>
               )}
@@ -1054,7 +1065,7 @@ export default function StickyNoteItem({
                       <button
                         type="button"
                         key={tc.name}
-                        onClick={() => handleTextColorChange(tc.color)}
+                        onClick={() => handleTextColorChange(tc.color, false)}
                         className="w-5 h-5 rounded-full border border-slate-300 shadow-sm transition hover:scale-110 flex items-center justify-center text-[10px] cursor-pointer"
                         style={{ backgroundColor: tc.color }}
                         title={tc.name}
@@ -1062,19 +1073,26 @@ export default function StickyNoteItem({
                         {textColor === tc.color && <Check size={10} className={tc.color === '#F8FAFC' ? 'text-slate-800' : 'text-white'} />}
                       </button>
                     ))}
-                    {/* Custom Text Ink Color */}
+                    {/* Custom Text Ink Color (Circular Rainbow Swatch) */}
                     <div className="w-full pt-1.5 mt-1 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                      <label className="text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400">
+                      <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1">
                         <Pipette size={11} className="text-indigo-500" />
                         <span>กำหนดสีเอง</span>
+                      </span>
+                      <label
+                        className="w-5 h-5 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden"
+                        style={{
+                          background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                        }}
+                        title="กำหนดสีหมึกตัวอักษรเอง (Custom Color)"
+                      >
+                        <input
+                          type="color"
+                          value={textColor || '#0F172A'}
+                          onChange={(e) => handleTextColorChange(e.target.value, false)}
+                          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        />
                       </label>
-                      <input
-                        type="color"
-                        value={textColor || '#0F172A'}
-                        onChange={(e) => handleTextColorChange(e.target.value)}
-                        className="w-5 h-5 rounded cursor-pointer border border-slate-300 dark:border-slate-600 p-0 bg-transparent"
-                        title="เลือกสีหมึกตัวอักษรแบบอิสระ"
-                      />
                     </div>
                   </ViewportPopover>
                 )}

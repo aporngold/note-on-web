@@ -295,27 +295,23 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       const viewRight = viewLeft + container.clientWidth;
       const viewBottom = viewTop + container.clientHeight;
 
-      const margin = 36;
+      const margin = 48;
 
-      const isFullyVisible =
-        noteLeft >= viewLeft &&
-        noteRight <= viewRight &&
-        noteTop >= viewTop &&
-        noteBottom <= viewBottom;
+      const isComfortablyVisible =
+        noteLeft >= viewLeft + margin &&
+        noteRight <= viewRight - margin &&
+        noteTop >= viewTop + margin &&
+        noteBottom <= viewBottom - margin;
 
-      if (!isFullyVisible) {
+      if (!isComfortablyVisible) {
         let targetX = viewLeft;
         let targetY = viewTop;
 
-        if (noteRight > viewRight) {
-          targetX = Math.max(0, noteRight - container.clientWidth + margin);
-        } else if (noteLeft < viewLeft) {
+        if (noteRight > viewRight - margin || noteLeft < viewLeft + margin) {
           targetX = Math.max(0, noteLeft - margin);
         }
 
-        if (noteBottom > viewBottom) {
-          targetY = Math.max(0, noteBottom - container.clientHeight + margin);
-        } else if (noteTop < viewTop) {
+        if (noteBottom > viewBottom - margin || noteTop < viewTop + margin) {
           targetY = Math.max(0, noteTop - margin);
         }
 
@@ -404,6 +400,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   }, [notes, updateNote]);
 
+  // Ref to suppress resetting scroll to (0,0) when focusing a newly created/saved note
+  const isFocusingSavedNoteRef = useRef(false);
+
   // Automatically focus newly created note from other views (ensures note is in view while keeping left notes visible)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -413,29 +412,48 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const targetNote = notes.find((n) => n.id === focusNoteId);
     if (targetNote) {
       sessionStorage.removeItem('secure_note_focus_note_id');
+      isFocusingSavedNoteRef.current = true;
+      setTimeout(() => {
+        isFocusingSavedNoteRef.current = false;
+      }, 2500);
+
       bringToFront(targetNote.id);
       setFocusedNoteId(targetNote.id);
       setHighlightedNoteId(targetNote.id);
 
+      // Perform smooth scroll immediately and with backups after container layout settles
       ensureNoteInView(targetNote);
+      const timer1 = setTimeout(() => {
+        ensureNoteInView(targetNote);
+      }, 120);
+      const timer2 = setTimeout(() => {
+        ensureNoteInView(targetNote);
+      }, 350);
 
-      // Dismiss subtle highlight and focus cleanly with graceful timing
+      // Dismiss subtle highlight and focus cleanly with graceful timing (1.3s highlight, 1.5s focus)
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
       highlightTimerRef.current = setTimeout(() => {
         setHighlightedNoteId(null);
-      }, 650);
+      }, 1300);
 
       if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
       focusTimerRef.current = setTimeout(() => {
         setFocusedNoteId((curr) => (curr === targetNote.id ? null : curr));
-      }, 800);
+      }, 1500);
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
     }
   }, [notes, bringToFront, ensureNoteInView]);
 
   // Automatically scroll to top-left when board changes (except when focusing a newly created/saved note)
   useEffect(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem('secure_note_focus_note_id')) {
-      return;
+    if (typeof window !== 'undefined') {
+      if (sessionStorage.getItem('secure_note_focus_note_id') || isFocusingSavedNoteRef.current) {
+        return;
+      }
     }
     if (canvasContainerRef.current) {
       canvasContainerRef.current.scrollTo({ top: 0, left: 0, behavior: 'smooth' });

@@ -7,9 +7,10 @@ echo.
 
 cd /d "%~dp0"
 
-echo [1/3] ตรวจสอบฐานข้อมูล SQLite และ Prisma...
+echo [1/3] สำรองและตรวจสอบฐานข้อมูล SQLite อย่างปลอดภัย...
 cd backend
-call npx prisma db push --skip-generate
+call node scripts/backup.js
+call npx prisma generate
 cd ..
 
 echo.

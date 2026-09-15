@@ -24,6 +24,8 @@ yarn-error.log*
 # Database & SQLite files
 backend/prisma/*.db
 backend/prisma/*.db-journal
+backend/backups/*
+!backend/backups/.gitkeep
 *.sqlite
 *.sqlite3
 

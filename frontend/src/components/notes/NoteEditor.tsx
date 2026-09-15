@@ -159,7 +159,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [isLoaded, setIsLoaded] = useState(!initialNoteId);
 
   const noteIdRef = useRef(initialNoteId);
-  noteIdRef.current = initialNoteId;
+  useEffect(() => {
+    if (initialNoteId) {
+      noteIdRef.current = initialNoteId;
+    }
+  }, [initialNoteId]);
+  const hasUnsavedChangesRef = useRef(false);
   const isFirstRender = useRef(true);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -209,6 +214,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
       setContent(editor.getHTML());
+      hasUnsavedChangesRef.current = true;
     },
   });
 
@@ -261,6 +267,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         }
 
         setIsLoaded(true);
+        hasUnsavedChangesRef.current = false;
       } catch (error) {
         toast.error('ไม่สามารถโหลดโน้ตได้');
         router.push('/dashboard');
@@ -369,9 +376,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         iv = encResult.iv;
       }
 
+      const trimmedTitle = title.trim();
+      const saveTitle = trimmedTitle || '';
+
       if (noteIdRef.current) {
         await updateNote(noteIdRef.current, {
-          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          title: saveTitle,
           content: finalContent,
           color,
           textColor,
@@ -387,12 +397,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('secure_note_focus_note_id', noteIdRef.current);
         }
+        hasUnsavedChangesRef.current = false;
         toast.success('บันทึกการเปลี่ยนแปลงแล้ว');
       } else {
         const slot = calculateInitialSlot(boardId || activeBoardId);
 
         const created = await createNote({
-          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          title: saveTitle,
           content: finalContent,
           color,
           textColor,
@@ -411,6 +422,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('secure_note_focus_note_id', created.id);
         }
+        hasUnsavedChangesRef.current = false;
         toast.success('สร้างโน้ตใหม่สำเร็จ');
         if (!isClosing) {
           router.replace(`/notes/${created.id}`);
@@ -447,8 +459,18 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   // Safe Close handler that ensures auto-save before navigating back
   const handleClose = useCallback(async () => {
     const currentHtml = editor ? editor.getHTML() : content;
-    const hasContent = title.trim() || (currentHtml && currentHtml !== '<p></p>');
-    if (hasContent && !isSaving) {
+    const cleanText = stripHtmlTags(currentHtml).trim();
+    const hasMedia = (currentHtml && (currentHtml.includes('<img') || currentHtml.includes('<audio'))) || attachments.length > 0;
+    const hasContent = Boolean(title.trim() || cleanText || hasMedia);
+
+    // If completely empty and this is an unsaved new note, don't create an empty note
+    if (!hasContent && !noteIdRef.current) {
+      router.push('/dashboard');
+      return;
+    }
+
+    // Only save if there are actual unsaved changes and not already saving
+    if (hasContent && hasUnsavedChangesRef.current && !isSaving) {
       try {
         await handleSave(true);
       } catch (e) {
@@ -456,7 +478,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       }
     }
     router.push('/dashboard');
-  }, [editor, content, title, isSaving, handleSave, router]);
+  }, [editor, content, title, attachments.length, isSaving, handleSave, router]);
 
   // Debounced Auto-Save
   const triggerAutoSave = useCallback(async () => {
@@ -464,7 +486,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     if (isLocked && !isVaultUnlocked) return;
     // Don't auto-save if totally empty
     const currentHtml = editor ? editor.getHTML() : content;
-    if (!title.trim() && (!currentHtml || currentHtml === '<p></p>')) return;
+    const cleanText = stripHtmlTags(currentHtml).trim();
+    const hasMedia = (currentHtml && (currentHtml.includes('<img') || currentHtml.includes('<audio'))) || attachments.length > 0;
+    if (!title.trim() && !cleanText && !hasMedia) return;
 
     try {
       setIsAutoSaving(true);
@@ -483,9 +507,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         iv = encResult.iv;
       }
 
+      const trimmedTitle = title.trim();
+      const saveTitle = trimmedTitle || '';
+
       if (noteIdRef.current) {
         await updateNote(noteIdRef.current, {
-          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          title: saveTitle,
           content: finalContent,
           color,
           textColor,
@@ -498,10 +525,11 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           iv,
           salt,
         });
+        hasUnsavedChangesRef.current = false;
       } else {
         const slot = calculateInitialSlot(boardId || activeBoardId);
         const created = await createNote({
-          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          title: saveTitle,
           content: finalContent,
           color,
           textColor,
@@ -517,6 +545,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           salt,
         });
         noteIdRef.current = created.id;
+        hasUnsavedChangesRef.current = false;
         router.replace(`/notes/${created.id}`, undefined, { shallow: true });
       }
       setLastSaved(new Date().toLocaleTimeString('th-TH'));
@@ -578,7 +607,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       if (!targetNoteId) {
         const currentHtml = editor ? editor.getHTML() : content;
         const created = await createNote({
-          title: title.trim() || 'ไม่มีชื่อบันทึก',
+          title: title.trim() || '',
           content: currentHtml,
           color,
           textColor,
@@ -1179,9 +1208,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative bg-white dark:bg-slate-900 border-x-0 border-b-0 lg:border border-slate-200/80 dark:border-slate-800 rounded-none lg:rounded-3xl shadow-none lg:shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 lg:min-h-[550px] transition-all ${isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
+        className={`relative border-x-0 border-b-0 lg:border border-slate-200/80 dark:border-slate-800 rounded-none lg:rounded-3xl shadow-none lg:shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 lg:min-h-[550px] transition-colors duration-200 ${isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
           }`}
-        style={{ borderTop: `6px solid ${color}` }}
+        style={{
+          backgroundColor: color || '#FFFFFF',
+          borderTop: isBorderless ? 'none' : `6px solid ${color || '#FEF08A'}`,
+        }}
       >
         {isDraggingOver && (
           <div className="absolute inset-0 z-40 bg-indigo-50/90 dark:bg-slate-900/90 backdrop-blur-xs border-2 border-dashed border-indigo-500 rounded-3xl flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400 pointer-events-none animate-fade-in">
@@ -1192,13 +1224,17 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         )}
 
         {/* Title & Metadata Row (Desktop combines Title + Metadata in one unified row; Mobile keeps clean full-width Title) */}
-        <div className="px-4 py-2 sm:px-6 sm:py-2 border-b border-slate-100 dark:border-slate-800/80 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+        <div className="px-4 py-2 sm:px-6 sm:py-2 border-b border-black/5 dark:border-slate-800/80 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
           <input
             type="text"
             placeholder="ชื่อเรื่องโน้ต..."
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full lg:flex-1 text-lg sm:text-xl font-bold text-slate-900 dark:text-white bg-transparent placeholder-slate-300 dark:placeholder-slate-600 focus:outline-none tracking-tight min-w-0"
+            onChange={(e) => {
+              setTitle(e.target.value);
+              hasUnsavedChangesRef.current = true;
+            }}
+            style={{ color: textColor }}
+            className="w-full lg:flex-1 text-lg sm:text-xl font-bold bg-transparent placeholder-slate-400/80 dark:placeholder-slate-500 focus:outline-none tracking-tight min-w-0"
           />
 
           {/* Desktop-Only Compact Metadata Pills (Embedded in Title Row) */}
@@ -1624,15 +1660,19 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                   aria-label={`เลือกสี ${c}`}
                 />
               ))}
-              {/* Custom Color with Pipette for Mobile */}
-              <label className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-dashed border-slate-300 dark:border-slate-600 cursor-pointer hover:border-indigo-500 text-[11px] font-medium text-slate-600 dark:text-slate-300 shrink-0 bg-white/50 dark:bg-slate-700/50">
-                <Pipette size={13} className="text-indigo-500" />
-                <span>กำหนดสีเอง</span>
+              {/* Custom Color with Pipette for Mobile (Circular Rainbow Swatch) */}
+              <label
+                className="w-7 h-7 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs shrink-0 flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden"
+                style={{
+                  background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                }}
+                title="กำหนดสีกระดาษโน้ตเอง (Custom Color)"
+              >
                 <input
                   type="color"
                   value={color || '#FEF08A'}
                   onChange={(e) => setColor(e.target.value)}
-                  className="w-5 h-5 rounded cursor-pointer border-0 p-0 bg-transparent"
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
                 />
               </label>
             </div>

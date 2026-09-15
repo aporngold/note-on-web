@@ -6,12 +6,15 @@
   "scripts": {
     "postinstall": "prisma generate",
     "build": "prisma generate && tsc",
-    "start": "prisma db push && node dist/server.js",
-    "dev": "tsx watch src/server.ts",
+    "db:backup": "node scripts/backup.js",
+    "db:restore": "node scripts/restore.js",
+    "start": "node scripts/backup.js && prisma generate && node dist/server.js",
+    "dev": "node scripts/backup.js && tsx watch src/server.ts",
     "dev:nodemon": "nodemon --watch src --exec ts-node src/server.ts",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:push": "node scripts/backup.js && prisma db push",
+    "prisma:migrate": "node scripts/backup.js && prisma migrate dev",
+    "prisma:deploy": "node scripts/backup.js && prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
