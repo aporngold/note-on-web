@@ -26,19 +26,28 @@ export default function VaultPage() {
 
   const vaultNotes = notes.filter((n) => n.isLocked);
 
-  const handleUnlockSubmit = (e: React.FormEvent) => {
+  const [isUnlocking, setIsUnlocking] = useState(false);
+
+  const handleUnlockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!passwordInput) {
       setError('กรุณากรอก Master Password');
       return;
     }
-    const ok = unlockVault(passwordInput);
-    if (ok) {
-      setPasswordInput('');
-      setError('');
-      fetchNotes({ isArchived: false, isLocked: true });
-    } else {
-      setError('เกิดข้อผิดพลาดในการปลดล็อก');
+    setIsUnlocking(true);
+    try {
+      const ok = await unlockVault(passwordInput);
+      if (ok) {
+        setPasswordInput('');
+        setError('');
+        fetchNotes({ isArchived: false, isLocked: true });
+      } else {
+        setError('รหัสผ่าน Master Password ไม่ถูกต้อง');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'เกิดข้อผิดพลาดในการปลดล็อก');
+    } finally {
+      setIsUnlocking(false);
     }
   };
 
@@ -93,41 +102,54 @@ export default function VaultPage() {
 
             <div className="space-y-2">
               <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">
-                ห้องนิรภัยถูกล็อกอยู่
+                {user?.hasMasterPassword ? 'ห้องนิรภัยถูกล็อกอยู่' : 'ยังไม่ได้ตั้งค่า Master Password'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                เนื้อหาโน้ตทั้งหมดในหมวดนี้ได้รับการเข้ารหัสแบบ End-to-End ด้วยมาตรฐานความปลอดภัยสูงสุด
-                กรุณาป้อน Master Password เพื่อถอดรหัสเนื้อหา
+                {user?.hasMasterPassword
+                  ? 'เนื้อหาโน้ตทั้งหมดในหมวดนี้ได้รับการเข้ารหัสแบบ End-to-End ด้วยมาตรฐานความปลอดภัยสูงสุด กรุณาป้อน Master Password เพื่อถอดรหัสเนื้อหา'
+                  : 'เพื่อความปลอดภัยสูงสุดของข้อมูล คุณต้องตั้งค่า Master Password ครั้งแรก เพื่อรับ Recovery Key และเริ่มใช้งานการเข้ารหัสลับแบบ End-to-End (E2EE)'}
               </p>
             </div>
 
-            <form onSubmit={handleUnlockSubmit} className="space-y-4 max-w-sm mx-auto">
-              <div className="relative">
-                <input
-                  type="password"
-                  value={passwordInput}
-                  onChange={(e) => {
-                    setPasswordInput(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="กรอก Master Password..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-                <KeyRound size={17} className="absolute left-3.5 top-3 text-slate-400" />
-              </div>
-              {error && (
-                <p className="text-xs text-rose-500 flex items-center justify-center gap-1">
-                  <AlertCircle size={14} /> {error}
-                </p>
-              )}
-
+            {!user?.hasMasterPassword ? (
               <button
-                type="submit"
-                className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-amber-500/25 transition"
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="w-full max-w-sm mx-auto py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-amber-500/25 transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                ปลดล็อกห้องนิรภัย
+                <KeyRound size={18} />
+                <span>ตั้งค่า Master Password ครั้งแรก</span>
               </button>
-            </form>
+            ) : (
+              <form onSubmit={handleUnlockSubmit} className="space-y-4 max-w-sm mx-auto">
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => {
+                      setPasswordInput(e.target.value);
+                      setError('');
+                    }}
+                    placeholder="กรอก Master Password..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <KeyRound size={17} className="absolute left-3.5 top-3 text-slate-400" />
+                </div>
+                {error && (
+                  <p className="text-xs text-rose-500 flex items-center justify-center gap-1">
+                    <AlertCircle size={14} /> {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isUnlocking}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-amber-500/25 transition disabled:opacity-50"
+                >
+                  {isUnlocking ? 'กำลังปลดล็อก...' : 'ปลดล็อกห้องนิรภัย'}
+                </button>
+              </form>
+            )}
 
             <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-2">
               <ShieldCheck size={16} className="text-emerald-500 flex-shrink-0" />
@@ -173,6 +195,7 @@ export default function VaultPage() {
                   <NoteCard
                     key={note.id}
                     note={note}
+                    onUnlockRequest={() => setIsModalOpen(true)}
                     onOpenFullscreen={(n) => setFullscreenNote(n)}
                   />
                 ))}

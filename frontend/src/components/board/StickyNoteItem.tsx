@@ -357,7 +357,7 @@ export default function StickyNoteItem({
       try {
         const parsed = JSON.parse(note.content);
         if (parsed.encrypted && parsed.iv) {
-          displayContent = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+          displayContent = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
         }
       } catch (e) {
         // ignore

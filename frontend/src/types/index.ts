@@ -2,6 +2,8 @@ export interface User {
   id: string;
   email: string;
   username: string;
+  hasMasterPassword?: boolean;
+  masterPasswordSalt?: string | null;
   createdAt: string;
 }
 

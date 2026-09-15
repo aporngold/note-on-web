@@ -32,7 +32,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
       try {
         const parsed = JSON.parse(note.content);
         if (parsed.encrypted && parsed.iv) {
-          previewText = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+          previewText = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
         }
       } catch (e) {
         // Not parsed JSON or failed decrypt

@@ -561,7 +561,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
           try {
             const parsed = JSON.parse(note.content);
             if (parsed.encrypted && parsed.iv) {
-              decrypted = encryption.decrypt(parsed.encrypted, parsed.iv);
+              decrypted = encryption.decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
             }
           } catch (e) {
             // Content might not be JSON or already plain
@@ -582,7 +582,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
           isLocked: true,
           content: JSON.stringify(encResult),
           iv: encResult.iv,
-          salt: null,
+          salt: encResult.salt,
         });
         toast.success('เข้ารหัสและล็อกโน้ตนี้เรียบร้อยแล้ว (E2EE Active)');
       }

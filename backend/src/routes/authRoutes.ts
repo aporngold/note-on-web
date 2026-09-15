@@ -10,6 +10,11 @@ router.post('/logout', authenticate, AuthController.logout);
 router.get('/me', authenticate, AuthController.me);
 router.post('/change-password', authenticate, AuthController.changePassword);
 
+// Master Password & E2EE Routes
+router.post('/master-password/setup', authenticate, AuthController.setupMasterPassword);
+router.post('/master-password/verify', authenticate, AuthController.verifyMasterPassword);
+router.post('/master-password/recover', authenticate, AuthController.recoverMasterPassword);
+
 // Google OAuth Routes
 router.get('/google', AuthController.googleAuth);
 router.get('/google/callback', AuthController.googleCallback);

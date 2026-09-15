@@ -248,7 +248,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             try {
               const parsed = JSON.parse(n.content);
               if (parsed.encrypted && parsed.iv) {
-                const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+                const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, n.salt || undefined);
                 loadedContent = dec;
               }
             } catch (e) {
@@ -370,10 +370,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           setIsSaving(false);
           return false;
         }
-        const encryption = EncryptionService.getInstance();
-        const encResult = encryption.encrypt(htmlContent);
+        const encResult = EncryptionService.getInstance().encrypt(htmlContent);
         finalContent = JSON.stringify(encResult);
         iv = encResult.iv;
+        salt = encResult.salt;
       }
 
       const trimmedTitle = title.trim();
@@ -505,6 +505,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         const encResult = encryption.encrypt(currentHtml);
         finalContent = JSON.stringify(encResult);
         iv = encResult.iv;
+        salt = encResult.salt;
       }
 
       const trimmedTitle = title.trim();
@@ -1495,7 +1496,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             try {
               const parsed = JSON.parse(content);
               if (parsed.encrypted && parsed.iv) {
-                const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+                const currentNote = notes.find((n) => n.id === noteIdRef.current);
+                const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, currentNote?.salt || undefined);
                 const html = convertLegacyContentToHtml(dec);
                 setContent(html);
                 if (editor) {

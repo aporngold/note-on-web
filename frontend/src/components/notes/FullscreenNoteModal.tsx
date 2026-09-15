@@ -199,7 +199,7 @@ export default function FullscreenNoteModal({
           try {
             const parsed = JSON.parse(note.content || '{}');
             if (parsed.encrypted && parsed.iv) {
-              rawContent = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+              rawContent = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
             }
           } catch (e) {
             // Not JSON or plain
@@ -239,6 +239,7 @@ export default function FullscreenNoteModal({
           const encResult = EncryptionService.getInstance().encrypt(finalContent);
           finalContent = JSON.stringify(encResult);
           iv = encResult.iv;
+          salt = encResult.salt;
         }
       }
 
@@ -760,7 +761,7 @@ export default function FullscreenNoteModal({
             try {
               const parsed = JSON.parse(note.content);
               if (parsed.encrypted && parsed.iv) {
-                const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+                const dec = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
                 const html = convertLegacyContentToHtml(dec);
                 setContent(html);
                 latestDataRef.current.content = html;

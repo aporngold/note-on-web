@@ -63,6 +63,10 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   const [activeMobileCol, setActiveMobileCol] = useState<string>('todo');
 
   const handleOpenFullscreen = (n: Note) => {
+    if (n.isLocked && !isVaultUnlocked && onUnlockRequest) {
+      onUnlockRequest();
+      return;
+    }
     if (typeof document !== 'undefined' && !document.fullscreenElement) {
       document.documentElement.requestFullscreen?.().catch(() => {});
     }
@@ -196,7 +200,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                         try {
                           const parsed = JSON.parse(note.content);
                           if (parsed.encrypted && parsed.iv) {
-                            previewText = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv);
+                            previewText = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
                           }
                         } catch (e) {
                           // ignore
