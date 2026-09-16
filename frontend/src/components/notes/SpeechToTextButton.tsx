@@ -38,6 +38,7 @@ class SpeechToTextManager {
   private listeners: Set<Listener> = new Set();
   private lastInsertedText = '';
   private lastInsertedTime = 0;
+  private lastSpeechTime = 0;
   private noSpeechCount = 0;
   private restartTimeout: NodeJS.Timeout | null = null;
 
@@ -97,9 +98,8 @@ class SpeechToTextManager {
     const recognition = new SpeechRecognition();
     const mobileDevice = isTouchOrMobile();
 
-    // On mobile / tablet: non-continuous to prevent Android chime loops and audio buffer duplication
-    // On desktop: continuous allows uninterrupted dictation
-    recognition.continuous = !mobileDevice;
+    // Enable continuous dictation across all platforms so users have time to speak naturally
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = this.lang;
 
@@ -125,6 +125,7 @@ class SpeechToTextManager {
         }
 
         this.noSpeechCount = 0;
+        this.lastSpeechTime = Date.now();
         const trimmed = finalTranscript.trim();
         if (!trimmed) return;
 
@@ -150,7 +151,9 @@ class SpeechToTextManager {
         this.stop(false);
       } else if (event.error === 'no-speech') {
         this.noSpeechCount += 1;
-        if (mobileDevice || this.noSpeechCount >= 2) {
+        const silenceDuration = Date.now() - this.lastSpeechTime;
+        // Grace period: allow at least 8 seconds of silence for user to pause or prepare speech
+        if (this.noSpeechCount >= 3 || silenceDuration > 8000) {
           this.stop(false);
         }
       } else if (event.error === 'network') {
@@ -160,17 +163,11 @@ class SpeechToTextManager {
     };
 
     recognition.onend = () => {
-      // 1. On Mobile & Tablet: STOP CLEANLY!
-      // This permanently stops the repeated Android "ding" chime and duplicate buffers
-      if (mobileDevice) {
-        this.isListening = false;
-        this.interimText = '';
-        this.notify();
-        return;
-      }
+      const silenceDuration = Date.now() - this.lastSpeechTime;
+      // Keep listening if user has not explicitly stopped and is within silence grace threshold
+      const shouldRestart = this.isListening && this.noSpeechCount < 3 && silenceDuration <= 8000;
 
-      // 2. On Desktop: Keep listening if user hasn't explicitly stopped
-      if (this.isListening && this.noSpeechCount < 2) {
+      if (shouldRestart) {
         if (this.restartTimeout) clearTimeout(this.restartTimeout);
         this.restartTimeout = setTimeout(() => {
           if (this.isListening && this.recognition) {
@@ -178,7 +175,7 @@ class SpeechToTextManager {
               this.recognition.start();
             } catch (e) {}
           }
-        }, 400);
+        }, mobileDevice ? 500 : 350);
       } else {
         this.isListening = false;
         this.interimText = '';
@@ -223,13 +220,14 @@ class SpeechToTextManager {
     this.lastInsertedText = '';
     this.lastInsertedTime = 0;
     this.noSpeechCount = 0;
+    this.lastSpeechTime = Date.now();
 
     try {
       rec.start();
       this.isListening = true;
       this.notify();
       const mobileMsg = isTouchOrMobile()
-        ? `กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย`
+        ? `กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย (แตะอีกครั้งเมื่อต้องการหยุด)`
         : `กำลังฟังเสียงพูดต่อเนื่อง (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย`;
       toast.success(mobileMsg);
     } catch (err: any) {
@@ -243,6 +241,7 @@ class SpeechToTextManager {
     this.isListening = false;
     this.interimText = '';
     this.noSpeechCount = 0;
+    this.lastSpeechTime = 0;
     if (this.restartTimeout) clearTimeout(this.restartTimeout);
     this.notify();
 
