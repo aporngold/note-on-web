@@ -322,7 +322,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
         <main
           className={`flex-1 ${
             router.pathname === '/board' || (router.pathname === '/dashboard' && viewMode === 'board')
-              ? 'overflow-hidden flex flex-col p-2 sm:p-3'
+              ? 'overflow-hidden flex flex-col p-0 sm:p-3'
               : router.pathname.startsWith('/notes/')
               ? 'flex flex-col min-h-0 overflow-hidden p-0 lg:px-6 lg:pt-2.5 lg:pb-4 lg:overflow-y-auto transition-all duration-300'
               : 'overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8'

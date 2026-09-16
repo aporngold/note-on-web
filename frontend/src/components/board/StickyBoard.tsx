@@ -815,7 +815,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   };
 
   return (
-    <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden animate-fade-in relative select-none">
+    <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-none sm:rounded-3xl border-0 sm:border border-slate-200/80 dark:border-slate-800 shadow-none sm:shadow-xl overflow-hidden animate-fade-in relative select-none">
       {/* ── TOP SECTION 1: Multi-Board Tabs Bar (Note Board style / Mobile Dropdown) ── */}
       <div className="bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 pt-2 pb-1.5 flex items-center justify-between gap-2 overflow-visible select-none z-30 relative">
         {/* Mobile Dropdown Board Selector (md:hidden) */}
@@ -984,7 +984,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
       {/* ── TOP SECTION 2: Control Toolbar (Freeform Canvas Only - Docked cleanly beneath tabs) ── */}
       {boardViewMode === 'freeform' && (
-        <div className="w-full shrink-0 z-20 flex items-center justify-between gap-3 px-4 py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div className="w-full shrink-0 z-20 flex items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs">
           {/* Quick Add Sticky Note Buttons - 4 Circular Buttons with Plus */}
           <div className="flex items-center gap-2 overflow-x-auto">
             <button

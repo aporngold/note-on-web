@@ -63,7 +63,7 @@ export default function SortDropdown({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={isArranging}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl font-bold text-xs transition select-none active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`flex items-center gap-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-xl font-bold text-xs transition select-none active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
           variant === 'board'
             ? 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-xs border border-slate-200 dark:border-slate-700'
             : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-xs border border-slate-200 dark:border-slate-700'
@@ -72,17 +72,17 @@ export default function SortDropdown({
         aria-label="เมนูจัดเรียงโน้ต"
       >
         {variant === 'board' ? (
-          <Sparkles size={14} className={`text-amber-500 ${isArranging ? 'animate-spin' : ''}`} />
+          <Sparkles size={14} className={`text-amber-500 shrink-0 ${isArranging ? 'animate-spin' : ''}`} />
         ) : (
-          <ArrowUpDown size={14} className="text-indigo-600 dark:text-indigo-400" />
+          <ArrowUpDown size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
         )}
         <span className="hidden sm:inline">
           {variant === 'board' ? 'จัดเรียงอัตโนมัติ' : 'จัดเรียง:'}
         </span>
-        <span className="font-semibold text-slate-600 dark:text-slate-300 max-w-[110px] truncate">
+        <span className="hidden sm:inline font-semibold text-slate-600 dark:text-slate-300 max-w-[110px] truncate">
           {currentOption.label}
         </span>
-        <ChevronDown size={13} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={13} className={`hidden sm:inline text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Dropdown Menu via ViewportPopover (immune to screen overflow) */}
