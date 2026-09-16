@@ -33,15 +33,6 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-const COLOR_FILTERS = [
-  '#6366F1',
-  '#8B5CF6',
-  '#EC4899',
-  '#EF4444',
-  '#F59E0B',
-  '#10B981',
-  '#06B6D4',
-];
 
 export default function Sidebar({
   onCloseMobile,
@@ -99,11 +90,6 @@ export default function Sidebar({
     if (onCloseMobile) onCloseMobile();
   };
 
-  const handleColorSelect = (color: string) => {
-    setSelectedColor(selectedColor === color ? null : color);
-    if (currentPath !== '/dashboard') router.push('/dashboard');
-    if (onCloseMobile) onCloseMobile();
-  };
 
   // ────────────── COLLAPSED MINI SIDEBAR (ยุบเมนูซ้าย) ──────────────
   if (isCollapsed) {
@@ -420,32 +406,6 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Color Filters */}
-        <div className="px-3.5">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
-            กรองตามสี
-          </span>
-          <div className="flex gap-2 flex-wrap items-center">
-            {COLOR_FILTERS.map((c) => (
-              <button
-                key={c}
-                onClick={() => handleColorSelect(c)}
-                className={`w-5 h-5 rounded-full transition-transform ${
-                  selectedColor === c ? 'scale-125 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900' : 'hover:scale-110'
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-            {selectedColor && (
-              <button
-                onClick={() => setSelectedColor(null)}
-                className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 underline ml-1"
-              >
-                ล้าง
-              </button>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Bottom User Profile, Vault State & Theme */}
