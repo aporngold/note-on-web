@@ -863,7 +863,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   }
 
   return (
-    <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1440px] mx-auto h-full flex flex-col lg:space-y-1.5 lg:pb-3 animate-fade-in transition-all duration-300">
+    <div className="w-full h-full flex flex-col animate-fade-in transition-all duration-300">
       {/* Mobile Compact Top Bar (GEMINI.md STEP 3) */}
       <div className="flex lg:hidden items-center justify-between gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 px-3 py-2 z-10 shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
