@@ -50,6 +50,8 @@ class SpeechToTextManager {
   
   // Index-based deduplication: ensures NO duplicate transcripts even if Safari resets resultIndex
   private highestFinalIndex = -1;
+  private lastInsertedText = '';
+  private lastInsertedTime = 0;
   private lastSpeechTime = 0;
   private noSpeechCount = 0;
   private restartTimeout: NodeJS.Timeout | null = null;
@@ -172,6 +174,16 @@ class SpeechToTextManager {
       if (newFinalText && this.activeEditor && !this.activeEditor.isDestroyed) {
         const textToInsert = newFinalText.trim();
         if (textToInsert) {
+          const now = Date.now();
+          // STRICT DEDUPLICATION: Ignore exact duplicate phrase within 3 seconds
+          if (textToInsert === this.lastInsertedText && now - this.lastInsertedTime < 3000) {
+            console.warn('[STT] Dropped duplicate text:', textToInsert);
+            return;
+          }
+
+          this.lastInsertedText = textToInsert;
+          this.lastInsertedTime = now;
+
           try {
             const isDocEmpty = this.activeEditor.isEmpty;
             const prefix = isDocEmpty ? '' : ' ';
@@ -219,8 +231,18 @@ class SpeechToTextManager {
         return;
       }
 
-      // 2. If browser ended recognition naturally (e.g. iOS Safari 15s timeout, mobile silence)
-      // and user still wants dictation to continue:
+      // 2. On Mobile / Tablet / iPad: STOP CLEANLY!
+      // Do NOT auto-restart on touch mobile/tablet. This prevents re-transcribing the microphone audio buffer.
+      if (isMobile) {
+        this.userIntent = false;
+        this.status = 'idle';
+        this.interimText = '';
+        this.cleanupRecognitionInstance();
+        this.notify();
+        return;
+      }
+
+      // 3. On Desktop: If browser ended naturally and user still wants dictation to continue:
       const isIdleTooLong = Date.now() - this.lastSpeechTime > 8500 && this.noSpeechCount >= 2;
       if (isIdleTooLong) {
         this.userIntent = false;
@@ -231,7 +253,7 @@ class SpeechToTextManager {
         return;
       }
 
-      // Safe, guarded restart without bouncing or race conditions
+      // Safe, guarded restart on Desktop
       this.status = 'starting';
       this.notify();
 
@@ -254,7 +276,7 @@ class SpeechToTextManager {
           this.userIntent = false;
           this.notify();
         }
-      }, isMobile ? 350 : 250);
+      }, 300);
     };
 
     this.recognition = recognition;
