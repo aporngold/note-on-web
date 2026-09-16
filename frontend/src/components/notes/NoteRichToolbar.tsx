@@ -205,20 +205,12 @@ export default function NoteRichToolbar({
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
 
   // Collapsible toolbar states (Remembered with localStorage, default collapsed on mobile < 1024px)
-  const [isTopPaletteCollapsed, setIsTopPaletteCollapsed] = useState(false);
   const [isFormattingCollapsed, setIsFormattingCollapsed] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const savedTop = localStorage.getItem('note_top_palette_collapsed');
         const savedFormat = localStorage.getItem('note_formatting_collapsed');
-        if (savedTop !== null) {
-          setIsTopPaletteCollapsed(savedTop === 'true');
-        } else if (window.innerWidth < 1024) {
-          setIsTopPaletteCollapsed(true);
-        }
-
         if (savedFormat !== null) {
           setIsFormattingCollapsed(savedFormat === 'true');
         } else if (window.innerWidth < 1024) {
@@ -228,16 +220,6 @@ export default function NoteRichToolbar({
         // ignore localStorage error
       }
     }
-  }, []);
-
-  const handleToggleTopPalette = useCallback(() => {
-    setIsTopPaletteCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('note_top_palette_collapsed', String(next));
-      } catch (e) {}
-      return next;
-    });
   }, []);
 
   const handleToggleFormatting = useCallback(() => {
@@ -1083,134 +1065,15 @@ export default function NoteRichToolbar({
               <X size={17} />
             </button>
           )}
-
-          {/* Toggle Top Palette Collapse Button */}
-          <button
-            type="button"
-            onClick={handleToggleTopPalette}
-            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-lg transition text-slate-600 dark:text-slate-300 ml-1 flex items-center justify-center shrink-0"
-            title={isTopPaletteCollapsed ? 'ขยายแถบสีและหมุด (Expand palette)' : 'ย่อ/พับเก็บแถบสีและหมุด (Collapse palette)'}
-            aria-label={isTopPaletteCollapsed ? 'ขยายแถบสี' : 'พับเก็บแถบสี'}
-          >
-            {isTopPaletteCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-          </button>
         </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          แถวที่ 2: แถบจานสีพาสเทล, หมุดแดง, Borderless Checkbox (พับเก็บได้)
+          แถวที่ 2: เมนูบาร์ (File, Edit, View...) ด้านซ้าย + จานสีพาสเทล, หมุดแดง, Borderless ด้านขวา (แถวเดียวกัน)
          ══════════════════════════════════════════════════════ */}
-      {!isTopPaletteCollapsed && (
-        <div className="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap bg-slate-50/50 dark:bg-slate-800/30 transition-all">
-          {/* Pastel Swatches & Color Picker */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {PASTEL_PALETTE.map((p) => {
-              const isSelected = color?.toLowerCase() === p.bg.toLowerCase();
-              return (
-                <button
-                  key={p.bg}
-                  type="button"
-                  onClick={() => onColorChange(p.bg)}
-                  style={{ backgroundColor: p.bg }}
-                  className={`w-6 h-6 rounded-sm border transition-all duration-150 flex items-center justify-center ${
-                    isSelected
-                      ? 'border-indigo-600 ring-2 ring-indigo-400 scale-110 z-10 shadow-sm'
-                      : 'border-slate-300 dark:border-slate-600 hover:scale-105'
-                  }`}
-                  title={p.name}
-                >
-                  {isSelected && <Check size={12} className="text-slate-900" />}
-                </button>
-              );
-            })}
-
-            {/* Custom Color Picker for Note Color (Circular Rainbow Swatch) */}
-            <div className="flex items-center pl-2 ml-1 border-l border-slate-200 dark:border-slate-700">
-              <label
-                className="w-5 h-5 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden"
-                style={{
-                  background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
-                }}
-                title="กำหนดสีกระดาษโน้ตเอง (Custom Note Color)"
-              >
-                <input
-                  ref={customColorInputRef}
-                  type="color"
-                  value={color || '#FEF08A'}
-                  onChange={(e) => onColorChange(e.target.value)}
-                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Right: Lock, Push Pin & Borderless Checkbox */}
-          <div className="flex items-center gap-3">
-            {/* Lock / E2EE Button */}
-            {onToggleLock && (
-              <button
-                type="button"
-                onClick={onToggleLock}
-                className={`p-1.5 rounded-lg transition cursor-pointer flex items-center justify-center ${
-                  isLocked
-                    ? isVaultUnlocked
-                      ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 ring-1 ring-emerald-500/30 font-bold'
-                      : 'text-amber-700 dark:text-amber-300 bg-amber-500/15 ring-1 ring-amber-500/30 font-bold animate-pulse'
-                    : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-                title={
-                  isLocked
-                    ? isVaultUnlocked
-                      ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
-                      : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
-                    : 'คลิกเพื่อเข้ารหัสและล็อกโน้ตนี้ (E2EE)'
-                }
-              >
-                {isLocked ? (
-                  isVaultUnlocked ? <Unlock size={14} /> : <Lock size={14} />
-                ) : (
-                  <Unlock size={14} className="opacity-40 hover:opacity-100 hover:text-amber-500" />
-                )}
-              </button>
-            )}
-
-            {/* Red Push Pin */}
-            <button
-              type="button"
-              onClick={onTogglePin}
-              className="flex items-center gap-1 text-xs font-semibold cursor-pointer group"
-              title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้ไว้ด้านบน'}
-            >
-              <div
-                className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                  isPinned
-                    ? 'bg-red-600 text-white shadow-md scale-110 ring-2 ring-red-300'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-400 group-hover:bg-red-400 group-hover:text-white'
-                }`}
-              >
-                <div className="w-1.5 h-1.5 rounded-full bg-white/90" />
-              </div>
-            </button>
-
-            {/* Borderless Checkbox */}
-            <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={isBorderless}
-                onChange={onToggleBorderless}
-                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-              />
-              <span>Borderless</span>
-            </label>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════
-          แถวที่ 3: แถบเมนูบาร์ (Menu Bar)
-         ══════════════════════════════════════════════════════ */}
-      <div className="px-2 py-1 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none flex-1">
+      <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2.5 flex-wrap bg-slate-50/40 dark:bg-slate-900/40 text-xs font-medium text-slate-600 dark:text-slate-300">
+        {/* Left: Menu Bar (File, Edit, View, Insert, Format, Table, Tools, Help) */}
+        <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none flex-wrap">
           {/* File Menu */}
         <div className="relative">
           <button
@@ -1673,8 +1536,8 @@ export default function NoteRichToolbar({
             onClose={() => setActiveMenu(null)}
             className="w-52 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 text-xs space-y-1"
           >
-            <p className="text-[11px] text-slate-500 font-bold">สถิติเนื้อหาในโน้ต:</p>
-            <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg text-xs space-y-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">สถิติเนื้อหาในโน้ต:</p>
+            <div className="bg-slate-50 dark:bg-slate-900/80 p-2 rounded-lg text-xs space-y-0.5 text-slate-700 dark:text-slate-200">
               <p>
                 จำนวนคำ:{' '}
                 <b>
@@ -1719,38 +1582,115 @@ export default function NoteRichToolbar({
             </p>
             <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
               <p className="flex justify-between">
-                <span>ตัวหนา (Bold):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+B</kbd>
+                <span>ตัวหนา (Bold):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+B</kbd>
               </p>
               <p className="flex justify-between">
-                <span>ตัวเอียง (Italic):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+I</kbd>
+                <span>ตัวเอียง (Italic):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+I</kbd>
               </p>
               <p className="flex justify-between">
-                <span>ขีดเส้นใต้ (Underline):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+U</kbd>
+                <span>ขีดเส้นใต้ (Underline):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+U</kbd>
               </p>
               <p className="flex justify-between">
-                <span>เลิกทำ (Undo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+Z</kbd>
+                <span>เลิกทำ (Undo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+Z</kbd>
               </p>
               <p className="flex justify-between">
-                <span>ทำซ้ำ (Redo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+Y</kbd>
+                <span>ทำซ้ำ (Redo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+Y</kbd>
               </p>
               <p className="flex justify-between">
-                <span>บันทึก (Save):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 px-1 rounded">Ctrl+S</kbd>
+                <span>บันทึก (Save):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+S</kbd>
               </p>
             </div>
           </ViewportPopover>
         </div>
 
         </div>
-        {/* Toggle Formatting Toolbar Collapse Button */}
-        <button
-          type="button"
-          onClick={handleToggleFormatting}
-          className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-lg transition text-slate-600 dark:text-slate-300 ml-1 flex items-center justify-center shrink-0"
-          title={isFormattingCollapsed ? 'ขยายแถบเครื่องมือจัดข้อความ (Expand formatting tools)' : 'ย่อ/พับเก็บแถบเครื่องมือจัดข้อความ (Collapse formatting tools)'}
-          aria-label={isFormattingCollapsed ? 'ขยายแถบเครื่องมือ' : 'พับเก็บแถบเครื่องมือ'}
-        >
-          {isFormattingCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
-        </button>
+
+        {/* Right: Pastel Swatches & Color Picker, Red Push Pin, Borderless Checkbox, Collapse Toggle */}
+        <div className="flex items-center gap-2.5 ml-auto flex-wrap">
+          {/* Pastel Swatches & Color Picker */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {PASTEL_PALETTE.map((p) => {
+              const isSelected = color?.toLowerCase() === p.bg.toLowerCase();
+              return (
+                <button
+                  key={p.bg}
+                  type="button"
+                  onClick={() => onColorChange(p.bg)}
+                  style={{ backgroundColor: p.bg }}
+                  className={`w-5 h-5 rounded-sm border transition-all duration-150 flex items-center justify-center ${
+                    isSelected
+                      ? 'border-indigo-600 ring-2 ring-indigo-400 scale-110 z-10 shadow-xs'
+                      : 'border-slate-300 dark:border-slate-600 hover:scale-105'
+                  }`}
+                  title={p.name}
+                >
+                  {isSelected && <Check size={11} className="text-slate-900" />}
+                </button>
+              );
+            })}
+
+            {/* Custom Color Picker for Note Color (Circular Rainbow Swatch) */}
+            <div className="flex items-center pl-1.5 ml-0.5 border-l border-slate-200 dark:border-slate-700">
+              <label
+                className="w-4.5 h-4.5 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden"
+                style={{
+                  background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
+                }}
+                title="กำหนดสีกระดาษโน้ตเอง (Custom Note Color)"
+              >
+                <input
+                  ref={customColorInputRef}
+                  type="color"
+                  value={color || '#FEF08A'}
+                  onChange={(e) => onColorChange(e.target.value)}
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 my-auto" />
+
+          {/* Red Push Pin */}
+          <button
+            type="button"
+            onClick={onTogglePin}
+            className="flex items-center gap-1 text-xs font-semibold cursor-pointer group"
+            title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้ไว้ด้านบน'}
+          >
+            <div
+              className={`w-4.5 h-4.5 rounded-full flex items-center justify-center transition-all ${
+                isPinned
+                  ? 'bg-red-600 text-white shadow-xs scale-110 ring-2 ring-red-300'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-400 group-hover:bg-red-400 group-hover:text-white'
+              }`}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-white/90" />
+            </div>
+          </button>
+
+          {/* Borderless Checkbox */}
+          <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isBorderless}
+              onChange={onToggleBorderless}
+              className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <span className="hidden sm:inline">Borderless</span>
+          </label>
+
+          {/* Toggle Formatting Toolbar Collapse Button */}
+          <button
+            type="button"
+            onClick={handleToggleFormatting}
+            className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-md transition text-slate-600 dark:text-slate-300 ml-1 flex items-center justify-center shrink-0"
+            title={isFormattingCollapsed ? 'ขยายแถบเครื่องมือจัดข้อความ (Expand formatting tools)' : 'ย่อ/พับเก็บแถบเครื่องมือจัดข้อความ (Collapse formatting tools)'}
+            aria-label={isFormattingCollapsed ? 'ขยายแถบเครื่องมือ' : 'พับเก็บแถบเครื่องมือ'}
+          >
+            {isFormattingCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
+        </div>
       </div>
 
       {!isFormattingCollapsed && (
@@ -2320,7 +2260,7 @@ export default function NoteRichToolbar({
                 <button
                   type="button"
                   onClick={() => handleResizeImage('img-w-25', '25%')}
-                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-200 transition"
                   title="ปรับความกว้างรูปภาพเป็น 25%"
                 >
                   25%
@@ -2328,7 +2268,7 @@ export default function NoteRichToolbar({
                 <button
                   type="button"
                   onClick={() => handleResizeImage('img-w-50', '50%')}
-                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-200 transition"
                   title="ปรับความกว้างรูปภาพเป็น 50%"
                 >
                   50%
@@ -2336,7 +2276,7 @@ export default function NoteRichToolbar({
                 <button
                   type="button"
                   onClick={() => handleResizeImage('img-w-75', '75%')}
-                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-200 transition"
                   title="ปรับความกว้างรูปภาพเป็น 75%"
                 >
                   75%
@@ -2344,7 +2284,7 @@ export default function NoteRichToolbar({
                 <button
                   type="button"
                   onClick={() => handleResizeImage('img-w-100', '100%')}
-                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition"
+                  className="p-1 rounded bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 hover:text-indigo-600 dark:hover:text-indigo-300 text-slate-700 dark:text-slate-200 transition"
                   title="ปรับความกว้างรูปภาพเป็น 100% (เต็มความกว้าง)"
                 >
                   100%
@@ -2359,7 +2299,7 @@ export default function NoteRichToolbar({
                   handleSetImageCaption();
                   setIsImageMenuOpen(false);
                 }}
-                className="w-full py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-left flex items-center justify-between text-[11px]"
+                className="w-full py-1.5 px-2 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-left flex items-center justify-between text-[11px] text-slate-700 dark:text-slate-200"
               >
                 <span>ใส่คำบรรยายภาพ (Caption)</span>
                 <FileText size={13} className="text-slate-400" />

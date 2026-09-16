@@ -886,9 +886,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none p-0 focus:ring-0 outline-none w-full truncate cursor-pointer"
               title="เลือกสมุดบันทึก"
             >
-              <option value="">(ไม่มีสมุด)</option>
+              <option value="" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">(ไม่มีสมุด)</option>
               {notebooks.map((nb) => (
-                <option key={nb.id} value={nb.id}>
+                <option key={nb.id} value={nb.id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                   {nb.name}
                 </option>
               ))}
@@ -1038,9 +1038,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none p-0 focus:ring-0 outline-none w-full truncate cursor-pointer"
                 title="เลือกสมุดบันทึก"
               >
-                <option value="">(ไม่มีสมุดบันทึก)</option>
+                <option value="" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">(ไม่มีสมุดบันทึก)</option>
                 {notebooks.map((nb) => (
-                  <option key={nb.id} value={nb.id}>
+                  <option key={nb.id} value={nb.id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                     {nb.name}
                   </option>
                 ))}
@@ -1056,9 +1056,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-transparent border-none p-0 focus:ring-0 outline-none w-full truncate cursor-pointer"
                 title="เลือกกระดาน (Board)"
               >
-                <option value="">(ไม่ระบุบอร์ด / ทั่วไป)</option>
+                <option value="" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">(ไม่ระบุบอร์ด / ทั่วไป)</option>
                 {boards.map((b) => (
-                  <option key={b.id} value={b.id}>
+                  <option key={b.id} value={b.id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                     {b.name} {b.isDefault ? '(เริ่มต้น)' : ''}
                   </option>
                 ))}
@@ -1511,9 +1511,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 onChange={(e) => setBoardId(e.target.value || null)}
                 className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[160px] truncate"
               >
-                <option value="">(ทั่วไป / ไม่ระบุ)</option>
+                <option value="" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">(ทั่วไป / ไม่ระบุ)</option>
                 {boards.map((b) => (
-                  <option key={b.id} value={b.id}>
+                  <option key={b.id} value={b.id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                     {b.name} {b.isDefault ? '⭐' : ''}
                   </option>
                 ))}
@@ -1531,9 +1531,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 onChange={(e) => setNotebookId(e.target.value || null)}
                 className="text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[160px] truncate"
               >
-                <option value="">(ไม่มีสมุดบันทึก)</option>
+                <option value="" className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">(ไม่มีสมุดบันทึก)</option>
                 {notebooks.map((nb) => (
-                  <option key={nb.id} value={nb.id}>
+                  <option key={nb.id} value={nb.id} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200">
                     {nb.name}
                   </option>
                 ))}
