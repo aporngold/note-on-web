@@ -5,6 +5,9 @@ import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from 'next-themes';
 import GlobalTooltip from '@/components/ui/GlobalTooltip';
 import '@/styles/globals.css';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { stopGlobalSpeechToText } from '@/components/notes/SpeechToTextButton';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +19,18 @@ const queryClient = new QueryClient({
 });
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleRouteChange = () => {
+      stopGlobalSpeechToText(false);
+    };
+
+    router.events.on('routeChangeStart', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange);
+    };
+  }, [router]);
   return (
     <>
       <Head>

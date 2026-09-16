@@ -53,6 +53,7 @@ import AIAssistantModal from './AIAssistantModal';
 import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
 import ViewportPortal from '../ui/ViewportPortal';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
+import { stopGlobalSpeechToText } from './SpeechToTextButton';
 
 interface FullscreenNoteModalProps {
   note: Note | null;
@@ -294,6 +295,7 @@ export default function FullscreenNoteModal({
   }, [isOpen, note, performSave]);
 
   const handleCloseModal = async () => {
+    stopGlobalSpeechToText(false);
     if (hasUnsavedChangesRef.current && note) {
       await performSave();
     }
@@ -304,6 +306,7 @@ export default function FullscreenNoteModal({
   };
 
   const handleAcceptModal = async () => {
+    stopGlobalSpeechToText(false);
     await performSave();
     if (typeof document !== 'undefined' && document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
@@ -311,6 +314,16 @@ export default function FullscreenNoteModal({
     toast.success('บันทึกเรียบร้อย');
     onClose();
   };
+
+  // Clean up speech recognition when modal closes or unmounts
+  useEffect(() => {
+    if (!isOpen) {
+      stopGlobalSpeechToText(false);
+    }
+    return () => {
+      stopGlobalSpeechToText(false);
+    };
+  }, [isOpen]);
 
   // Handle Escape key to close
   useEffect(() => {

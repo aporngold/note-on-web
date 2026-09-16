@@ -68,7 +68,7 @@ import VersionHistoryDrawer from './VersionHistoryDrawer';
 import ImageOcrModal from './ImageOcrModal';
 import AIAssistantModal from './AIAssistantModal';
 import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
-import SpeechToTextButton from './SpeechToTextButton';
+import SpeechToTextButton, { stopGlobalSpeechToText } from './SpeechToTextButton';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 
 export const PASTEL_NOTE_COLORS = [
@@ -285,6 +285,13 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     fetchNotes({ isArchived: false });
   }, [fetchNotes]);
 
+  // Clean up any active speech recognition when leaving or unmounting the note editor
+  useEffect(() => {
+    return () => {
+      stopGlobalSpeechToText(false);
+    };
+  }, []);
+
   // Sync editor content when loaded
   // Initialize boardId for new notes from active board or query parameter
   useEffect(() => {
@@ -356,6 +363,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
 
   // Explicit Save (Ctrl+S or Save Button)
   const handleSave = useCallback(async (isClosing = false) => {
+    stopGlobalSpeechToText(false);
     setIsSaving(true);
     try {
       const htmlContent = editor ? editor.getHTML() : content;
@@ -458,6 +466,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
 
   // Safe Close handler that ensures auto-save before navigating back
   const handleClose = useCallback(async () => {
+    stopGlobalSpeechToText(false);
     const currentHtml = editor ? editor.getHTML() : content;
     const cleanText = stripHtmlTags(currentHtml).trim();
     const hasMedia = (currentHtml && (currentHtml.includes('<img') || currentHtml.includes('<audio'))) || attachments.length > 0;

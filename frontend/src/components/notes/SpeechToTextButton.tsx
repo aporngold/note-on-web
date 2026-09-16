@@ -11,8 +11,8 @@ interface SpeechToTextButtonProps {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SINGLETON SPEECH SERVICE
-// มี Recognition Controller เพียงตัวเดียวในทั้งหน้าจอ ป้องกันเสียงบี๊บซ้ำและข้อความเบิ้ล 100%
+// SINGLETON SPEECH SERVICE (CONTINUOUS DICTATION MODE)
+// เปิดให้พูดต่อเนื่องยาวๆ ทั้ง Mobile, Tablet, Desktop จนกว่าผู้ใช้จะกดหยุดเอง
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Listener = (state: { isListening: boolean; interimText: string; lang: 'th-TH' | 'en-US' }) => void;
@@ -26,9 +26,23 @@ class SpeechToTextManager {
   private listeners: Set<Listener> = new Set();
   private lastInsertedText = '';
   private lastInsertedTime = 0;
+  private noSpeechCount = 0;
+  private restartTimeout: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Initialized lazily on client-side
+    if (typeof window !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && this.isListening) {
+          this.stop(false);
+        }
+      });
+      window.addEventListener('pagehide', () => {
+        if (this.isListening) this.stop(false);
+      });
+      window.addEventListener('beforeunload', () => {
+        if (this.isListening) this.stop(false);
+      });
+    }
   }
 
   public subscribe(listener: Listener) {
@@ -61,7 +75,7 @@ class SpeechToTextManager {
 
     if (!SpeechRecognition) return null;
 
-    // Destroy existing if any
+    // Destroy existing instance if any
     if (this.recognition) {
       try {
         this.recognition.abort();
@@ -69,8 +83,8 @@ class SpeechToTextManager {
     }
 
     const recognition = new SpeechRecognition();
-    // Non-continuous ensures a crisp, single-turn dictation that never loops or beeps repeatedly
-    recognition.continuous = false;
+    // Continuous dictation: keeps listening continuously across Mobile, Tablet, and Desktop
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = this.lang;
 
@@ -90,11 +104,17 @@ class SpeechToTextManager {
       this.notify();
 
       if (finalTranscript && this.activeEditor) {
+        if (this.activeEditor.isDestroyed) {
+          this.stop(false);
+          return;
+        }
+
+        this.noSpeechCount = 0; // Reset silence counter on valid speech
         const trimmed = finalTranscript.trim();
         const now = Date.now();
 
-        // Deduplication safeguard: prevent exact duplicate insertion within 1.2 seconds
-        if (trimmed === this.lastInsertedText && now - this.lastInsertedTime < 1200) {
+        // Deduplication safeguard: prevent exact duplicate insertion within 1.0s
+        if (trimmed === this.lastInsertedText && now - this.lastInsertedTime < 1000) {
           return;
         }
 
@@ -110,17 +130,38 @@ class SpeechToTextManager {
       console.warn('[SpeechService] Recognition error:', event.error);
       if (event.error === 'not-allowed') {
         toast.error('เบราว์เซอร์ไม่อนุญาตไมโครโฟน โปรดแตะไอคอนแม่กุญแจบนแถบ URL เพื่อเปิดสิทธิ์');
+        this.stop(false);
+      } else if (event.error === 'no-speech') {
+        this.noSpeechCount += 1;
+        // If silence continues for multiple cycles, gracefully stop
+        if (this.noSpeechCount >= 3) {
+          this.stop(false);
+        }
       } else if (event.error === 'network') {
         toast.error('การเชื่อมต่อกับระบบแปลงเสียงพูดขัดข้อง');
+        this.stop(false);
       }
-      this.stop(false);
     };
 
     recognition.onend = () => {
-      // Clean, quiet finish with NO aggressive auto-restart loop
-      this.isListening = false;
-      this.interimText = '';
-      this.notify();
+      // If user is still in listening mode (has not manually clicked stop):
+      // Seamlessly keep microphone active for long continuous dictation
+      if (this.isListening && this.noSpeechCount < 3) {
+        if (this.restartTimeout) clearTimeout(this.restartTimeout);
+        this.restartTimeout = setTimeout(() => {
+          if (this.isListening && this.recognition) {
+            try {
+              this.recognition.start();
+            } catch (e) {
+              // already running or stopped
+            }
+          }
+        }, 200);
+      } else {
+        this.isListening = false;
+        this.interimText = '';
+        this.notify();
+      }
     };
 
     this.recognition = recognition;
@@ -159,12 +200,15 @@ class SpeechToTextManager {
     this.activeEditor = editor;
     this.lastInsertedText = '';
     this.lastInsertedTime = 0;
+    this.noSpeechCount = 0;
 
     try {
       rec.start();
       this.isListening = true;
       this.notify();
-      toast.success(`กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย`);
+      toast.success(
+        `กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดต่อเนื่องได้เลย (แตะอีกครั้งเมื่อต้องการหยุด)`
+      );
     } catch (err: any) {
       console.error('[SpeechService] start error:', err);
       this.isListening = false;
@@ -175,6 +219,8 @@ class SpeechToTextManager {
   public stop(notify = true) {
     this.isListening = false;
     this.interimText = '';
+    this.noSpeechCount = 0;
+    if (this.restartTimeout) clearTimeout(this.restartTimeout);
     this.notify();
 
     if (this.recognition) {
@@ -199,6 +245,10 @@ class SpeechToTextManager {
 
 // Global Singleton Instance
 const speechManager = new SpeechToTextManager();
+
+export function stopGlobalSpeechToText(notify = false) {
+  speechManager.stop(notify);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPONENT
@@ -275,13 +325,13 @@ export default function SpeechToTextButton({
               <span>พูดเพื่อพิมพ์ (Speech-to-Text)</span>
               {state.isListening && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold animate-pulse">
-                  กำลังฟัง...
+                  กำลังฟังต่อเนื่อง...
                 </span>
               )}
             </div>
             <p className="text-[11px] text-slate-400">
               {state.isListening
-                ? 'พูดข้อความได้เลย (แตะอีกครั้งเพื่อหยุด)'
+                ? 'พูดต่อเนื่องได้เลย (แตะอีกครั้งเมื่อต้องการหยุด)'
                 : 'แตะเพื่อเปิดไมค์พิมพ์ข้อความด้วยเสียง'}
             </p>
           </div>
@@ -308,7 +358,7 @@ export default function SpeechToTextButton({
           onClick={handleToggleListening}
           title={
             state.isListening
-              ? 'กำลังฟังเสียงพูดเพื่อพิมพ์ (แตะเพื่อหยุด)'
+              ? 'กำลังฟังเสียงพูดต่อเนื่อง (แตะเพื่อหยุด)'
               : 'พูดเพื่อพิมพ์ (Speech-to-Text)'
           }
           aria-label="พูดเพื่อพิมพ์"
@@ -334,7 +384,7 @@ export default function SpeechToTextButton({
         {/* Floating preview for interim transcript */}
         {state.isListening && state.interimText && (
           <div className="fixed bottom-20 left-4 right-4 mx-auto max-w-sm px-3 py-2 rounded-xl bg-slate-900/95 text-white text-xs shadow-2xl border border-slate-700 z-[9999] animate-fade-in backdrop-blur-md pointer-events-none text-center">
-            <span className="text-amber-300 font-semibold mr-1">🎙️ ได้ยินว่า:</span>
+            <span className="text-amber-300 font-semibold mr-1">🎙️ กำลังฟัง:</span>
             <span>{state.interimText}</span>
           </div>
         )}
@@ -350,7 +400,7 @@ export default function SpeechToTextButton({
         onClick={handleToggleListening}
         title={
           state.isListening
-            ? 'กำลังฟังเสียงพูดเพื่อพิมพ์ (คลิกเพื่อหยุด)'
+            ? 'กำลังฟังเสียงพูดต่อเนื่อง (คลิกเพื่อหยุด)'
             : 'พูดเพื่อพิมพ์ (Speech-to-Text)'
         }
         aria-label="พูดเพื่อพิมพ์"
@@ -376,7 +426,7 @@ export default function SpeechToTextButton({
       {/* Floating interim transcript preview */}
       {state.isListening && state.interimText && (
         <div className="absolute left-0 bottom-full mb-2 px-3 py-1.5 rounded-lg bg-slate-900/90 text-white text-xs whitespace-nowrap shadow-xl border border-slate-700 z-50 animate-fade-in backdrop-blur-sm pointer-events-none">
-          <span className="text-amber-300 font-semibold mr-1">🎙️ ได้ยินว่า:</span>
+          <span className="text-amber-300 font-semibold mr-1">🎙️ กำลังฟัง:</span>
           <span>{state.interimText}</span>
         </div>
       )}
