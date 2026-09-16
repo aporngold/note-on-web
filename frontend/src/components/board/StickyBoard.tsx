@@ -24,11 +24,13 @@ import KanbanView from './KanbanView';
 import BoardShareModal from '../modals/BoardShareModal';
 import BoardBackgroundModal, { BOARD_PATTERNS, CURATED_WALLPAPERS } from './BoardBackgroundModal';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
-import { Note, Board, BoardViewMode } from '@/types';
+import SortDropdown from '../ui/SortDropdown';
+import { Note, Board, BoardViewMode, SortOption } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
 import { getRandomNoteColor } from '../notes/NoteEditor';
+import { sortNotes, SORT_OPTIONS } from '@/utils/sortHelper';
 import toast from 'react-hot-toast';
 
 interface StickyBoardProps {
@@ -66,6 +68,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     boardViewMode,
     setBoardViewMode,
     notes: allNotes,
+    sortBy,
+    setSortBy,
   } = useNoteStore();
 
   const activeBoard = boards.find((b) => b.id === activeBoardId);
@@ -651,11 +655,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   };
 
-  // Auto-arrange all notes in a neat grid
-  const handleAutoArrange = async () => {
+  // Auto-arrange all notes in a neat grid according to selected SortOption
+  const handleAutoArrange = async (newSortOption?: SortOption) => {
     if (notes.length === 0) {
       toast('ไม่มีโน้ตบนกระดานให้จัดเรียง', { icon: 'ℹ️' });
       return;
+    }
+
+    const targetSort = newSortOption || sortBy;
+    if (newSortOption) {
+      setSortBy(newSortOption);
     }
 
     setIsArranging(true);
@@ -666,12 +675,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     // Support 7 notes horizontally across the board
     const cols = 7;
 
-    // Sort pinned notes first, then maintain natural order
-    const sortedNotes = [...notes].sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return 0;
-    });
+    // Sort notes by selected sort option (pinned always first)
+    const sortedNotes = sortNotes(notes, targetSort);
 
     const updates = sortedNotes.map((n, idx) => {
       const col = idx % cols;
@@ -693,7 +698,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       await Promise.all(
         updates.map((u) => updateNote(u.id, { posX: u.posX, posY: u.posY }))
       );
-      toast.success('จัดเรียงโน้ตทั้งหมดเรียบร้อยแล้ว');
+      const sortMeta = SORT_OPTIONS.find((o) => o.value === targetSort);
+      toast.success(`จัดเรียงโน้ตตาม: ${sortMeta?.label || 'ลำดับ'} เรียบร้อยแล้ว`);
       if (canvasContainerRef.current) {
         canvasContainerRef.current.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
       }
@@ -1055,16 +1061,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               </button>
             )}
 
-            {/* Auto Arrange Notes Button */}
-            <button
-              onClick={handleAutoArrange}
-              disabled={isArranging || notes.length === 0}
-              className="px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-slate-200 dark:border-slate-700 transition active:scale-95"
-              title="จัดเรียงโน้ตทั้งหมดบนกระดานให้เป็นระเบียบอัตโนมัติ"
-            >
-              <Sparkles size={14} className={`text-amber-500 ${isArranging ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{isArranging ? 'กำลังจัดเรียง...' : 'จัดเรียงอัตโนมัติ'}</span>
-            </button>
+            {/* Auto Arrange Dropdown Menu */}
+            <SortDropdown
+              value={sortBy}
+              onChange={(opt) => handleAutoArrange(opt)}
+              variant="board"
+              isArranging={isArranging}
+            />
 
             {/* Change Background Button */}
             <button

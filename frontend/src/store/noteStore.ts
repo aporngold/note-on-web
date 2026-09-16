@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import api from '@/utils/api';
-import { Note, Notebook, Label, Board, ViewMode, BoardViewMode, NoteConnection } from '@/types';
+import { Note, Notebook, Label, Board, ViewMode, BoardViewMode, NoteConnection, SortOption } from '@/types';
 import toast from 'react-hot-toast';
 import { EncryptionService } from '@/utils/encryption';
 import { useAuthStore } from '@/store/authStore';
+import { getStoredSortOption, setStoredSortOption } from '@/utils/sortHelper';
 
 interface NoteState {
   notes: Note[];
@@ -20,6 +21,7 @@ interface NoteState {
   defaultViewMode: ViewMode;
   viewMode: ViewMode;
   boardViewMode: BoardViewMode;
+  sortBy: SortOption;
   isLoading: boolean;
   isTrashLoading: boolean;
   pendingLockNote: Note | null;
@@ -75,6 +77,7 @@ interface NoteState {
   setSelectedNotebook: (id: string | null) => void;
   setSelectedLabel: (id: string | null) => void;
   setSelectedColor: (color: string | null) => void;
+  setSortBy: (sortBy: SortOption) => void;
 }
 
 export const useNoteStore = create<NoteState>((set, get) => ({
@@ -92,6 +95,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   defaultViewMode: (typeof window !== 'undefined' ? (localStorage.getItem('secure_note_default_view_mode') as ViewMode) : null) || 'board',
   viewMode: (typeof window !== 'undefined' ? (localStorage.getItem('secure_note_default_view_mode') as ViewMode) : null) || 'board',
   boardViewMode: 'freeform',
+  sortBy: getStoredSortOption(),
   isLoading: false,
   isTrashLoading: false,
   pendingLockNote: null,
@@ -726,4 +730,8 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   setSelectedNotebook: (selectedNotebook) => set({ selectedNotebook }),
   setSelectedLabel: (selectedLabel) => set({ selectedLabel }),
   setSelectedColor: (selectedColor) => set({ selectedColor }),
+  setSortBy: (sortBy: SortOption) => {
+    setStoredSortOption(sortBy);
+    set({ sortBy });
+  },
 }));

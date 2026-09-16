@@ -9,9 +9,11 @@ import KanbanView from '@/components/board/KanbanView';
 import MasterPasswordModal from '@/components/notes/MasterPasswordModal';
 import FullscreenNoteModal from '@/components/notes/FullscreenNoteModal';
 import AISearchModal from '@/components/dashboard/AISearchModal';
+import SortDropdown from '@/components/ui/SortDropdown';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { Note } from '@/types';
+import { sortNotes } from '@/utils/sortHelper';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -33,6 +35,8 @@ export default function Dashboard() {
     setSelectedNotebook,
     setSelectedLabel,
     setSelectedColor,
+    sortBy,
+    setSortBy,
   } = useNoteStore();
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -54,16 +58,20 @@ export default function Dashboard() {
     }
   }, [user, selectedNotebook, selectedLabel, selectedColor, fetchNotes, fetchBoards]);
 
-  // Client-side search and tab filtering
-  const filteredNotes = notes.filter((n) => {
-    if (activeTab === 'pinned' && !n.isPinned) return false;
-    if (activeTab === 'favorites' && !n.isFavorite) return false;
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const titleMatch = n.title?.toLowerCase().includes(q);
-    const contentMatch = n.content?.toLowerCase().includes(q);
-    return titleMatch || contentMatch;
-  });
+  // Client-side search, tab filtering, and auto-sorting
+  const filteredNotes = React.useMemo(() => {
+    const matched = notes.filter((n) => {
+      if (activeTab === 'pinned' && !n.isPinned) return false;
+      if (activeTab === 'favorites' && !n.isFavorite) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const titleMatch = n.title?.toLowerCase().includes(q);
+      const contentMatch = n.content?.toLowerCase().includes(q);
+      return titleMatch || contentMatch;
+    });
+
+    return sortNotes(matched, sortBy);
+  }, [notes, activeTab, searchQuery, sortBy]);
 
   const defaultBoard = boards.find((b) => b.isDefault) || boards[0];
   const isViewingDefaultBoard = !activeBoardId || activeBoardId === defaultBoard?.id;
@@ -111,51 +119,60 @@ export default function Dashboard() {
               </p>
             </div>
 
-            {/* Quick Filter Tabs (All, Pinned, Favorites) */}
-            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold self-start sm:self-auto shadow-xs">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`px-3 py-1.5 rounded-xl transition ${
-                  activeTab === 'all'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                ทั้งหมด ({notes.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('pinned')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
-                  activeTab === 'pinned'
-                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <Pin size={13} className="fill-current" />
-                <span>ปักหมุด ({notes.filter((n) => n.isPinned).length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('favorites')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
-                  activeTab === 'favorites'
-                    ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                <Star size={13} className="fill-current" />
-                <span>รายการโปรด ({notes.filter((n) => n.isFavorite).length})</span>
-              </button>
+            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              {/* Quick Filter Tabs (All, Pinned, Favorites) */}
+              <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold shadow-xs">
+                <button
+                  onClick={() => setActiveTab('all')}
+                  className={`px-3 py-1.5 rounded-xl transition ${
+                    activeTab === 'all'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  ทั้งหมด ({notes.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('pinned')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
+                    activeTab === 'pinned'
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Pin size={13} className="fill-current" />
+                  <span>ปักหมุด ({notes.filter((n) => n.isPinned).length})</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('favorites')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
+                    activeTab === 'favorites'
+                      ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Star size={13} className="fill-current" />
+                  <span>รายการโปรด ({notes.filter((n) => n.isFavorite).length})</span>
+                </button>
 
-              {/* AI Search Trigger Button */}
-              <button
-                type="button"
-                onClick={() => setIsAiSearchOpen(true)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-sm transition"
-                title="ค้นหาโน้ตตามความหมายด้วย AI (ฟรี 100%)"
-              >
-                <Sparkles size={13} />
-                <span>ค้นหา AI</span>
-              </button>
+                {/* AI Search Trigger Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsAiSearchOpen(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-sm transition"
+                  title="ค้นหาโน้ตตามความหมายด้วย AI (ฟรี 100%)"
+                >
+                  <Sparkles size={13} />
+                  <span>ค้นหา AI</span>
+                </button>
+              </div>
+
+              {/* Auto Sort Dropdown */}
+              <SortDropdown
+                value={sortBy}
+                onChange={(opt) => setSortBy(opt)}
+                variant="dashboard"
+              />
             </div>
           </div>
         )}

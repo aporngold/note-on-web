@@ -160,3 +160,11 @@ export interface AISearchResult {
 
 export type ViewMode = 'grid' | 'list' | 'kanban' | 'board';
 export type BoardViewMode = 'freeform' | 'kanban';
+
+export type SortOption =
+  | 'updated_desc'
+  | 'updated_asc'
+  | 'created_desc'
+  | 'created_asc'
+  | 'title_asc'
+  | 'title_desc';
