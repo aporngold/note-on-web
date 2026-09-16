@@ -862,6 +862,10 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     );
   }
 
+  const plainText = editor ? editor.getText() : stripHtmlTags(content);
+  const wordCount = plainText.trim() ? plainText.trim().split(/\s+/).length : 0;
+  const charCount = plainText.length;
+
   return (
     <div className="w-full h-full flex flex-col animate-fade-in transition-all duration-300">
       {/* Mobile Compact Top Bar (GEMINI.md STEP 3) */}
@@ -1002,7 +1006,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           }`}
         style={{
           backgroundColor: color || '#FFFFFF',
-          borderTop: isBorderless ? 'none' : `6px solid ${color || '#FEF08A'}`,
         }}
       >
         {isDraggingOver && (
@@ -1222,10 +1225,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             onShare={initialNoteId ? () => setIsShareModalOpen(true) : undefined}
             onDelete={initialNoteId ? handleDelete : undefined}
             onOpenFullscreen={handleOpenFullscreen}
-            extraRightActions={(() => {
-              const activeId = initialNoteId || noteIdRef.current || (typeof router.query.id === 'string' ? router.query.id : undefined);
-              return activeId ? <ActiveCollaboratorsBar noteId={activeId} /> : null;
-            })()}
+            hideTopSaveCancel={true}
             onCopyNote={() => {
               const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
               navigator.clipboard.writeText(fullText);
@@ -1289,6 +1289,64 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               <EditorContent editor={editor} />
             </div>
           )}
+        </div>
+
+        {/* ── FOOTER STATUS & ACTION BAR (เหมือนตอนขยายแบบเต็มจอ) ── */}
+        <div className="p-2.5 sm:p-3 px-3 sm:px-6 border-t border-black/10 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs opacity-95 bg-black/5 dark:bg-slate-900/60 shrink-0 gap-2">
+          {/* Word & Char statistics */}
+          <div className="flex items-center gap-3 opacity-75 text-[11px] sm:text-xs">
+            <span>
+              จำนวนคำ: <b>{wordCount}</b> คำ
+            </span>
+            <span>
+              ความยาว: <b>{charCount}</b> ตัวอักษร
+            </span>
+            <span className="hidden sm:inline">
+              ซูม: <b>{zoomLevel}%</b>
+            </span>
+            {(() => {
+              const currentNb = notebooks.find((nb) => nb.id === notebookId);
+              return currentNb ? <span className="hidden xs:inline">📁 {currentNb.name}</span> : null;
+            })()}
+          </div>
+
+          {/* Action Row: ActiveCollaboratorsBar ("กำลังดู") + CANCEL + ACCEPT together on the SAME row */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+            <div className="shrink-0">
+              {(() => {
+                const activeId = initialNoteId || noteIdRef.current || (typeof router.query.id === 'string' ? router.query.id : undefined);
+                return activeId ? <ActiveCollaboratorsBar noteId={activeId} /> : null;
+              })()}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+              <span className="text-emerald-700 dark:text-emerald-400 font-bold items-center gap-1 mr-2 hidden md:flex">
+                <Check size={14} />
+                <span>
+                  {isAutoSaving
+                    ? 'กำลังบันทึกอัตโนมัติ...'
+                    : lastSaved
+                    ? `บันทึกแล้ว: ${lastSaved}`
+                    : 'บันทึกอัตโนมัติ'}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 sm:px-5 py-2 rounded-xl bg-black/10 hover:bg-black/20 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold transition text-xs shadow-xs active:scale-95 cursor-pointer"
+              >
+                CANCEL
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSave(false)}
+                disabled={isSaving}
+                className="px-5 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold transition text-xs shadow-md shadow-emerald-600/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {isSaving ? 'กำลังบันทึก...' : 'ACCEPT'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

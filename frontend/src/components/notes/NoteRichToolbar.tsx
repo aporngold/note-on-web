@@ -144,6 +144,7 @@ interface NoteRichToolbarProps {
   onTogglePreview?: () => void;
   onOpenFullscreen?: () => void;
   extraRightActions?: React.ReactNode;
+  hideTopSaveCancel?: boolean;
 }
 
 export default function NoteRichToolbar({
@@ -190,6 +191,7 @@ export default function NoteRichToolbar({
   onTogglePreview,
   onOpenFullscreen,
   extraRightActions,
+  hideTopSaveCancel = false,
 }: NoteRichToolbarProps) {
   // Dropdown states
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -994,34 +996,38 @@ export default function NoteRichToolbar({
             </button>
           )}
 
-          {/* Vertical divider before Save / Close */}
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 my-auto mx-0.5" />
+          {!hideTopSaveCancel && (
+            <>
+              {/* Vertical divider before Save / Close */}
+              <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 my-auto mx-0.5" />
 
-          {/* Save Button */}
-          {onAccept && (
-            <button
-              type="button"
-              onClick={onAccept}
-              disabled={isSaving}
-              className="p-1.5 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center transition active:scale-95 disabled:opacity-50"
-              title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
-              aria-label="บันทึก"
-            >
-              <Save size={16} />
-            </button>
-          )}
+              {/* Save Button */}
+              {onAccept && (
+                <button
+                  type="button"
+                  onClick={onAccept}
+                  disabled={isSaving}
+                  className="p-1.5 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center transition active:scale-95 disabled:opacity-50"
+                  title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+                  aria-label="บันทึก"
+                >
+                  <Save size={16} />
+                </button>
+              )}
 
-          {/* Close / Cancel Button */}
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
-              title="ปิด / ยกเลิก (Close)"
-              aria-label="ปิดโน้ต"
-            >
-              <X size={17} />
-            </button>
+              {/* Close / Cancel Button */}
+              {onCancel && (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
+                  title="ปิด / ยกเลิก (Close)"
+                  aria-label="ปิดโน้ต"
+                >
+                  <X size={17} />
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
