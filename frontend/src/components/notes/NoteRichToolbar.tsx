@@ -51,6 +51,13 @@ import {
   History,
   Lock,
   Unlock,
+  ArrowLeft,
+  Pin,
+  Star,
+  CopyPlus,
+  Edit3,
+  Eye,
+  Save,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
@@ -129,6 +136,14 @@ interface NoteRichToolbarProps {
   onAccept: () => void;
   showSpeechToText?: boolean;
   isSaving?: boolean;
+  onBack?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
+  onDuplicate?: () => void;
+  isPreview?: boolean;
+  onTogglePreview?: () => void;
+  onOpenFullscreen?: () => void;
+  extraRightActions?: React.ReactNode;
 }
 
 export default function NoteRichToolbar({
@@ -167,6 +182,14 @@ export default function NoteRichToolbar({
   onCancel,
   onAccept,
   isSaving = false,
+  onBack,
+  isFavorite,
+  onToggleFavorite,
+  onDuplicate,
+  isPreview,
+  onTogglePreview,
+  onOpenFullscreen,
+  extraRightActions,
 }: NoteRichToolbarProps) {
   // Dropdown states
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -696,13 +719,29 @@ export default function NoteRichToolbar({
           แถวที่ 1: แถบบนสุด (Top Action Utility Bar)
          ══════════════════════════════════════════════════════ */}
       <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap text-slate-600 dark:text-slate-300">
-        {/* Left: Undo, Redo, Zoom In, Zoom Out */}
-        <div className="flex items-center gap-1">
+        {/* Left: Back Arrow, Undo, Redo, Zoom In, Zoom Out */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {onBack && (
+            <>
+              <button
+                type="button"
+                onClick={onBack}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-bold"
+                title="กลับไปหน้าหลัก"
+                aria-label="กลับ"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+            </>
+          )}
+
           <button
             type="button"
             onClick={handleUndo}
             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
             title="เลิกทำ / ย้อนกลับ (Ctrl+Z)"
+            aria-label="เลิกทำ"
           >
             <RotateCcw size={16} />
           </button>
@@ -711,6 +750,7 @@ export default function NoteRichToolbar({
             onClick={handleRedo}
             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
             title="ทำซ้ำ (Ctrl+Y หรือ Ctrl+Shift+Z)"
+            aria-label="ทำซ้ำ"
           >
             <RotateCw size={16} />
           </button>
@@ -748,14 +788,83 @@ export default function NoteRichToolbar({
           )}
         </div>
 
-        {/* Right: Attachment, Pipette, Copy, Fullscreen, Export, Share, Calendar, Transfer, Delete */}
-        <div className="flex items-center gap-1">
+        {/* Right: Actions from the Top Action Bar */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {/* E2EE Lock / Unlock */}
+          {onToggleLock && (
+            <button
+              type="button"
+              onClick={onToggleLock}
+              className={`p-1.5 rounded-lg transition ${
+                isLocked
+                  ? isVaultUnlocked
+                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-400/50'
+                    : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-1 ring-amber-400/50'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500'
+              }`}
+              title={
+                isLocked
+                  ? isVaultUnlocked
+                    ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
+                    : 'โน้ตเข้ารหัส E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
+                  : 'เปิดการเข้ารหัสลับแบบ E2EE'
+              }
+              aria-label={isLocked ? (isVaultUnlocked ? 'ปลดล็อกแล้ว' : 'ล็อกอยู่') : 'ไม่ได้ล็อก'}
+            >
+              {isLocked ? (
+                isVaultUnlocked ? (
+                  <Unlock size={16} className="text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <Lock size={16} className="text-amber-600 dark:text-amber-400" />
+                )
+              ) : (
+                <Unlock size={16} className="opacity-50" />
+              )}
+            </button>
+          )}
+
+          {/* Pin */}
+          {onTogglePin && (
+            <button
+              type="button"
+              onClick={onTogglePin}
+              className={`p-1.5 rounded-lg transition ${
+                isPinned
+                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 ring-1 ring-indigo-500/20'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้'}
+              aria-label="ปักหมุด"
+            >
+              <Pin size={16} className={isPinned ? 'fill-current' : ''} />
+            </button>
+          )}
+
+          {/* Favorite */}
+          {onToggleFavorite && (
+            <button
+              type="button"
+              onClick={onToggleFavorite}
+              className={`p-1.5 rounded-lg transition ${
+                isFavorite
+                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 ring-1 ring-amber-500/20'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด (Favorite)'}
+              aria-label="รายการโปรด"
+            >
+              <Star size={16} className={isFavorite ? 'fill-current' : ''} />
+            </button>
+          )}
+
+          {/* Attachment */}
           {onAttachFile && (
             <button
               type="button"
               onClick={onAttachFile}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition relative"
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition relative text-slate-500"
               title={`แนบไฟล์ (ปัจจุบันมี ${attachmentsCount} ไฟล์)`}
+              aria-label="ไฟล์แนบ"
             >
               <Paperclip size={16} />
               {attachmentsCount > 0 && (
@@ -766,95 +875,212 @@ export default function NoteRichToolbar({
             </button>
           )}
 
+          {/* Voice Memo */}
+          {onRecordAudio && (
+            <button
+              type="button"
+              onClick={onRecordAudio}
+              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition"
+              title="อัดเสียงบันทึก (Voice Memo)"
+              aria-label="อัดเสียง"
+            >
+              <AudioLines size={16} />
+            </button>
+          )}
 
+          {/* Speech-to-Text Live Dictation */}
+          {showSpeechToText && <SpeechToTextButton editor={editor || null} />}
 
+          {/* OCR Image */}
+          {onOpenOcr && (
+            <button
+              type="button"
+              onClick={onOpenOcr}
+              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition"
+              title="สแกนข้อความจากรูปภาพ (OCR)"
+              aria-label="OCR"
+            >
+              <ScanText size={16} />
+            </button>
+          )}
+
+          {/* AI Assistant */}
+          {onOpenAiAssistant && (
+            <button
+              type="button"
+              onClick={onOpenAiAssistant}
+              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition"
+              title="ผู้ช่วย AI สรุปและเรียบเรียง"
+              aria-label="ผู้ช่วย AI"
+            >
+              <Sparkles size={16} />
+            </button>
+          )}
+
+          {/* Version History */}
+          {onOpenVersionHistory && (
+            <button
+              type="button"
+              onClick={onOpenVersionHistory}
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+              title="ประวัติเวอร์ชัน (Version History)"
+              aria-label="ประวัติเวอร์ชัน"
+            >
+              <History size={16} />
+            </button>
+          )}
+
+          {/* Duplicate Note */}
+          {onDuplicate && (
+            <button
+              type="button"
+              onClick={onDuplicate}
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+              title="ทำสำเนาโน้ตนี้ (Duplicate Note)"
+              aria-label="ทำสำเนา"
+            >
+              <CopyPlus size={16} />
+            </button>
+          )}
+
+          {/* Collaborators presence */}
+          {extraRightActions}
+
+          {/* Preview Toggle */}
+          {onTogglePreview && (
+            <button
+              type="button"
+              onClick={onTogglePreview}
+              className={`p-1.5 rounded-lg transition ${
+                isPreview
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-none'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={isPreview ? 'แก้ไขเนื้อหา' : 'ดูตัวอย่าง'}
+              aria-label={isPreview ? 'แก้ไข' : 'ดูตัวอย่าง'}
+            >
+              {isPreview ? <Edit3 size={16} /> : <Eye size={16} />}
+            </button>
+          )}
+
+          {/* Copy Note */}
           {onCopyNote && (
             <button
               type="button"
               onClick={onCopyNote}
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
               title="คัดลอกข้อความทั้งหมด (Copy)"
+              aria-label="คัดลอก"
             >
               <Copy size={16} />
             </button>
           )}
 
-          {onToggleTrulyFullscreen && (
-            <button
-              type="button"
-              onClick={onToggleTrulyFullscreen}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-slate-700 dark:text-slate-200"
-              title="ยกเลิกโหมดเต็มจอ (Esc)"
-            >
-              <Minimize2 size={16} />
-            </button>
-          )}
-
+          {/* Download TXT */}
           {onDownloadTxt && (
             <button
               type="button"
               onClick={onDownloadTxt}
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
               title="ดาวน์โหลดเป็นไฟล์ข้อความ (.txt)"
+              aria-label="ดาวน์โหลด txt"
             >
               <Download size={16} />
             </button>
           )}
 
+          {/* Share */}
           {onShare && (
             <button
               type="button"
               onClick={onShare}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
               title="แชร์โน้ตนี้"
+              aria-label="แชร์"
             >
               <Share2 size={16} />
             </button>
           )}
 
-          {onOpenVersionHistory && (
-            <button
-              type="button"
-              onClick={onOpenVersionHistory}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-              title="ประวัติเวอร์ชัน (Version History)"
-            >
-              <History size={16} />
-            </button>
-          )}
-
-
-
+          {/* Move Board */}
           {onMoveBoard && (
             <button
               type="button"
               onClick={onMoveBoard}
               className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
               title="ย้ายโน้ตนี้ไปกระดานอื่น (Move to Board)"
+              aria-label="ย้ายกระดาน"
             >
               <ArrowLeftRight size={16} />
             </button>
           )}
 
+          {/* Delete */}
           {onDelete && (
             <button
               type="button"
               onClick={onDelete}
-              className="p-1.5 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 rounded-lg transition text-slate-500"
-              title="ย้ายลงถังขยะ"
+              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition"
+              title="ลบโน้ตนี้"
+              aria-label="ลบโน้ต"
             >
               <Trash2 size={16} />
             </button>
           )}
 
+          {/* Fullscreen Mode */}
+          {onOpenFullscreen && (
+            <button
+              type="button"
+              onClick={onOpenFullscreen}
+              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+              title="เปิดแก้ไขแบบเต็มจอ (Fullscreen)"
+              aria-label="เต็มจอ"
+            >
+              <Maximize2 size={16} />
+            </button>
+          )}
+
+          {/* Truly Fullscreen exit (for Fullscreen modal) */}
+          {onToggleTrulyFullscreen && (
+            <button
+              type="button"
+              onClick={onToggleTrulyFullscreen}
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition text-slate-700 dark:text-slate-200"
+              title="ยกเลิกโหมดเต็มจอ (Esc)"
+              aria-label="ยกเลิกเต็มจอ"
+            >
+              <Minimize2 size={16} />
+            </button>
+          )}
+
+          {/* Vertical divider before Save / Close */}
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 my-auto mx-0.5" />
+
+          {/* Save Button */}
+          {onAccept && (
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={isSaving}
+              className="p-1.5 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg flex items-center justify-center transition active:scale-95 disabled:opacity-50"
+              title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
+              aria-label="บันทึก"
+            >
+              <Save size={16} />
+            </button>
+          )}
+
+          {/* Close / Cancel Button */}
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="p-1.5 hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-900/40 rounded-lg transition text-slate-500 dark:text-slate-400 ml-0.5"
-              title="ปิดหน้าต่าง (Esc)"
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
+              title="ปิด / ยกเลิก (Close)"
+              aria-label="ปิดโน้ต"
             >
-              <X size={16} />
+              <X size={17} />
             </button>
           )}
 

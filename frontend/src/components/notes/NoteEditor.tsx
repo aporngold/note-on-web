@@ -991,227 +991,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         </div>
       )}
 
-      {/* Desktop Top Action Bar (Compact & Icon-Only, Preserved 100% for lg screens) */}
-      <div className="hidden lg:flex items-center justify-between gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleClose}
-            className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            title="กลับไปหน้าหลัก"
-            aria-label="กลับ"
-          >
-            <ArrowLeft size={18} />
-          </button>
-        </div>
 
-        <div className="flex items-center gap-1 flex-wrap">
-          {/* Lock / E2EE Button (Icon-only) */}
-          <button
-            onClick={handleLockToggle}
-            className={`p-1.5 rounded-xl transition ${isLocked
-                ? isVaultUnlocked
-                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-400/50'
-                  : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-1 ring-amber-400/50'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            title={
-              isLocked
-                ? isVaultUnlocked
-                  ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
-                  : 'โน้ตเข้ารหัส E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
-                : 'เปิดการเข้ารหัสลับแบบ E2EE'
-            }
-            aria-label={isLocked ? (isVaultUnlocked ? 'ปลดล็อกแล้ว' : 'ล็อกอยู่') : 'ไม่ได้ล็อก'}
-          >
-            {isLocked ? (
-              isVaultUnlocked ? (
-                <Unlock size={16} className="text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <Lock size={16} className="text-amber-600 dark:text-amber-400" />
-              )
-            ) : (
-              <Unlock size={16} className="opacity-50" />
-            )}
-          </button>
-
-          {/* Pin Button */}
-          <button
-            onClick={() => setIsPinned(!isPinned)}
-            className={`p-1.5 rounded-xl transition ${isPinned
-                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 ring-1 ring-indigo-500/20'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้'}
-            aria-label="ปักหมุด"
-          >
-            <Pin size={16} className={isPinned ? 'fill-current' : ''} />
-          </button>
-
-          {/* Favorite Button */}
-          <button
-            onClick={() => setIsFavorite(!isFavorite)}
-            className={`p-1.5 rounded-xl transition ${isFavorite
-                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 ring-1 ring-amber-500/20'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            title={isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด (Favorite)'}
-            aria-label="รายการโปรด"
-          >
-            <Star size={16} className={isFavorite ? 'fill-current' : ''} />
-          </button>
-
-          {/* Attachment Drawer Toggle */}
-          <button
-            onClick={() => setIsAttachmentDrawerOpen(true)}
-            className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition relative"
-            title={`ไฟล์แนบ (${attachments.length} รายการ)`}
-            aria-label="ไฟล์แนบ"
-          >
-            <Paperclip size={16} />
-            {attachments.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-indigo-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
-                {attachments.length}
-              </span>
-            )}
-          </button>
-
-          {/* Voice Memo Button */}
-          <button
-            onClick={() => setIsAudioModalOpen(true)}
-            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
-            title="อัดเสียงบันทึก (Voice Memo)"
-            aria-label="อัดเสียง"
-          >
-            <AudioLines size={16} />
-          </button>
-
-          {/* Speech-to-Text Live Dictation */}
-          <SpeechToTextButton editor={editor || null} />
-
-          {/* OCR Image Button (Icon-only) */}
-          <button
-            onClick={() => setIsOcrModalOpen(true)}
-            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
-            title="สแกนข้อความจากรูปภาพ (OCR)"
-            aria-label="OCR"
-          >
-            <ScanText size={16} />
-          </button>
-
-          {/* AI Assistant Button (Icon-only) */}
-          <button
-            onClick={() => setIsAiModalOpen(true)}
-            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition"
-            title="ผู้ช่วย AI สรุปและเรียบเรียง"
-            aria-label="ผู้ช่วย AI"
-          >
-            <Sparkles size={16} />
-          </button>
-
-          {/* Version History Button */}
-          {initialNoteId && (
-            <button
-              onClick={() => setIsVersionDrawerOpen(true)}
-              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-              title="ประวัติเวอร์ชัน (Version History)"
-              aria-label="ประวัติเวอร์ชัน"
-            >
-              <History size={16} />
-            </button>
-          )}
-
-          {/* Duplicate Note Button */}
-          {initialNoteId && (
-            <button
-              onClick={handleDuplicate}
-              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-              title="ทำสำเนาโน้ตนี้ (Duplicate Note)"
-              aria-label="ทำสำเนา"
-            >
-              <CopyPlus size={16} />
-            </button>
-          )}
-
-          {/* Active Collaborators presence */}
-          {(() => {
-            const activeId = initialNoteId || noteIdRef.current || (typeof router.query.id === 'string' ? router.query.id : undefined);
-            return activeId ? <ActiveCollaboratorsBar noteId={activeId} /> : null;
-          })()}
-
-          {/* Preview Toggle (Icon-only) */}
-          <button
-            onClick={() => setIsPreview(!isPreview)}
-            className={`p-1.5 rounded-xl transition ${isPreview
-                ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-none'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
-              }`}
-            title={isPreview ? 'แก้ไขเนื้อหา' : 'ดูตัวอย่าง'}
-            aria-label={isPreview ? 'แก้ไข' : 'ดูตัวอย่าง'}
-          >
-            {isPreview ? <Edit3 size={16} /> : <Eye size={16} />}
-          </button>
-
-          {/* Share Button (Icon-only) */}
-          {initialNoteId && (
-            <button
-              onClick={() => setIsShareModalOpen(true)}
-              className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-              title="แชร์โน้ตนี้"
-              aria-label="แชร์"
-            >
-              <Share2 size={16} />
-            </button>
-          )}
-
-          {/* Delete Button */}
-          {initialNoteId && (
-            <button
-              onClick={handleDelete}
-              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition"
-              title="ลบโน้ตนี้"
-              aria-label="ลบโน้ต"
-            >
-              <Trash2 size={16} />
-            </button>
-          )}
-
-          {/* Fullscreen Mode Button (Icon-only) */}
-          <button
-            type="button"
-            onClick={handleOpenFullscreen}
-            className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            title="เปิดแก้ไขแบบเต็มจอ (Fullscreen)"
-            aria-label="เต็มจอ"
-          >
-            <Maximize2 size={16} />
-          </button>
-
-          {/* Vertical divider */}
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 my-auto mx-0.5" />
-
-          {/* Save Button (Icon-only, matches toolbar style) */}
-          <button
-            onClick={() => handleSave(false)}
-            disabled={isSaving}
-            className="p-1.5 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl flex items-center justify-center transition active:scale-95 disabled:opacity-50"
-            title={isSaving ? 'กำลังบันทึก...' : 'บันทึก'}
-            aria-label="บันทึก"
-          >
-            <Save size={16} />
-          </button>
-
-          {/* Close / Cancel Button */}
-          <button
-            type="button"
-            onClick={handleClose}
-            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition"
-            title="ปิด / ยกเลิก (Close)"
-            aria-label="ปิดโน้ต"
-          >
-            <X size={18} />
-          </button>
-        </div>
-      </div>
 
       {/* Editor Body with Drag & Drop */}
       <div
@@ -1401,7 +1181,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           </div>
         </div>
 
-        {/* Desktop Full Toolbar (Preserved 100% for lg screens) */}
+        {/* Desktop Full Toolbar (Unified with Top Action Bar) */}
         <div className="hidden lg:block">
           <NoteRichToolbar
             content={content}
@@ -1418,10 +1198,35 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             onTextColorChange={(newTc) => setTextColor(newTc)}
             isPinned={isPinned}
             onTogglePin={() => setIsPinned(!isPinned)}
+            isLocked={isLocked}
+            onToggleLock={handleLockToggle}
+            isFavorite={isFavorite}
+            onToggleFavorite={() => setIsFavorite(!isFavorite)}
             isBorderless={isBorderless}
             onToggleBorderless={() => setIsBorderless(!isBorderless)}
             zoomLevel={zoomLevel}
             onZoomChange={(z) => setZoomLevel(z)}
+            onBack={handleClose}
+            onCancel={handleClose}
+            onAccept={() => handleSave(false)}
+            isSaving={isSaving}
+            attachmentsCount={attachments.length}
+            onAttachFile={() => setIsAttachmentDrawerOpen(true)}
+            onRecordAudio={() => setIsAudioModalOpen(true)}
+            showSpeechToText={true}
+            onOpenOcr={() => setIsOcrModalOpen(true)}
+            onOpenAiAssistant={() => setIsAiModalOpen(true)}
+            onOpenVersionHistory={initialNoteId ? () => setIsVersionDrawerOpen(true) : undefined}
+            onDuplicate={initialNoteId ? handleDuplicate : undefined}
+            isPreview={isPreview}
+            onTogglePreview={() => setIsPreview(!isPreview)}
+            onShare={initialNoteId ? () => setIsShareModalOpen(true) : undefined}
+            onDelete={initialNoteId ? handleDelete : undefined}
+            onOpenFullscreen={handleOpenFullscreen}
+            extraRightActions={(() => {
+              const activeId = initialNoteId || noteIdRef.current || (typeof router.query.id === 'string' ? router.query.id : undefined);
+              return activeId ? <ActiveCollaboratorsBar noteId={activeId} /> : null;
+            })()}
             onCopyNote={() => {
               const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
               navigator.clipboard.writeText(fullText);
@@ -1440,9 +1245,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
             }}
             onDownloadMd={handleExportMarkdown}
-            showSpeechToText={false}
-            onAccept={handleSave}
-            isSaving={isSaving}
           />
         </div>
 
