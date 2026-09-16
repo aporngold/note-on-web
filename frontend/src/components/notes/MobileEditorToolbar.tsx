@@ -31,6 +31,8 @@ import {
   History,
   X,
   Check,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import BottomSheet from '../ui/BottomSheet';
 import toast from 'react-hot-toast';
@@ -56,6 +58,8 @@ export const MOBILE_HIGHLIGHT_COLORS = [
 
 interface MobileEditorToolbarProps {
   editor: Editor | null;
+  zoomLevel?: number;
+  onZoomChange?: (zoom: number) => void;
   onAttachFile?: () => void;
   onRecordAudio?: () => void;
   onOpenOcr?: () => void;
@@ -65,6 +69,8 @@ interface MobileEditorToolbarProps {
 
 export default function MobileEditorToolbar({
   editor,
+  zoomLevel = 100,
+  onZoomChange,
   onAttachFile,
   onRecordAudio,
   onOpenOcr,
@@ -540,6 +546,57 @@ export default function MobileEditorToolbar({
                 onActionComplete={() => setActiveSheet(null)}
               />
             </div>
+
+            {/* Note Zoom Controls for Mobile & Tablet */}
+            {onZoomChange && (
+              <div className="mt-2.5 flex items-center justify-between p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <ZoomIn size={16} className="text-indigo-500" />
+                  <span>ขนาดข้อความโน้ต</span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (zoomLevel > 60) {
+                        const next = Math.max(60, zoomLevel - 10);
+                        onZoomChange(next);
+                        toast(`ย่อขนาดโน้ต (${next}%)`, { icon: '🔍', id: 'note-zoom-toast' });
+                      }
+                    }}
+                    className="p-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 active:scale-95 shadow-2xs"
+                    title="ย่อขนาด (-10%)"
+                  >
+                    <ZoomOut size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onZoomChange(100);
+                      toast('รีเซ็ตขนาดโน้ตเป็น 100%', { icon: '🔍', id: 'note-zoom-toast' });
+                    }}
+                    className="px-2 py-1 rounded-lg bg-white dark:bg-slate-700 text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-600 active:scale-95 shadow-2xs"
+                    title="รีเซ็ตเป็น 100%"
+                  >
+                    {zoomLevel}%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (zoomLevel < 200) {
+                        const next = Math.min(200, zoomLevel + 10);
+                        onZoomChange(next);
+                        toast(`ขยายขนาดโน้ต (${next}%)`, { icon: '🔍', id: 'note-zoom-toast' });
+                      }
+                    }}
+                    className="p-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 active:scale-95 shadow-2xs"
+                    title="ขยายขนาด (+10%)"
+                  >
+                    <ZoomIn size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Undo / Redo */}

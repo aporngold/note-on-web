@@ -1449,6 +1449,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         {/* Mobile Docked Toolbar (Sticky above virtual keyboard) */}
         <MobileEditorToolbar
           editor={editor}
+          zoomLevel={zoomLevel}
+          onZoomChange={(z) => setZoomLevel(z)}
           onAttachFile={() => setIsAttachmentDrawerOpen(true)}
           onRecordAudio={() => setIsAudioModalOpen(true)}
           onOpenOcr={() => setIsOcrModalOpen(true)}
