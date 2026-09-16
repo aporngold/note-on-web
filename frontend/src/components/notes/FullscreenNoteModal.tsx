@@ -649,7 +649,7 @@ export default function FullscreenNoteModal({
 
           {/* Large Note Content TipTap Editor */}
           <div
-            className="flex-1 min-h-[350px] cursor-text"
+            className="flex-1 min-h-[350px] cursor-text transition-all duration-150"
             onClick={() => {
               if (editor && !editor.isFocused) {
                 editor.commands.focus();
@@ -657,6 +657,7 @@ export default function FullscreenNoteModal({
             }}
             style={{
               fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
+              zoom: zoomLevel !== 100 ? `${zoomLevel}%` : undefined,
             }}
           >
             <EditorContent editor={editor} />

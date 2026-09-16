@@ -1175,7 +1175,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
       {/* ── Floating Zoom Controller Bar (Right-side widget as in zoom.mp4, desktop/tablet only) ── */}
       {boardViewMode === 'freeform' && (
-        <div className="hidden md:flex absolute right-6 bottom-6 z-30 items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 px-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 select-none animate-fade-in">
+        <div className="hidden md:flex absolute right-6 md:max-lg:right-24 bottom-6 md:max-lg:bottom-20 z-30 items-center gap-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-1.5 px-2.5 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800 select-none animate-fade-in">
           {/* 100% Reset Button */}
           <button
             type="button"

@@ -1460,14 +1460,18 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         <div className="flex-1 px-4 py-3.5 sm:p-6 pb-20 lg:pb-6 flex flex-col min-h-0 overflow-y-auto">
           {isPreview ? (
             <div
-              className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed"
+              className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed transition-all duration-150"
+              style={{
+                fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
+                zoom: zoomLevel !== 100 ? `${zoomLevel}%` : undefined,
+              }}
               dangerouslySetInnerHTML={{
                 __html: content || '<p class="text-slate-400 italic">ไม่มีเนื้อหา...</p>',
               }}
             />
           ) : (
             <div
-              className="flex-1 min-h-[160px] lg:min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed font-sans"
+              className="flex-1 min-h-[160px] lg:min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed font-sans transition-all duration-150"
               onClick={() => {
                 if (editor && !editor.isFocused) {
                   editor.commands.focus();
@@ -1476,6 +1480,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               style={{
                 color: textColor,
                 fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
+                zoom: zoomLevel !== 100 ? `${zoomLevel}%` : undefined,
               }}
             >
               <EditorContent editor={editor} />

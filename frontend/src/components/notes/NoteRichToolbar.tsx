@@ -628,18 +628,18 @@ export default function NoteRichToolbar({
 
   // Zoom helpers
   const handleZoomIn = () => {
-    if (zoomLevel < 32) {
-      const next = zoomLevel + 2;
+    if (zoomLevel < 200) {
+      const next = Math.min(200, zoomLevel + 10);
       onZoomChange(next);
-      toast(`ขยายขนาดตัวอักษร (${next}px)`, { icon: '🔍' });
+      toast(`ขยายขนาดโน้ต (${next}%)`, { icon: '🔍', id: 'note-zoom-toast' });
     }
   };
 
   const handleZoomOut = () => {
-    if (zoomLevel > 12) {
-      const next = zoomLevel - 2;
+    if (zoomLevel > 60) {
+      const next = Math.max(60, zoomLevel - 10);
       onZoomChange(next);
-      toast(`ย่อขนาดตัวอักษร (${next}px)`, { icon: '🔍' });
+      toast(`ย่อขนาดโน้ต (${next}%)`, { icon: '🔍', id: 'note-zoom-toast' });
     }
   };
 
@@ -718,19 +718,34 @@ export default function NoteRichToolbar({
           <button
             type="button"
             onClick={handleZoomIn}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-            title="ขยายขนาดตัวอักษร (Zoom In)"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition active:scale-95 text-slate-700 dark:text-slate-200"
+            title={`ขยายขนาดโน้ต (+10%) ปัจจุบัน: ${zoomLevel}%`}
+            aria-label="ขยายขนาดโน้ต"
           >
             <ZoomIn size={16} />
           </button>
           <button
             type="button"
             onClick={handleZoomOut}
-            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
-            title="ย่อขนาดตัวอักษร (Zoom Out)"
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition active:scale-95 text-slate-700 dark:text-slate-200"
+            title={`ย่อขนาดโน้ต (-10%) ปัจจุบัน: ${zoomLevel}%`}
+            aria-label="ย่อขนาดโน้ต"
           >
             <ZoomOut size={16} />
           </button>
+          {zoomLevel !== 100 && (
+            <button
+              type="button"
+              onClick={() => {
+                onZoomChange(100);
+                toast('รีเซ็ตขนาดโน้ตเป็น 100%', { icon: '🔍', id: 'note-zoom-toast' });
+              }}
+              className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition active:scale-95"
+              title="คลิกเพื่อรีเซ็ตขนาดกลับเป็น 100%"
+            >
+              {zoomLevel}%
+            </button>
+          )}
         </div>
 
         {/* Right: Attachment, Pipette, Copy, Fullscreen, Export, Share, Calendar, Transfer, Delete */}
@@ -1174,7 +1189,7 @@ export default function NoteRichToolbar({
               }}
               className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
             >
-              ขยายขนาดอักษร (+2px)
+              ขยายขนาดโน้ต (+10%)
             </button>
             <button
               type="button"
@@ -1184,7 +1199,7 @@ export default function NoteRichToolbar({
               }}
               className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700"
             >
-              ย่อขนาดอักษร (-2px)
+              ย่อขนาดโน้ต (-10%)
             </button>
           </ViewportPopover>
         </div>
