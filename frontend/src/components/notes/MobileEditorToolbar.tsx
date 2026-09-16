@@ -538,15 +538,6 @@ export default function MobileEditorToolbar({
               )}
             </div>
 
-            {/* Speech to Text Dictation Item */}
-            <div className="mt-2.5">
-              <SpeechToTextButton
-                editor={editor}
-                variant="menu-item"
-                onActionComplete={() => setActiveSheet(null)}
-              />
-            </div>
-
             {/* Note Zoom Controls for Mobile & Tablet */}
             {onZoomChange && (
               <div className="mt-2.5 flex items-center justify-between p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50">

@@ -1440,7 +1440,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
             }}
             onDownloadMd={handleExportMarkdown}
-            showSpeechToText={true}
+            showSpeechToText={false}
             onAccept={handleSave}
             isSaving={isSaving}
           />
