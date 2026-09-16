@@ -121,9 +121,10 @@ class SpeechToTextManager {
     const recognition = new SpeechRecognition();
     const isMobile = isTouchOrMobile();
 
-    // Enable continuous dictation and interim results across platforms
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    // On mobile touch devices, use single-utterance recognition to prevent Android multi-segment duplication and chime loops.
+    // Desktop maintains continuous dictation with interim feedback.
+    recognition.continuous = !isMobile;
+    recognition.interimResults = !isMobile;
     recognition.lang = this.lang;
 
     // Reset session-scoped index tracking
@@ -132,7 +133,6 @@ class SpeechToTextManager {
     recognition.onstart = () => {
       // Hardware session is actually active
       if (!this.userIntent) {
-        // User clicked stop before hardware started
         try {
           recognition.abort();
         } catch (e) {}
@@ -154,31 +154,49 @@ class SpeechToTextManager {
       let currentInterim = '';
       let newFinalText = '';
 
-      // Bulletproof result traversal: track highest finalized index to permanently eliminate Safari duplicate bug
+      // Traverse finalized results safely
       for (let i = 0; i < event.results.length; ++i) {
         const item = event.results[i];
         if (item.isFinal) {
           if (i > this.highestFinalIndex) {
-            newFinalText += (newFinalText ? ' ' : '') + item[0].transcript.trim();
-            this.highestFinalIndex = i;
+            const chunk = item[0]?.transcript?.trim() || '';
+            if (chunk) {
+              newFinalText += (newFinalText ? ' ' : '') + chunk;
+              this.highestFinalIndex = i;
+            }
           }
         } else {
-          currentInterim += (currentInterim ? ' ' : '') + item[0].transcript;
+          currentInterim += (currentInterim ? ' ' : '') + (item[0]?.transcript || '');
         }
       }
 
       this.interimText = currentInterim;
       this.notify();
 
-      // Insert confirmed new final text into TipTap without stealing focus or triggering keyboard jump
+      // Insert confirmed new final text into TipTap
       if (newFinalText && this.activeEditor && !this.activeEditor.isDestroyed) {
         const textToInsert = newFinalText.trim();
         if (textToInsert) {
           const now = Date.now();
-          // STRICT DEDUPLICATION: Ignore exact duplicate phrase within 3 seconds
-          if (textToInsert === this.lastInsertedText && now - this.lastInsertedTime < 3000) {
-            console.warn('[STT] Dropped duplicate text:', textToInsert);
+
+          // Guard 1: Strict memory-based deduplication (drop identical phrase within 3.5s)
+          if (textToInsert === this.lastInsertedText && now - this.lastInsertedTime < 3500) {
+            console.warn('[STT] Dropped duplicate text by memory guard:', textToInsert);
             return;
+          }
+
+          // Guard 2: Document-level inspection (Check text right before the cursor in TipTap)
+          try {
+            const { from } = this.activeEditor.state.selection;
+            const textBefore = this.activeEditor.state.doc
+              .textBetween(Math.max(0, from - 80), from, ' ')
+              .trim();
+            if (textBefore.endsWith(textToInsert) && now - this.lastInsertedTime < 4000) {
+              console.warn('[STT] Dropped duplicate text already present before cursor:', textToInsert);
+              return;
+            }
+          } catch (docErr) {
+            // Document read fallback
           }
 
           this.lastInsertedText = textToInsert;
@@ -307,6 +325,13 @@ class SpeechToTextManager {
     }
 
     if (this.restartTimeout) clearTimeout(this.restartTimeout);
+
+    if (isTouchOrMobile()) {
+      // Dismiss active soft keyboard / IME composition so it doesn't fight with Web Speech API
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }
 
     this.activeEditor = editor;
     this.userIntent = true;
