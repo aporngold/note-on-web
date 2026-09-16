@@ -10,9 +10,21 @@ interface SpeechToTextButtonProps {
   onActionComplete?: () => void;
 }
 
+// Check if current device is a smartphone, tablet, or touch-screen device
+export const isTouchOrMobile = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return (
+    'ontouchstart' in window ||
+    navigator.maxTouchPoints > 0 ||
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+  );
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
-// SINGLETON SPEECH SERVICE (CONTINUOUS DICTATION MODE)
-// เปิดให้พูดต่อเนื่องยาวๆ ทั้ง Mobile, Tablet, Desktop จนกว่าผู้ใช้จะกดหยุดเอง
+// SINGLETON SPEECH SERVICE
+// Mobile / Tablet: One-Touch Clean Dictation (ไม่มีเสียงบี๊บถี่ ไม่เบิ้ลคำ)
+// Desktop: Continuous Dictation (พูดต่อเนื่องได้ตามต้องการ)
 // ─────────────────────────────────────────────────────────────────────────────
 
 type Listener = (state: { isListening: boolean; interimText: string; lang: 'th-TH' | 'en-US' }) => void;
@@ -83,8 +95,11 @@ class SpeechToTextManager {
     }
 
     const recognition = new SpeechRecognition();
-    // Continuous dictation: keeps listening continuously across Mobile, Tablet, and Desktop
-    recognition.continuous = true;
+    const mobileDevice = isTouchOrMobile();
+
+    // On mobile / tablet: non-continuous to prevent Android chime loops and audio buffer duplication
+    // On desktop: continuous allows uninterrupted dictation
+    recognition.continuous = !mobileDevice;
     recognition.interimResults = true;
     recognition.lang = this.lang;
 
@@ -109,12 +124,14 @@ class SpeechToTextManager {
           return;
         }
 
-        this.noSpeechCount = 0; // Reset silence counter on valid speech
+        this.noSpeechCount = 0;
         const trimmed = finalTranscript.trim();
+        if (!trimmed) return;
+
         const now = Date.now();
 
-        // Deduplication safeguard: prevent exact duplicate insertion within 1.0s
-        if (trimmed === this.lastInsertedText && now - this.lastInsertedTime < 1000) {
+        // Strict deduplication safeguard: ignore exact duplicate within 1.8 seconds
+        if (trimmed === this.lastInsertedText && now - this.lastInsertedTime < 1800) {
           return;
         }
 
@@ -133,8 +150,7 @@ class SpeechToTextManager {
         this.stop(false);
       } else if (event.error === 'no-speech') {
         this.noSpeechCount += 1;
-        // If silence continues for multiple cycles, gracefully stop
-        if (this.noSpeechCount >= 3) {
+        if (mobileDevice || this.noSpeechCount >= 2) {
           this.stop(false);
         }
       } else if (event.error === 'network') {
@@ -144,19 +160,25 @@ class SpeechToTextManager {
     };
 
     recognition.onend = () => {
-      // If user is still in listening mode (has not manually clicked stop):
-      // Seamlessly keep microphone active for long continuous dictation
-      if (this.isListening && this.noSpeechCount < 3) {
+      // 1. On Mobile & Tablet: STOP CLEANLY!
+      // This permanently stops the repeated Android "ding" chime and duplicate buffers
+      if (mobileDevice) {
+        this.isListening = false;
+        this.interimText = '';
+        this.notify();
+        return;
+      }
+
+      // 2. On Desktop: Keep listening if user hasn't explicitly stopped
+      if (this.isListening && this.noSpeechCount < 2) {
         if (this.restartTimeout) clearTimeout(this.restartTimeout);
         this.restartTimeout = setTimeout(() => {
           if (this.isListening && this.recognition) {
             try {
               this.recognition.start();
-            } catch (e) {
-              // already running or stopped
-            }
+            } catch (e) {}
           }
-        }, 200);
+        }, 400);
       } else {
         this.isListening = false;
         this.interimText = '';
@@ -206,9 +228,10 @@ class SpeechToTextManager {
       rec.start();
       this.isListening = true;
       this.notify();
-      toast.success(
-        `กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดต่อเนื่องได้เลย (แตะอีกครั้งเมื่อต้องการหยุด)`
-      );
+      const mobileMsg = isTouchOrMobile()
+        ? `กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย`
+        : `กำลังฟังเสียงพูดต่อเนื่อง (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย`;
+      toast.success(mobileMsg);
     } catch (err: any) {
       console.error('[SpeechService] start error:', err);
       this.isListening = false;
@@ -325,13 +348,13 @@ export default function SpeechToTextButton({
               <span>พูดเพื่อพิมพ์ (Speech-to-Text)</span>
               {state.isListening && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold animate-pulse">
-                  กำลังฟังต่อเนื่อง...
+                  กำลังฟัง...
                 </span>
               )}
             </div>
             <p className="text-[11px] text-slate-400">
               {state.isListening
-                ? 'พูดต่อเนื่องได้เลย (แตะอีกครั้งเมื่อต้องการหยุด)'
+                ? 'กำลังฟังเสียงพูด (แตะอีกครั้งเมื่อต้องการหยุด)'
                 : 'แตะเพื่อเปิดไมค์พิมพ์ข้อความด้วยเสียง'}
             </p>
           </div>
@@ -358,7 +381,7 @@ export default function SpeechToTextButton({
           onClick={handleToggleListening}
           title={
             state.isListening
-              ? 'กำลังฟังเสียงพูดต่อเนื่อง (แตะเพื่อหยุด)'
+              ? 'กำลังฟังเสียงพูดเพื่อพิมพ์ (แตะเพื่อหยุด)'
               : 'พูดเพื่อพิมพ์ (Speech-to-Text)'
           }
           aria-label="พูดเพื่อพิมพ์"
