@@ -45,12 +45,16 @@ class BoardController {
             });
             // If user has no boards yet, create default main board
             if (boards.length === 0) {
+                const DEFAULT_THEMES = ['cork', 'cork-dark', 'chalkboard', 'greenboard', 'wood', 'canvas', 'grid', 'dots-light', 'lined', 'blueprint'];
+                const DEFAULT_COLORS = ['#F59E0B', '#6366F1', '#10B981', '#EC4899', '#3B82F6', '#8B5CF6', '#14B8A6', '#F97316'];
+                const randomTheme = DEFAULT_THEMES[Math.floor(Math.random() * DEFAULT_THEMES.length)];
+                const randomColor = DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
                 const defaultBoard = await database_1.prisma.board.create({
                     data: {
                         name: 'กระดานหลัก',
                         description: 'กระดานบันทึกโพสต์อิทหลัก',
-                        color: '#F59E0B',
-                        theme: 'cork',
+                        color: randomColor,
+                        theme: randomTheme,
                         isDefault: true,
                         userId,
                     },

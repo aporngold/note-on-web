@@ -124,7 +124,13 @@ class AuthController {
             return res.json({
                 message: 'เข้าสู่ระบบสำเร็จ!',
                 token,
-                user: { id: user.id, email: user.email, username: user.username },
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    hasMasterPassword: user.hasMasterPassword,
+                    masterPasswordSalt: user.masterPasswordSalt,
+                },
             });
         }
         catch (error) {
@@ -150,7 +156,14 @@ class AuthController {
             const userId = req.userId;
             const user = await database_1.prisma.user.findUnique({
                 where: { id: userId },
-                select: { id: true, email: true, username: true, createdAt: true },
+                select: {
+                    id: true,
+                    email: true,
+                    username: true,
+                    hasMasterPassword: true,
+                    masterPasswordSalt: true,
+                    createdAt: true,
+                },
             });
             if (!user) {
                 return res.status(404).json({ error: 'User not found' });
@@ -350,6 +363,100 @@ class AuthController {
             console.error('Google callback error:', error);
             const detail = encodeURIComponent(error?.message || 'unknown');
             return res.redirect(`${frontendUrl}/login?error=google_callback_failed&details=${detail}`);
+        }
+    }
+    // Setup Master Password for the first time
+    static async setupMasterPassword(req, res) {
+        try {
+            const userId = req.userId;
+            const { verifier, salt, recoveryKeyHash } = req.body;
+            if (!verifier || !salt || !recoveryKeyHash) {
+                return res.status(400).json({ error: 'ข้อมูลไม่ครบถ้วน (verifier, salt, recoveryKeyHash are required)' });
+            }
+            await database_1.prisma.user.update({
+                where: { id: userId },
+                data: {
+                    hasMasterPassword: true,
+                    masterPasswordVerifier: verifier,
+                    masterPasswordSalt: salt,
+                    recoveryKeyHash: recoveryKeyHash,
+                },
+            });
+            return res.json({
+                success: true,
+                message: 'ตั้งค่า Master Password สำเร็จเรียบร้อยแล้ว',
+                hasMasterPassword: true,
+                masterPasswordSalt: salt,
+            });
+        }
+        catch (error) {
+            console.error('setupMasterPassword error:', error);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการตั้งค่า Master Password' });
+        }
+    }
+    // Verify Master Password
+    static async verifyMasterPassword(req, res) {
+        try {
+            const userId = req.userId;
+            const { verifier } = req.body;
+            if (!verifier) {
+                return res.status(400).json({ error: 'กรุณาส่ง verifier สำหรับตรวจสอบ' });
+            }
+            const user = await database_1.prisma.user.findUnique({
+                where: { id: userId },
+                select: { masterPasswordVerifier: true, hasMasterPassword: true },
+            });
+            if (!user || !user.hasMasterPassword || !user.masterPasswordVerifier) {
+                return res.status(400).json({ error: 'ผู้ใช้นี้ยังไม่ได้ตั้ง Master Password' });
+            }
+            const isValid = user.masterPasswordVerifier === verifier;
+            if (!isValid) {
+                return res.status(401).json({ valid: false, error: 'Master Password ไม่ถูกต้อง' });
+            }
+            return res.json({ valid: true, message: 'รหัสผ่านถูกต้อง' });
+        }
+        catch (error) {
+            console.error('verifyMasterPassword error:', error);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการตรวจสอบรหัสผ่าน' });
+        }
+    }
+    // Recover Master Password with Recovery Key
+    static async recoverMasterPassword(req, res) {
+        try {
+            const userId = req.userId;
+            const { recoveryKeyHash, newVerifier, newSalt, newRecoveryKeyHash } = req.body;
+            if (!recoveryKeyHash || !newVerifier || !newSalt) {
+                return res.status(400).json({ error: 'ข้อมูลไม่ครบถ้วนสำหรับการกู้คืนรหัสผ่าน' });
+            }
+            const user = await database_1.prisma.user.findUnique({
+                where: { id: userId },
+                select: { recoveryKeyHash: true },
+            });
+            if (!user || !user.recoveryKeyHash) {
+                return res.status(400).json({ error: 'ไม่พบข้อมูล Recovery Key ในระบบ' });
+            }
+            if (user.recoveryKeyHash !== recoveryKeyHash) {
+                return res.status(401).json({ error: 'Recovery Key ไม่ถูกต้อง' });
+            }
+            await database_1.prisma.user.update({
+                where: { id: userId },
+                data: {
+                    hasMasterPassword: true,
+                    masterPasswordVerifier: newVerifier,
+                    masterPasswordSalt: newSalt,
+                    ...(newRecoveryKeyHash ? { recoveryKeyHash: newRecoveryKeyHash } : {}),
+                },
+            });
+            return res.json({
+                success: true,
+                message: 'รีเซ็ต Master Password สำเร็จแล้ว',
+                hasMasterPassword: true,
+                masterPasswordSalt: newSalt,
+            });
+        }
+        catch (error) {
+            console.error('recoverMasterPassword error:', error);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการกู้คืนรหัสผ่าน' });
         }
     }
 }

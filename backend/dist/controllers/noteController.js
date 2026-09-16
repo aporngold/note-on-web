@@ -196,6 +196,52 @@ class NoteController {
                     return res.status(400).json({ error: 'Notebook not found or not owned by user' });
                 }
             }
+            let resolvedPosX = posX;
+            let resolvedPosY = posY;
+            // Query existing active notes on this board to verify coordinates and prevent overlapping notes
+            const existingNotes = await database_1.prisma.note.findMany({
+                where: { userId, boardId: boardId || null, isArchived: false },
+                select: { posX: true, posY: true, width: true, height: true },
+            });
+            const isSlotColliding = (candX, candY, candW = 260, candH = 260) => {
+                const margin = 16;
+                return existingNotes.some((n) => {
+                    const nx = n.posX ?? 24;
+                    const ny = n.posY ?? 24;
+                    const nw = n.width ?? 260;
+                    const nh = n.height ?? 260;
+                    return (candX < nx + nw + margin &&
+                        candX + candW + margin > nx &&
+                        candY < ny + nh + margin &&
+                        candY + candH + margin > ny);
+                });
+            };
+            if (resolvedPosX === undefined ||
+                resolvedPosY === undefined ||
+                isSlotColliding(resolvedPosX, resolvedPosY)) {
+                const cols = 7;
+                const spacingX = 285;
+                const spacingY = 295;
+                const startX = 16;
+                const startY = 16;
+                let found = false;
+                for (let slot = 0; slot < existingNotes.length + 100; slot++) {
+                    const col = slot % cols;
+                    const row = Math.floor(slot / cols);
+                    const candX = startX + col * spacingX;
+                    const candY = startY + row * spacingY;
+                    if (!isSlotColliding(candX, candY)) {
+                        resolvedPosX = candX;
+                        resolvedPosY = candY;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    resolvedPosX = startX;
+                    resolvedPosY = startY;
+                }
+            }
             const newNote = await database_1.prisma.note.create({
                 data: {
                     title: title || 'ไม่มีชื่อ',
@@ -206,8 +252,8 @@ class NoteController {
                     fontFamily: fontFamily || 'sans',
                     kanbanStatus: kanbanStatus || 'todo',
                     rotation: rotation !== undefined ? rotation : 0,
-                    posX: posX !== undefined ? posX : 100,
-                    posY: posY !== undefined ? posY : 100,
+                    posX: resolvedPosX,
+                    posY: resolvedPosY,
                     width: width !== undefined ? width : 260,
                     height: height !== undefined ? height : 240,
                     isLocked: !!isLocked,
@@ -333,15 +379,33 @@ class NoteController {
             // If already in trash, delete permanently
             if (note.isArchived) {
                 await database_1.prisma.note.delete({ where: { id } });
-                return res.json({ message: 'ลบโน้ตถาวรเรียบร้อยแล้ว' });
+                return res.json({ message: 'ลบโน้ตถาวรเรียบร้อยแล้ว', isPermanent: true, noteId: id });
             }
             else {
                 // Move to trash
-                await database_1.prisma.note.update({
+                const updated = await database_1.prisma.note.update({
                     where: { id },
                     data: { isArchived: true, isPinned: false },
+                    include: {
+                        attachments: true,
+                        notebook: {
+                            select: { id: true, name: true, color: true },
+                        },
+                        board: {
+                            select: { id: true, name: true, color: true, theme: true },
+                        },
+                        labels: {
+                            include: {
+                                label: true,
+                            },
+                        },
+                    },
                 });
-                return res.json({ message: 'ย้ายโน้ตไปที่ถังขยะแล้ว' });
+                const formatted = {
+                    ...updated,
+                    labels: updated.labels.map((l) => l.label),
+                };
+                return res.json({ message: 'ย้ายโน้ตไปที่ถังขยะแล้ว', isPermanent: false, noteId: id, note: formatted });
             }
         }
         catch (error) {
@@ -361,8 +425,26 @@ class NoteController {
             const restored = await database_1.prisma.note.update({
                 where: { id },
                 data: { isArchived: false },
+                include: {
+                    attachments: true,
+                    notebook: {
+                        select: { id: true, name: true, color: true },
+                    },
+                    board: {
+                        select: { id: true, name: true, color: true, theme: true },
+                    },
+                    labels: {
+                        include: {
+                            label: true,
+                        },
+                    },
+                },
             });
-            return res.json({ message: 'กู้คืนโน้ตเรียบร้อยแล้ว', note: restored });
+            const formatted = {
+                ...restored,
+                labels: restored.labels.map((l) => l.label),
+            };
+            return res.json({ message: 'กู้คืนโน้ตเรียบร้อยแล้ว', note: formatted });
         }
         catch (error) {
             return res.status(500).json({ error: 'Failed to restore note' });

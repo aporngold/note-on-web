@@ -10,7 +10,7 @@ cd /d "%~dp0"
 echo [1/3] สำรองและตรวจสอบฐานข้อมูล SQLite อย่างปลอดภัย...
 cd backend
 call node scripts/backup.js
-call npx prisma generate
+call node scripts/init-db.js
 cd ..
 
 echo.

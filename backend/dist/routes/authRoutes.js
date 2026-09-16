@@ -9,6 +9,10 @@ router.post('/login', authController_1.AuthController.login);
 router.post('/logout', auth_1.authenticate, authController_1.AuthController.logout);
 router.get('/me', auth_1.authenticate, authController_1.AuthController.me);
 router.post('/change-password', auth_1.authenticate, authController_1.AuthController.changePassword);
+// Master Password & E2EE Routes
+router.post('/master-password/setup', auth_1.authenticate, authController_1.AuthController.setupMasterPassword);
+router.post('/master-password/verify', auth_1.authenticate, authController_1.AuthController.verifyMasterPassword);
+router.post('/master-password/recover', auth_1.authenticate, authController_1.AuthController.recoverMasterPassword);
 // Google OAuth Routes
 router.get('/google', authController_1.AuthController.googleAuth);
 router.get('/google/callback', authController_1.AuthController.googleCallback);
