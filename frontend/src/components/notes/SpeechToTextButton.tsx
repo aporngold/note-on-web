@@ -27,60 +27,86 @@ export const isTouchOrMobile = (): boolean => {
 // Desktop: Continuous Dictation (พูดต่อเนื่องได้ตามต้องการ)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Listener = (state: { isListening: boolean; interimText: string; lang: 'th-TH' | 'en-US' }) => void;
+export type SpeechSessionState = 'idle' | 'starting' | 'listening' | 'stopping' | 'error';
+
+interface SpeechStateSnapshot {
+  status: SpeechSessionState;
+  isListening: boolean;
+  interimText: string;
+  lang: 'th-TH' | 'en-US';
+  errorMessage?: string;
+}
+
+type Listener = (state: SpeechStateSnapshot) => void;
 
 class SpeechToTextManager {
   private recognition: any = null;
-  private isListening = false;
+  private userIntent = false; // Explicit user desire to be dictating
+  private status: SpeechSessionState = 'idle';
   private interimText = '';
   private lang: 'th-TH' | 'en-US' = 'th-TH';
   private activeEditor: Editor | null = null;
   private listeners: Set<Listener> = new Set();
-  private lastInsertedText = '';
-  private lastInsertedTime = 0;
+  
+  // Index-based deduplication: ensures NO duplicate transcripts even if Safari resets resultIndex
+  private highestFinalIndex = -1;
   private lastSpeechTime = 0;
   private noSpeechCount = 0;
   private restartTimeout: NodeJS.Timeout | null = null;
+  private silenceCheckTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden && this.isListening) {
+        if (document.hidden && this.userIntent) {
           this.stop(false);
         }
       });
       window.addEventListener('pagehide', () => {
-        if (this.isListening) this.stop(false);
+        if (this.userIntent) this.stop(false);
       });
       window.addEventListener('beforeunload', () => {
-        if (this.isListening) this.stop(false);
+        if (this.userIntent) this.stop(false);
       });
     }
   }
 
   public subscribe(listener: Listener) {
     this.listeners.add(listener);
-    listener({
-      isListening: this.isListening,
-      interimText: this.interimText,
-      lang: this.lang,
-    });
+    listener(this.getSnapshot());
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  private notify() {
-    this.listeners.forEach((fn) =>
-      fn({
-        isListening: this.isListening,
-        interimText: this.interimText,
-        lang: this.lang,
-      })
-    );
+  private getSnapshot(): SpeechStateSnapshot {
+    return {
+      status: this.status,
+      isListening: this.status === 'listening' || this.status === 'starting',
+      interimText: this.interimText,
+      lang: this.lang,
+    };
   }
 
-  private initRecognition() {
+  private notify() {
+    const snap = this.getSnapshot();
+    this.listeners.forEach((fn) => fn(snap));
+  }
+
+  private cleanupRecognitionInstance() {
+    if (this.recognition) {
+      try {
+        this.recognition.onstart = null;
+        this.recognition.onresult = null;
+        this.recognition.onerror = null;
+        this.recognition.onend = null;
+        this.recognition.abort();
+      } catch (e) {}
+      this.recognition = null;
+    }
+  }
+
+  private createRecognitionInstance() {
     if (typeof window === 'undefined') return null;
 
     const SpeechRecognition =
@@ -88,104 +114,147 @@ class SpeechToTextManager {
 
     if (!SpeechRecognition) return null;
 
-    // Destroy existing instance if any
-    if (this.recognition) {
-      try {
-        this.recognition.abort();
-      } catch (e) {}
-    }
+    this.cleanupRecognitionInstance();
 
     const recognition = new SpeechRecognition();
-    const mobileDevice = isTouchOrMobile();
+    const isMobile = isTouchOrMobile();
 
-    // Enable continuous dictation across all platforms so users have time to speak naturally
+    // Enable continuous dictation and interim results across platforms
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = this.lang;
 
-    recognition.onresult = (event: any) => {
-      let currentInterim = '';
-      let finalTranscript = '';
+    // Reset session-scoped index tracking
+    this.highestFinalIndex = -1;
 
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+    recognition.onstart = () => {
+      // Hardware session is actually active
+      if (!this.userIntent) {
+        // User clicked stop before hardware started
+        try {
+          recognition.abort();
+        } catch (e) {}
+        this.status = 'idle';
+        this.notify();
+        return;
+      }
+
+      this.status = 'listening';
+      this.lastSpeechTime = Date.now();
+      this.noSpeechCount = 0;
+      this.notify();
+    };
+
+    recognition.onresult = (event: any) => {
+      this.lastSpeechTime = Date.now();
+      this.noSpeechCount = 0;
+
+      let currentInterim = '';
+      let newFinalText = '';
+
+      // Bulletproof result traversal: track highest finalized index to permanently eliminate Safari duplicate bug
+      for (let i = 0; i < event.results.length; ++i) {
+        const item = event.results[i];
+        if (item.isFinal) {
+          if (i > this.highestFinalIndex) {
+            newFinalText += (newFinalText ? ' ' : '') + item[0].transcript.trim();
+            this.highestFinalIndex = i;
+          }
         } else {
-          currentInterim += event.results[i][0].transcript;
+          currentInterim += (currentInterim ? ' ' : '') + item[0].transcript;
         }
       }
 
       this.interimText = currentInterim;
       this.notify();
 
-      if (finalTranscript && this.activeEditor) {
-        if (this.activeEditor.isDestroyed) {
-          this.stop(false);
-          return;
+      // Insert confirmed new final text into TipTap without stealing focus or triggering keyboard jump
+      if (newFinalText && this.activeEditor && !this.activeEditor.isDestroyed) {
+        const textToInsert = newFinalText.trim();
+        if (textToInsert) {
+          try {
+            const isDocEmpty = this.activeEditor.isEmpty;
+            const prefix = isDocEmpty ? '' : ' ';
+            this.activeEditor.commands.insertContent(`${prefix}${textToInsert}`);
+          } catch (err) {
+            console.warn('[STT] TipTap insertion error:', err);
+          }
         }
-
-        this.noSpeechCount = 0;
-        this.lastSpeechTime = Date.now();
-        const trimmed = finalTranscript.trim();
-        if (!trimmed) return;
-
-        const now = Date.now();
-
-        // Strict deduplication safeguard: ignore exact duplicate within 1.8 seconds
-        if (trimmed === this.lastInsertedText && now - this.lastInsertedTime < 1800) {
-          return;
-        }
-
-        this.lastInsertedText = trimmed;
-        this.lastInsertedTime = now;
-        this.activeEditor.chain().focus().insertContent(` ${trimmed} `).run();
         this.interimText = '';
         this.notify();
       }
     };
 
     recognition.onerror = (event: any) => {
-      console.warn('[SpeechService] Recognition error:', event.error);
+      console.warn('[STT] Recognition error:', event.error);
       if (event.error === 'not-allowed') {
         toast.error('เบราว์เซอร์ไม่อนุญาตไมโครโฟน โปรดแตะไอคอนแม่กุญแจบนแถบ URL เพื่อเปิดสิทธิ์');
+        this.userIntent = false;
+        this.status = 'error';
+        this.notify();
         this.stop(false);
       } else if (event.error === 'no-speech') {
         this.noSpeechCount += 1;
-        // Allow at least 2 cycles of no-speech before stopping
-        if (this.noSpeechCount >= 2) {
+        // If silence persists for 3 cycles or > 8 seconds, gracefully conclude
+        if (this.noSpeechCount >= 3 || Date.now() - this.lastSpeechTime > 8000) {
+          this.userIntent = false;
           this.stop(false);
         }
       } else if (event.error === 'network') {
-        toast.error('การเชื่อมต่อกับระบบแปลงเสียงพูดขัดข้อง');
+        toast.error('การเชื่อมต่อระบบแปลงเสียงขัดข้อง');
+        this.userIntent = false;
+        this.status = 'error';
+        this.notify();
         this.stop(false);
       }
     };
 
     recognition.onend = () => {
-      // 1. On Mobile, Tablet & iPad: STOP CLEANLY!
-      // Do NOT restart automatically. This permanently eliminates the bouncing mic and Android chime loop.
-      if (mobileDevice) {
-        this.isListening = false;
+      // 1. If user explicitly stopped, or an error halted intent:
+      if (!this.userIntent) {
+        this.status = 'idle';
         this.interimText = '';
+        this.cleanupRecognitionInstance();
         this.notify();
         return;
       }
 
-      // 2. On Desktop: Keep listening if user hasn't explicitly stopped
-      if (this.isListening && this.noSpeechCount < 2) {
-        if (this.restartTimeout) clearTimeout(this.restartTimeout);
-        this.restartTimeout = setTimeout(() => {
-          if (this.isListening && this.recognition) {
-            try {
-              this.recognition.start();
-            } catch (e) {}
-          }
-        }, 400);
-      } else {
-        this.isListening = false;
+      // 2. If browser ended recognition naturally (e.g. iOS Safari 15s timeout, mobile silence)
+      // and user still wants dictation to continue:
+      const isIdleTooLong = Date.now() - this.lastSpeechTime > 8500 && this.noSpeechCount >= 2;
+      if (isIdleTooLong) {
+        this.userIntent = false;
+        this.status = 'idle';
         this.interimText = '';
+        this.cleanupRecognitionInstance();
         this.notify();
+        return;
       }
+
+      // Safe, guarded restart without bouncing or race conditions
+      this.status = 'starting';
+      this.notify();
+
+      if (this.restartTimeout) clearTimeout(this.restartTimeout);
+      this.restartTimeout = setTimeout(() => {
+        if (!this.userIntent) {
+          this.status = 'idle';
+          this.notify();
+          return;
+        }
+
+        try {
+          const freshRec = this.createRecognitionInstance();
+          if (freshRec) {
+            freshRec.start();
+          }
+        } catch (e) {
+          console.warn('[STT] restart error:', e);
+          this.status = 'idle';
+          this.userIntent = false;
+          this.notify();
+        }
+      }, isMobile ? 350 : 250);
     };
 
     this.recognition = recognition;
@@ -194,7 +263,7 @@ class SpeechToTextManager {
 
   public setLanguage(newLang: 'th-TH' | 'en-US') {
     this.lang = newLang;
-    if (this.isListening) {
+    if (this.userIntent) {
       this.stop(false);
       setTimeout(() => {
         this.start(this.activeEditor);
@@ -215,46 +284,52 @@ class SpeechToTextManager {
       return;
     }
 
-    const rec = this.initRecognition();
+    if (this.restartTimeout) clearTimeout(this.restartTimeout);
+
+    this.activeEditor = editor;
+    this.userIntent = true;
+    this.status = 'starting';
+    this.lastSpeechTime = Date.now();
+    this.noSpeechCount = 0;
+    this.interimText = '';
+    this.highestFinalIndex = -1;
+    this.notify();
+
+    const rec = this.createRecognitionInstance();
     if (!rec) {
-      toast.error('เบราว์เซอร์นี้ยังไม่รองรับ Web Speech API แนะนำให้ใช้ Google Chrome หรือ Edge');
+      toast.error('เบราว์เซอร์นี้ยังไม่รองรับ Web Speech API แนะนำให้ใช้ Google Chrome หรือ Safari');
+      this.userIntent = false;
+      this.status = 'idle';
+      this.notify();
       return;
     }
 
-    this.activeEditor = editor;
-    this.lastInsertedText = '';
-    this.lastInsertedTime = 0;
-    this.noSpeechCount = 0;
-    this.lastSpeechTime = Date.now();
-
     try {
       rec.start();
-      this.isListening = true;
-      this.notify();
       const mobileMsg = isTouchOrMobile()
-        ? `กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย (แตะอีกครั้งเมื่อต้องการหยุด)`
+        ? `กำลังฟังเสียงพูด (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย`
         : `กำลังฟังเสียงพูดต่อเนื่อง (${this.lang === 'th-TH' ? 'ภาษาไทย' : 'English'})... พูดได้เลย`;
       toast.success(mobileMsg);
     } catch (err: any) {
-      console.error('[SpeechService] start error:', err);
-      this.isListening = false;
+      console.warn('[STT] start error:', err);
+      this.userIntent = false;
+      this.status = 'idle';
       this.notify();
     }
   }
 
   public stop(notify = true) {
-    this.isListening = false;
+    this.userIntent = false;
+    this.status = 'stopping';
     this.interimText = '';
     this.noSpeechCount = 0;
     this.lastSpeechTime = 0;
+    this.highestFinalIndex = -1;
     if (this.restartTimeout) clearTimeout(this.restartTimeout);
-    this.notify();
 
-    if (this.recognition) {
-      try {
-        this.recognition.abort();
-      } catch (e) {}
-    }
+    this.cleanupRecognitionInstance();
+    this.status = 'idle';
+    this.notify();
 
     if (notify) {
       toast('หยุดพิมพ์ตามเสียงพูดแล้ว', { icon: '🛑' });
@@ -262,7 +337,7 @@ class SpeechToTextManager {
   }
 
   public toggle(editor: Editor | null) {
-    if (this.isListening) {
+    if (this.userIntent || this.status === 'listening' || this.status === 'starting') {
       this.stop(true);
     } else {
       this.start(editor);
@@ -287,10 +362,11 @@ export default function SpeechToTextButton({
   className = '',
   onActionComplete,
 }: SpeechToTextButtonProps) {
-  const [state, setState] = useState({
+  const [state, setState] = useState<SpeechStateSnapshot>({
+    status: 'idle',
     isListening: false,
     interimText: '',
-    lang: 'th-TH' as 'th-TH' | 'en-US',
+    lang: 'th-TH',
   });
 
   const editorRef = useRef<Editor | null>(editor);
@@ -341,7 +417,7 @@ export default function SpeechToTextButton({
           <div
             className={`p-2 rounded-xl transition ${
               state.isListening
-                ? 'bg-rose-500 text-white animate-pulse'
+                ? 'bg-rose-500 text-white ring-2 ring-rose-300 dark:ring-rose-800 shadow-sm'
                 : 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
             }`}
           >
@@ -350,15 +426,20 @@ export default function SpeechToTextButton({
           <div>
             <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <span>พูดเพื่อพิมพ์ (Speech-to-Text)</span>
-              {state.isListening && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold animate-pulse">
+              {state.status === 'starting' && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">
+                  กำลังเตรียมไมค์...
+                </span>
+              )}
+              {state.status === 'listening' && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold">
                   กำลังฟัง...
                 </span>
               )}
             </div>
             <p className="text-[11px] text-slate-400">
               {state.isListening
-                ? 'กำลังฟังเสียงพูด (แตะอีกครั้งเมื่อต้องการหยุด)'
+                ? 'กำลังฟังเสียงพูด (แตะอีกครั้งเพื่อหยุด)'
                 : 'แตะเพื่อเปิดไมค์พิมพ์ข้อความด้วยเสียง'}
             </p>
           </div>
@@ -384,18 +465,23 @@ export default function SpeechToTextButton({
           type="button"
           onClick={handleToggleListening}
           title={
-            state.isListening
+            state.status === 'starting'
+              ? 'กำลังเชื่อมต่อไมโครโฟน...'
+              : state.isListening
               ? 'กำลังฟังเสียงพูดเพื่อพิมพ์ (แตะเพื่อหยุด)'
               : 'พูดเพื่อพิมพ์ (Speech-to-Text)'
           }
           aria-label="พูดเพื่อพิมพ์"
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${
+          className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition active:scale-95 ${
             state.isListening
-              ? 'bg-rose-500 text-white animate-pulse shadow-md ring-2 ring-rose-300 dark:ring-rose-900'
+              ? 'bg-rose-500 text-white shadow-md ring-2 ring-rose-300 dark:ring-rose-900'
               : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
           }`}
         >
-          <Mic size={18} className={state.isListening ? 'animate-bounce' : ''} />
+          <Mic size={18} className={state.status === 'listening' ? 'scale-110 transition-transform duration-200' : ''} />
+          {state.status === 'listening' && (
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-white animate-ping pointer-events-none" />
+          )}
         </button>
 
         {/* Small language toggle badge */}
@@ -426,18 +512,23 @@ export default function SpeechToTextButton({
         type="button"
         onClick={handleToggleListening}
         title={
-          state.isListening
+          state.status === 'starting'
+            ? 'กำลังเชื่อมต่อไมโครโฟน...'
+            : state.isListening
             ? 'กำลังฟังเสียงพูดต่อเนื่อง (คลิกเพื่อหยุด)'
             : 'พูดเพื่อพิมพ์ (Speech-to-Text)'
         }
         aria-label="พูดเพื่อพิมพ์"
-        className={`p-1.5 rounded-lg transition font-medium flex items-center justify-center ${
+        className={`relative p-1.5 rounded-lg transition font-medium flex items-center justify-center ${
           state.isListening
-            ? 'bg-rose-500 text-white animate-pulse ring-2 ring-rose-300 dark:ring-rose-900 shadow-sm'
+            ? 'bg-rose-500 text-white ring-2 ring-rose-300 dark:ring-rose-900 shadow-sm'
             : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
         }`}
       >
-        <Mic size={16} className={state.isListening ? 'animate-bounce' : ''} />
+        <Mic size={16} className={state.status === 'listening' ? 'scale-110 transition-transform duration-200' : ''} />
+        {state.status === 'listening' && (
+          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-white animate-ping pointer-events-none" />
+        )}
       </button>
 
       {/* Language badge toggle */}
