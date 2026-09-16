@@ -25,6 +25,7 @@ export default function AudioRecorderModal({
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
@@ -64,18 +65,16 @@ export default function AudioRecorderModal({
     return { mimeType: '', extension: 'webm' };
   };
 
-  useEffect(() => {
-    if (!isOpen) {
-      cleanup();
-    }
-  }, [isOpen]);
-
-  const [permissionErrorType, setPermissionErrorType] = useState<'denied' | 'insecure_context' | 'not_supported' | 'not_found' | 'other' | null>(null);
-
   const cleanup = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {}
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -88,6 +87,17 @@ export default function AudioRecorderModal({
     setIsUploading(false);
     setPermissionErrorType(null);
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      cleanup();
+    }
+    return () => {
+      cleanup();
+    };
+  }, [isOpen]);
+
+  const [permissionErrorType, setPermissionErrorType] = useState<'denied' | 'insecure_context' | 'not_supported' | 'not_found' | 'other' | null>(null);
 
   const startRecording = async () => {
     setPermissionErrorType(null);
@@ -114,6 +124,7 @@ export default function AudioRecorderModal({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       setHasPermission(true);
       setPermissionErrorType(null);
 
