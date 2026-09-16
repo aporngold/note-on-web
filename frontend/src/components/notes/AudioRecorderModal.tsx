@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Mic, AudioLines, Square, Play, Pause, RotateCcw, Check, X, Volume2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/utils/api';
+import ViewportPortal from '@/components/ui/ViewportPortal';
 
 interface AudioRecorderModalProps {
   isOpen: boolean;
@@ -242,8 +243,15 @@ export default function AudioRecorderModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+    <ViewportPortal>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative select-text"
+          onClick={(e) => e.stopPropagation()}
+        >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
@@ -402,5 +410,6 @@ export default function AudioRecorderModal({
         </div>
       </div>
     </div>
+  </ViewportPortal>
   );
 }

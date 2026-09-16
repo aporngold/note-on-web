@@ -14,6 +14,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { FileAttachment } from '@/types';
+import ViewportPortal from '@/components/ui/ViewportPortal';
 import toast from 'react-hot-toast';
 
 interface NoteAttachmentDrawerProps {
@@ -78,8 +79,15 @@ export default function NoteAttachmentDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-2xl">
+    <ViewportPortal>
+      <div
+        className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in select-none"
+        onClick={onClose}
+      >
+        <div
+          className="w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full flex flex-col shadow-2xl select-text"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -187,5 +195,6 @@ export default function NoteAttachmentDrawer({
         </div>
       </div>
     </div>
+  </ViewportPortal>
   );
 }

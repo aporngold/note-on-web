@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, ScanText, Upload, Copy, Check, Sparkles, Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createWorker } from 'tesseract.js';
+import ViewportPortal from '@/components/ui/ViewportPortal';
 
 interface ImageOcrModalProps {
   isOpen: boolean;
@@ -124,8 +125,15 @@ export default function ImageOcrModal({ isOpen, onClose, onInsertText }: ImageOc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <ViewportPortal>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in select-none"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] select-text"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -280,5 +288,6 @@ export default function ImageOcrModal({ isOpen, onClose, onInsertText }: ImageOc
         </div>
       </div>
     </div>
+  </ViewportPortal>
   );
 }

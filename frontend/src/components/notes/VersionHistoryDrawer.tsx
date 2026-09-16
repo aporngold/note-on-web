@@ -15,6 +15,7 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import api from '@/utils/api';
 import { NoteVersion, Note } from '@/types';
+import ViewportPortal from '@/components/ui/ViewportPortal';
 import { stripHtmlTags } from '@/utils/editorHelper';
 
 interface VersionHistoryDrawerProps {
@@ -98,8 +99,15 @@ export default function VersionHistoryDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-sm animate-fade-in flex justify-end">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-xl h-full shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800 animate-slide-in-right">
+    <ViewportPortal>
+      <div
+        className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-sm animate-fade-in flex justify-end select-none"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white dark:bg-slate-900 w-full max-w-xl h-full shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-800 animate-slide-in-right select-text"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -221,5 +229,6 @@ export default function VersionHistoryDrawer({
         </div>
       </div>
     </div>
+  </ViewportPortal>
   );
 }

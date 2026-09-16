@@ -3,6 +3,7 @@ import { Lock, Unlock, KeyRound, AlertCircle, Eye, EyeOff, ShieldCheck, Copy, Ch
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
 import toast from 'react-hot-toast';
+import ViewportPortal from '@/components/ui/ViewportPortal';
 
 interface MasterPasswordModalProps {
   isOpen: boolean;
@@ -173,8 +174,15 @@ export default function MasterPasswordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 relative overflow-hidden">
+    <ViewportPortal>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in select-none"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 relative overflow-hidden select-text"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -541,5 +549,6 @@ export default function MasterPasswordModal({
         )}
       </div>
     </div>
-  );
+  </ViewportPortal>
+);
 }
