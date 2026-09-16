@@ -998,7 +998,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-x-0 border-b-0 lg:border border-slate-200/80 dark:border-slate-800 rounded-none lg:rounded-3xl shadow-none lg:shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 lg:min-h-[550px] transition-colors duration-200 ${isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
+        className={`relative overflow-hidden flex flex-col flex-1 min-h-0 lg:min-h-[550px] transition-colors duration-200 ${isDraggingOver ? 'dropzone-active ring-4 ring-indigo-500/30' : ''
           }`}
         style={{
           backgroundColor: color || '#FFFFFF',
@@ -1006,7 +1006,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         }}
       >
         {isDraggingOver && (
-          <div className="absolute inset-0 z-40 bg-indigo-50/90 dark:bg-slate-900/90 backdrop-blur-xs border-2 border-dashed border-indigo-500 rounded-3xl flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400 pointer-events-none animate-fade-in">
+          <div className="absolute inset-0 z-40 bg-indigo-50/90 dark:bg-slate-900/90 backdrop-blur-xs border-2 border-dashed border-indigo-500 flex flex-col items-center justify-center text-indigo-600 dark:text-indigo-400 pointer-events-none animate-fade-in">
             <Upload size={44} className="animate-bounce mb-2" />
             <p className="font-bold text-base">ปล่อยไฟล์ที่นี่เพื่อแนบหรือแทรกลงในโน้ต</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">รองรับรูปภาพ, เสียง, เอกสาร PDF, ZIP ฯลฯ</p>

@@ -1609,24 +1609,6 @@ export default function NoteRichToolbar({
 
           <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 my-auto" />
 
-          {/* Red Push Pin */}
-          <button
-            type="button"
-            onClick={onTogglePin}
-            className="flex items-center gap-1 text-xs font-semibold cursor-pointer group"
-            title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้ไว้ด้านบน'}
-          >
-            <div
-              className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                isPinned
-                  ? 'bg-red-600 text-white shadow-xs scale-110 ring-2 ring-red-300'
-                  : 'bg-slate-200 dark:bg-slate-700 text-slate-400 group-hover:bg-red-400 group-hover:text-white'
-              }`}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-white/90" />
-            </div>
-          </button>
-
           {/* Borderless Checkbox */}
           <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-medium cursor-pointer select-none">
             <input
