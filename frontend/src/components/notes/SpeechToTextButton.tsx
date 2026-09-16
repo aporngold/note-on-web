@@ -151,9 +151,8 @@ class SpeechToTextManager {
         this.stop(false);
       } else if (event.error === 'no-speech') {
         this.noSpeechCount += 1;
-        const silenceDuration = Date.now() - this.lastSpeechTime;
-        // Grace period: allow at least 8 seconds of silence for user to pause or prepare speech
-        if (this.noSpeechCount >= 3 || silenceDuration > 8000) {
+        // Allow at least 2 cycles of no-speech before stopping
+        if (this.noSpeechCount >= 2) {
           this.stop(false);
         }
       } else if (event.error === 'network') {
@@ -163,11 +162,17 @@ class SpeechToTextManager {
     };
 
     recognition.onend = () => {
-      const silenceDuration = Date.now() - this.lastSpeechTime;
-      // Keep listening if user has not explicitly stopped and is within silence grace threshold
-      const shouldRestart = this.isListening && this.noSpeechCount < 3 && silenceDuration <= 8000;
+      // 1. On Mobile, Tablet & iPad: STOP CLEANLY!
+      // Do NOT restart automatically. This permanently eliminates the bouncing mic and Android chime loop.
+      if (mobileDevice) {
+        this.isListening = false;
+        this.interimText = '';
+        this.notify();
+        return;
+      }
 
-      if (shouldRestart) {
+      // 2. On Desktop: Keep listening if user hasn't explicitly stopped
+      if (this.isListening && this.noSpeechCount < 2) {
         if (this.restartTimeout) clearTimeout(this.restartTimeout);
         this.restartTimeout = setTimeout(() => {
           if (this.isListening && this.recognition) {
@@ -175,7 +180,7 @@ class SpeechToTextManager {
               this.recognition.start();
             } catch (e) {}
           }
-        }, mobileDevice ? 500 : 350);
+        }, 400);
       } else {
         this.isListening = false;
         this.interimText = '';
