@@ -857,48 +857,6 @@ export default function NoteRichToolbar({
             </button>
           )}
 
-          {/* Voice Memo */}
-          {onRecordAudio && (
-            <button
-              type="button"
-              onClick={onRecordAudio}
-              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition"
-              title="อัดเสียงบันทึก (Voice Memo)"
-              aria-label="อัดเสียง"
-            >
-              <AudioLines size={16} />
-            </button>
-          )}
-
-          {/* Speech-to-Text Live Dictation */}
-          {showSpeechToText && <SpeechToTextButton editor={editor || null} />}
-
-          {/* OCR Image */}
-          {onOpenOcr && (
-            <button
-              type="button"
-              onClick={onOpenOcr}
-              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition"
-              title="สแกนข้อความจากรูปภาพ (OCR)"
-              aria-label="OCR"
-            >
-              <ScanText size={16} />
-            </button>
-          )}
-
-          {/* AI Assistant */}
-          {onOpenAiAssistant && (
-            <button
-              type="button"
-              onClick={onOpenAiAssistant}
-              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition"
-              title="ผู้ช่วย AI สรุปและเรียบเรียง"
-              aria-label="ผู้ช่วย AI"
-            >
-              <Sparkles size={16} />
-            </button>
-          )}
-
           {/* Version History */}
           {onOpenVersionHistory && (
             <button
@@ -1632,7 +1590,7 @@ export default function NoteRichToolbar({
             {/* Custom Color Picker for Note Color (Circular Rainbow Swatch) */}
             <div className="flex items-center pl-1.5 ml-0.5 border-l border-slate-200 dark:border-slate-700">
               <label
-                className="w-4.5 h-4.5 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden"
+                className="w-5 h-5 rounded-full cursor-pointer relative hover:scale-110 active:scale-95 transition-all shadow-xs flex items-center justify-center ring-1 ring-slate-300 dark:ring-slate-600 hover:ring-indigo-400 overflow-hidden shrink-0"
                 style={{
                   background: 'conic-gradient(from 180deg at 50% 50%, #FF0000 0deg, #FFFF00 60deg, #00FF00 120deg, #00FFFF 180deg, #0000FF 240deg, #FF00FF 300deg, #FF0000 360deg)',
                 }}
@@ -1659,7 +1617,7 @@ export default function NoteRichToolbar({
             title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้ไว้ด้านบน'}
           >
             <div
-              className={`w-4.5 h-4.5 rounded-full flex items-center justify-center transition-all ${
+              className={`w-5 h-5 rounded-full flex items-center justify-center transition-all ${
                 isPinned
                   ? 'bg-red-600 text-white shadow-xs scale-110 ring-2 ring-red-300'
                   : 'bg-slate-200 dark:bg-slate-700 text-slate-400 group-hover:bg-red-400 group-hover:text-white'

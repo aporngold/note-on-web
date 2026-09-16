@@ -1014,7 +1014,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         )}
 
         {/* Title & Metadata Row (Desktop combines Title + Metadata in one unified row; Mobile keeps clean full-width Title) */}
-        <div className="px-4 py-2 sm:px-6 sm:py-2 border-b border-black/5 dark:border-slate-800/80 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+        <div className="px-4 py-2.5 sm:px-6 sm:py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shrink-0 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
           <input
             type="text"
             placeholder="ชื่อเรื่องโน้ต..."
@@ -1023,8 +1023,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               setTitle(e.target.value);
               hasUnsavedChangesRef.current = true;
             }}
-            style={{ color: textColor }}
-            className="w-full lg:flex-1 text-lg sm:text-xl font-bold bg-transparent placeholder-slate-400/80 dark:placeholder-slate-500 focus:outline-none tracking-tight min-w-0"
+            className="w-full lg:flex-1 text-lg sm:text-xl font-bold bg-transparent text-slate-900 dark:text-white placeholder-slate-400/80 dark:placeholder-slate-500 focus:outline-none tracking-tight min-w-0"
           />
 
           {/* Desktop-Only Compact Metadata Pills (Embedded in Title Row) */}
