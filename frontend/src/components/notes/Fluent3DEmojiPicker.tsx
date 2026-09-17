@@ -344,15 +344,12 @@ export default function Fluent3DEmojiPicker({ onSelectEmoji, onClose, initialMod
   return (
     <div className="w-[330px] max-w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden flex flex-col animate-fade-in text-slate-800 dark:text-slate-100">
       {/* Header */}
-      <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-950/40 dark:to-purple-950/40">
+      <div className="p-2.5 px-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-950/40 dark:to-purple-950/40">
         <div className="flex items-center gap-1.5">
           <span className="text-base">✨</span>
-          <div>
-            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1">
-              <span>Microsoft Fluent 3D & Emoji</span>
-            </h4>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500">ลิขสิทธิ์ MIT License ฟรี 100%</p>
-          </div>
+          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">
+            อีโมจิ & ไอคอน
+          </h4>
         </div>
         {onClose && (
           <button
@@ -365,7 +362,7 @@ export default function Fluent3DEmojiPicker({ onSelectEmoji, onClose, initialMod
         )}
       </div>
 
-      {/* Mode Switcher: 3D มีมิติ vs ตัวหนังสือ Unicode */}
+      {/* Mode Switcher: 3D vs ข้อความ */}
       <div className="flex p-1 mx-2.5 my-2 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs gap-1 border border-slate-200/60 dark:border-slate-700/60">
         <button
           type="button"
@@ -378,7 +375,7 @@ export default function Fluent3DEmojiPicker({ onSelectEmoji, onClose, initialMod
           title="แทรกเป็นรูป 3D มีมิติ (ขยายตามขนาดตัวอักษรได้)"
         >
           <Sparkles size={13} className={insertMode === '3d' ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400'} />
-          <span>3D มีมิติ</span>
+          <span>3D</span>
         </button>
         <button
           type="button"
@@ -388,10 +385,10 @@ export default function Fluent3DEmojiPicker({ onSelectEmoji, onClose, initialMod
               ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm font-semibold'
               : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
-          title="แทรกเป็นตัวหนังสือ Unicode (คลุมดำและไฮไลท์เหมือนใน Windows 11)"
+          title="แทรกเป็นตัวหนังสือ (คลุมดำและไฮไลท์ได้)"
         >
           <span className="text-xs">🔤</span>
-          <span>ตัวหนังสือ (Win 11)</span>
+          <span>ข้อความ</span>
         </button>
       </div>
 

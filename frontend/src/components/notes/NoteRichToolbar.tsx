@@ -2253,7 +2253,7 @@ export default function NoteRichToolbar({
                 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
                 : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
-            title="แทรก Emoji 3D (Microsoft Fluent 3D)"
+            title="แทรก Emoji 3D"
             aria-label="แทรก Emoji 3D"
           >
             <Smile size={16} className="text-amber-500" />

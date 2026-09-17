@@ -1132,7 +1132,7 @@ export default function MobileEditorToolbar({
       <BottomSheet
         isOpen={activeSheet === 'emoji'}
         onClose={() => setActiveSheet(null)}
-        title="Microsoft Fluent 3D Emoji"
+        title="อีโมจิ & ไอคอน (Emoji 3D)"
       >
         <div className="pb-4 flex justify-center">
           <Fluent3DEmojiPicker
