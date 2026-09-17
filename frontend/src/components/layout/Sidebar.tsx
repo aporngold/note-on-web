@@ -206,7 +206,7 @@ export default function Sidebar({
     <aside className="w-72 h-screen flex flex-col justify-between bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 p-4 select-none overflow-y-auto transition-all duration-300">
       <div className="space-y-6">
         {/* Logo, Collapse Button & Close on mobile */}
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-1 px-3.5">
           <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition">
               <ShieldCheck size={22} />
@@ -219,12 +219,12 @@ export default function Sidebar({
             </div>
           </Link>
 
-          <div className="flex items-center gap-1">
+          <div className="w-6 h-6 flex items-center justify-center shrink-0">
             {/* Collapse sidebar button (desktop) */}
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
-                className="hidden lg:flex p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="hidden lg:flex w-6 h-6 items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 title="ยุบเมนูด้านซ้าย เพื่อดูเต็มจอ"
               >
                 <PanelLeftClose size={18} />
@@ -235,7 +235,7 @@ export default function Sidebar({
             {onCloseMobile && (
               <button
                 onClick={onCloseMobile}
-                className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="lg:hidden w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <X size={20} />
               </button>
@@ -274,11 +274,13 @@ export default function Sidebar({
               <Lock size={18} />
               <span>ห้องนิรภัยส่วนตัว</span>
             </div>
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-              }`}
-            />
+            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+              <span
+                className={`w-2.5 h-2.5 rounded-full ${
+                  isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                }`}
+              />
+            </div>
           </button>
 
           <button
@@ -298,11 +300,13 @@ export default function Sidebar({
               <Trash2 size={18} />
               <span>ถังขยะ</span>
             </div>
-            {trashNotes.length > 0 && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
-                {trashNotes.length}
-              </span>
-            )}
+            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+              {trashNotes.length > 0 && (
+                <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                  {trashNotes.length}
+                </span>
+              )}
+            </div>
           </button>
         </nav>
 
@@ -312,13 +316,15 @@ export default function Sidebar({
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               สมุดบันทึก
             </span>
-            <button
-              onClick={() => setIsNotebookModalOpen(true)}
-              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-              title="สร้างสมุดบันทึกใหม่"
-            >
-              <Plus size={16} />
-            </button>
+            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+              <button
+                onClick={() => setIsNotebookModalOpen(true)}
+                className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                title="สร้างสมุดบันทึกใหม่"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -340,8 +346,8 @@ export default function Sidebar({
                   <span className="truncate">{nb.name}</span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-slate-400 group-hover:hidden">
+                <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                  <span className={`text-xs text-slate-400 font-medium ${!nb.isDefault ? 'group-hover:hidden' : ''}`}>
                     {nb.noteCount ?? 0}
                   </span>
                   {!nb.isDefault && (
@@ -350,7 +356,8 @@ export default function Sidebar({
                         e.stopPropagation();
                         deleteNotebook(nb.id);
                       }}
-                      className="hidden group-hover:block p-1 text-slate-400 hover:text-rose-500 rounded"
+                      className="hidden group-hover:flex w-6 h-6 items-center justify-center text-slate-400 hover:text-rose-500 rounded transition"
+                      title="ลบสมุดบันทึก"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -367,13 +374,15 @@ export default function Sidebar({
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
               ป้ายกำกับ
             </span>
-            <button
-              onClick={() => setIsLabelModalOpen(true)}
-              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-              title="สร้างป้ายกำกับใหม่"
-            >
-              <Plus size={16} />
-            </button>
+            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+              <button
+                onClick={() => setIsLabelModalOpen(true)}
+                className="w-6 h-6 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                title="สร้างป้ายกำกับใหม่"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -392,15 +401,18 @@ export default function Sidebar({
                   <span className="truncate">#{lbl.name}</span>
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteLabel(lbl.id);
-                  }}
-                  className="hidden group-hover:block p-1 text-slate-400 hover:text-rose-500 rounded"
-                >
-                  <Trash2 size={13} />
-                </button>
+                <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteLabel(lbl.id);
+                    }}
+                    className="hidden group-hover:flex w-6 h-6 items-center justify-center text-slate-400 hover:text-rose-500 rounded transition"
+                    title="ลบป้ายกำกับ"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

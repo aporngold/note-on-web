@@ -14,6 +14,7 @@ import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { Note } from '@/types';
 import { sortNotes } from '@/utils/sortHelper';
+import { isStickerNote } from '@/components/board/stickerData';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -61,6 +62,10 @@ export default function Dashboard() {
   // Client-side search, tab filtering, and auto-sorting
   const filteredNotes = React.useMemo(() => {
     const matched = notes.filter((n) => {
+      // Exclude canvas stickers from standard grid / list views
+      if (viewMode !== 'board' && isStickerNote(n)) return false;
+      // In board mode, stickers stay attached to canvas
+      if (viewMode === 'board' && isStickerNote(n)) return true;
       if (activeTab === 'pinned' && !n.isPinned) return false;
       if (activeTab === 'favorites' && !n.isFavorite) return false;
       if (!searchQuery.trim()) return true;
@@ -71,7 +76,7 @@ export default function Dashboard() {
     });
 
     return sortNotes(matched, sortBy);
-  }, [notes, activeTab, searchQuery, sortBy]);
+  }, [notes, activeTab, searchQuery, sortBy, viewMode]);
 
   const defaultBoard = boards.find((b) => b.isDefault) || boards[0];
   const isViewingDefaultBoard = !activeBoardId || activeBoardId === defaultBoard?.id;

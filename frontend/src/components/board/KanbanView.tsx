@@ -21,6 +21,8 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import { stripHtmlTags } from '@/utils/editorHelper';
+import { FONT_PRESETS } from '../notes/editorExtensions';
+import { isStickerNote } from './stickerData';
 
 interface KanbanViewProps {
   notes: Note[];
@@ -116,7 +118,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
       {/* Mobile Column Switcher Tabs */}
       <div className="flex md:hidden items-center gap-1.5 p-1 bg-slate-200/70 dark:bg-slate-800/70 rounded-2xl mb-2.5 shrink-0 border border-slate-200/80 dark:border-slate-700/80">
         {COLUMNS.map((col) => {
-          const count = notes.filter((n) => (n.kanbanStatus || 'todo') === col.id).length;
+          const count = notes.filter((n) => !isStickerNote(n) && (n.kanbanStatus || 'todo') === col.id).length;
           const isSelected = activeMobileCol === col.id;
           const ColIcon = col.icon;
           return (
@@ -141,6 +143,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
       <div className="flex-1 w-full min-w-0 md:min-w-[780px] md:grid md:grid-cols-3 gap-4 sm:gap-6 items-start">
         {COLUMNS.map((col) => {
           const colNotes = notes.filter((n) => {
+            if (isStickerNote(n)) return false;
             const status = n.kanbanStatus || 'todo';
             return status === col.id;
           });
@@ -210,6 +213,13 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                       }
                     }
                     const cleanPreview = stripHtmlTags(previewText);
+                    const fontPreset = FONT_PRESETS.find(
+                      (f) =>
+                        f.id === note.fontFamily ||
+                        f.family === note.fontFamily ||
+                        f.id.toLowerCase() === String(note.fontFamily).toLowerCase() ||
+                        f.name.toLowerCase().includes(String(note.fontFamily).toLowerCase())
+                    );
 
                     return (
                       <div
@@ -221,6 +231,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                         style={{
                           backgroundColor: note.color || '#FEF08A',
                           color: note.textColor || '#0F172A',
+                          fontFamily: fontPreset?.family,
                         }}
                         className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all cursor-grab active:cursor-grabbing group select-none relative cursor-pointer"
                         title="คลิกหรือดับเบิ้ลคลิกเพื่อเปิดแก้ไขเต็มจอ / ลากเพื่อเปลี่ยนสถานะ"
@@ -241,7 +252,10 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
 
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <h4 className="font-bold text-sm line-clamp-2">
+                            <h4
+                              className="font-bold text-sm line-clamp-2"
+                              style={{ fontFamily: fontPreset?.family }}
+                            >
                               {note.title || 'ไม่มีชื่อ'}
                             </h4>
                             {/* Lock / E2EE status button */}
@@ -301,7 +315,10 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                         </div>
 
                         {cleanPreview && (
-                          <p className="text-xs opacity-80 line-clamp-3 mb-2 whitespace-pre-wrap leading-relaxed">
+                          <p
+                            className="text-xs opacity-80 line-clamp-3 mb-2 whitespace-pre-wrap leading-relaxed"
+                            style={{ fontFamily: fontPreset?.family }}
+                          >
                             {cleanPreview}
                           </p>
                         )}

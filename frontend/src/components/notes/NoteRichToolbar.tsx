@@ -58,11 +58,14 @@ import {
   Edit3,
   Eye,
   Save,
+  Smile,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import SpeechToTextButton from './SpeechToTextButton';
 import ViewportPopover from '../ui/ViewportPopover';
+import { FONT_PRESETS, FontPreset, FONT_SIZE_PRESETS, FontSizePreset } from './editorExtensions';
+import Fluent3DEmojiPicker, { FluentEmojiItem } from './Fluent3DEmojiPicker';
 
 export const PASTEL_PALETTE = [
   { name: 'สีขาว', bg: '#FFFFFF', border: '#E2E8F0', text: '#0F172A' },
@@ -145,6 +148,10 @@ interface NoteRichToolbarProps {
   onOpenFullscreen?: () => void;
   extraRightActions?: React.ReactNode;
   hideTopSaveCancel?: boolean;
+  fontFamily?: string;
+  onFontFamilyChange?: (fontId: string) => void;
+  fontSize?: string;
+  onFontSizeChange?: (size: string) => void;
 }
 
 export default function NoteRichToolbar({
@@ -155,6 +162,10 @@ export default function NoteRichToolbar({
   onColorChange,
   textColor = '#0F172A',
   onTextColorChange,
+  fontFamily = 'sans',
+  onFontFamilyChange,
+  fontSize = '16px',
+  onFontSizeChange,
   isPinned,
   onTogglePin,
   isLocked,
@@ -196,6 +207,10 @@ export default function NoteRichToolbar({
   // Dropdown states
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isParagraphMenuOpen, setIsParagraphMenuOpen] = useState(false);
+  const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const [isFontSizeMenuOpen, setIsFontSizeMenuOpen] = useState(false);
+  const [customFontSizeInput, setCustomFontSizeInput] = useState(fontSize ? fontSize.replace('px', '') : '16');
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isTextColorMenuOpen, setIsTextColorMenuOpen] = useState(false);
   const [activeColorTrigger, setActiveColorTrigger] = useState<'pipette' | 'toolbar'>('toolbar');
   const [isHighlightMenuOpen, setIsHighlightMenuOpen] = useState(false);
@@ -205,6 +220,12 @@ export default function NoteRichToolbar({
   const [historyStack, setHistoryStack] = useState<string[]>([content]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
+
+  useEffect(() => {
+    if (fontSize) {
+      setCustomFontSizeInput(fontSize.replace('px', ''));
+    }
+  }, [fontSize]);
 
   // Collapsible toolbar states (Remembered with localStorage, default collapsed on mobile < 1024px)
   const [isFormattingCollapsed, setIsFormattingCollapsed] = useState(false);
@@ -248,11 +269,16 @@ export default function NoteRichToolbar({
   const helpBtnRef = useRef<HTMLButtonElement>(null);
 
   const paragraphBtnRef = useRef<HTMLButtonElement>(null);
+  const fontBtnRef = useRef<HTMLButtonElement>(null);
+  const savedFontSelectionRef = useRef<{ from: number; to: number } | null>(null);
+  const fontSizeBtnRef = useRef<HTMLButtonElement>(null);
+  const savedFontSizeSelectionRef = useRef<{ from: number; to: number } | null>(null);
   const textColorBtnRef = useRef<HTMLButtonElement>(null);
   const pipetteBtnRef = useRef<HTMLButtonElement>(null);
   const highlightBtnRef = useRef<HTMLButtonElement>(null);
   const tableToolBtnRef = useRef<HTMLButtonElement>(null);
   const imageToolBtnRef = useRef<HTMLButtonElement>(null);
+  const emojiBtnRef = useRef<HTMLButtonElement>(null);
   const moreOptionsBtnRef = useRef<HTMLButtonElement>(null);
 
   // Update history for legacy textarea undo
@@ -491,6 +517,162 @@ export default function NoteRichToolbar({
     const newContent = text.substring(0, start) + cleaned + text.substring(end);
     pushHistory(newContent);
     toast.success('ล้างการจัดรูปแบบแล้ว');
+  };
+
+  const currentFontPreset = FONT_PRESETS.find((f) => f.id === fontFamily) || FONT_PRESETS[0];
+
+  const handleApplyFont = (fp: FontPreset, forceWholeNote = false) => {
+    const sel = savedFontSelectionRef.current;
+    const hasSelection = Boolean(
+      (sel && sel.from !== sel.to) ||
+      (editor && !editor.state.selection.empty)
+    );
+
+    if (hasSelection && !forceWholeNote && editor) {
+      const targetSelection = sel && sel.from !== sel.to
+        ? sel
+        : { from: editor.state.selection.from, to: editor.state.selection.to };
+
+      try {
+        if (typeof (editor.chain().focus().setTextSelection(targetSelection) as any).setFontFamily === 'function') {
+          (editor.chain().focus().setTextSelection(targetSelection) as any).setFontFamily(fp.family).run();
+        } else {
+          editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontFamily: fp.family }).run();
+        }
+      } catch {
+        editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontFamily: fp.family }).run();
+      }
+      if (onFontFamilyChange) {
+        onFontFamilyChange(fp.id);
+      }
+      toast.success(`เปลี่ยนฟอนต์ข้อความที่เลือกเป็น "${fp.name}"`);
+    } else {
+      if (onFontFamilyChange) {
+        onFontFamilyChange(fp.id);
+        toast.success(`เปลี่ยนฟอนต์หลักทั้งโน้ตเป็น "${fp.name}"`);
+      }
+    }
+    savedFontSelectionRef.current = null;
+    setIsFontMenuOpen(false);
+  };
+
+  const handleClearInlineFont = () => {
+    const sel = savedFontSelectionRef.current;
+    const targetSelection = sel && sel.from !== sel.to
+      ? sel
+      : (editor && !editor.state.selection.empty ? { from: editor.state.selection.from, to: editor.state.selection.to } : null);
+
+    if (editor && targetSelection) {
+      try {
+        if (typeof (editor.chain().focus().setTextSelection(targetSelection) as any).unsetFontFamily === 'function') {
+          (editor.chain().focus().setTextSelection(targetSelection) as any).unsetFontFamily().run();
+        } else {
+          editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontFamily: null }).removeEmptyTextStyle().run();
+        }
+      } catch {
+        editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontFamily: null }).run();
+      }
+      toast.success('คืนค่าฟอนต์ตามค่าเริ่มต้นของโน้ตแล้ว');
+    }
+    savedFontSelectionRef.current = null;
+    setIsFontMenuOpen(false);
+  };
+
+  const currentFontSizePreset = FONT_SIZE_PRESETS.find((s) => s.size === fontSize || s.id === fontSize) || FONT_SIZE_PRESETS[2];
+
+  const handleApplyFontSize = (sp: FontSizePreset, forceWholeNote = false) => {
+    const sel = savedFontSizeSelectionRef.current;
+    const hasSelection = Boolean(
+      (sel && sel.from !== sel.to) ||
+      (editor && !editor.state.selection.empty)
+    );
+
+    if (hasSelection && !forceWholeNote && editor) {
+      const targetSelection = sel && sel.from !== sel.to
+        ? sel
+        : { from: editor.state.selection.from, to: editor.state.selection.to };
+
+      try {
+        if (typeof (editor.chain().focus().setTextSelection(targetSelection) as any).setFontSize === 'function') {
+          (editor.chain().focus().setTextSelection(targetSelection) as any).setFontSize(sp.size).run();
+        } else {
+          editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontSize: sp.size }).run();
+        }
+      } catch {
+        editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontSize: sp.size }).run();
+      }
+      toast.success(`เปลี่ยนขนาดข้อความที่เลือกเป็น "${sp.name}"`);
+    } else {
+      if (onFontSizeChange) {
+        onFontSizeChange(sp.size);
+        toast.success(`เปลี่ยนขนาดอักษรหลักทั้งโน้ตเป็น "${sp.name}"`);
+      }
+    }
+    savedFontSizeSelectionRef.current = null;
+    setIsFontSizeMenuOpen(false);
+  };
+
+  const handleClearInlineFontSize = () => {
+    const sel = savedFontSizeSelectionRef.current;
+    const targetSelection = sel && sel.from !== sel.to
+      ? sel
+      : (editor && !editor.state.selection.empty ? { from: editor.state.selection.from, to: editor.state.selection.to } : null);
+
+    if (editor && targetSelection) {
+      try {
+        if (typeof (editor.chain().focus().setTextSelection(targetSelection) as any).unsetFontSize === 'function') {
+          (editor.chain().focus().setTextSelection(targetSelection) as any).unsetFontSize().run();
+        } else {
+          editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
+        }
+      } catch {
+        editor.chain().focus().setTextSelection(targetSelection).setMark('textStyle', { fontSize: null }).run();
+      }
+      toast.success('คืนค่าขนาดฟอนต์ตามค่าเริ่มต้นของโน้ตแล้ว');
+    }
+    savedFontSizeSelectionRef.current = null;
+    setIsFontSizeMenuOpen(false);
+  };
+
+  const handleApplyCustomFontSize = (sizeStr: string) => {
+    const cleanNum = parseInt(sizeStr.replace(/[^0-9]/g, ''), 10);
+    if (isNaN(cleanNum) || cleanNum < 8 || cleanNum > 96) {
+      toast.error('กรุณาระบุขนาดตัวอักษรระหว่าง 8 - 96 px');
+      return;
+    }
+    const finalSize = `${cleanNum}px`;
+    handleApplyFontSize({ id: finalSize, name: finalSize, size: finalSize, description: 'กำหนดเอง' });
+  };
+
+  const handleSelect3DEmoji = (emoji: FluentEmojiItem, fullUrl: string, mode: '3d' | 'unicode' = '3d') => {
+    if (editor) {
+      if (mode === 'unicode') {
+        const char = emoji.unicodeChar || '😀';
+        editor.chain().focus().insertContent(char).run();
+        toast.success(`แทรก ${emoji.thName} (ตัวอักษร)`);
+      } else {
+        try {
+          if (typeof (editor.chain().focus() as any).insert3DEmoji === 'function') {
+            (editor.chain().focus() as any).insert3DEmoji({ src: fullUrl, alt: emoji.name, title: emoji.thName }).run();
+          } else {
+            editor.chain().focus().insertContent({
+              type: 'inlineEmoji',
+              attrs: { src: fullUrl, alt: emoji.name, title: emoji.thName },
+            }).run();
+          }
+        } catch (err) {
+          editor.chain().focus().insertContent(`<img src="${fullUrl}" alt="${emoji.name}" title="${emoji.thName}" data-emoji="3d" class="fluent-emoji-3d" style="width: 1.25em; height: 1.25em; vertical-align: -0.22em; display: inline-block; margin: 0 0.15em;" />`).run();
+        }
+        toast.success(`แทรก ${emoji.thName} (3D)`);
+      }
+    } else {
+      if (mode === 'unicode') {
+        insertFormatting(emoji.unicodeChar || '😀');
+      } else {
+        insertFormatting(`<img src="${fullUrl}" alt="${emoji.name}" width="24" height="24" style="display:inline-block; vertical-align:middle; margin:0 2px;" />`);
+      }
+    }
+    setIsEmojiPickerOpen(false);
   };
 
   const handleInsertTable = (rows: number = 2, cols: number = 2) => {
@@ -1727,6 +1909,285 @@ export default function NoteRichToolbar({
           </ViewportPopover>
         </div>
 
+        {/* Font Family Dropdown */}
+        <div className="relative">
+          <button
+            ref={fontBtnRef}
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (editor && !editor.state.selection.empty) {
+                savedFontSelectionRef.current = {
+                  from: editor.state.selection.from,
+                  to: editor.state.selection.to,
+                };
+              }
+            }}
+            onClick={() => {
+              if (editor && !editor.state.selection.empty) {
+                savedFontSelectionRef.current = {
+                  from: editor.state.selection.from,
+                  to: editor.state.selection.to,
+                };
+              }
+              setIsFontMenuOpen((prev) => !prev);
+            }}
+            className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition max-w-[150px]"
+            title="เลือกฟอนต์ (Font Family)"
+            aria-label="เลือกฟอนต์"
+          >
+            <Type size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span className="truncate" style={{ fontFamily: currentFontPreset.family }}>
+              {currentFontPreset.name.split(' ')[0]}
+            </span>
+            <ChevronDown size={12} className="opacity-60 shrink-0" />
+          </button>
+
+          <ViewportPopover
+            triggerRef={fontBtnRef}
+            isOpen={isFontMenuOpen}
+            onClose={() => setIsFontMenuOpen(false)}
+            className="w-64 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-2 text-xs space-y-1 z-50 animate-fade-in"
+          >
+            {/* Context Notice */}
+            <div className="px-2 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-lg text-[11px] mb-1 flex items-center justify-between">
+              {(savedFontSelectionRef.current && savedFontSelectionRef.current.from !== savedFontSelectionRef.current.to) || (editor && !editor.state.selection.empty) ? (
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                  <span>✏️ เปลี่ยนเฉพาะคำที่เลือก</span>
+                </span>
+              ) : (
+                <span className="font-semibold text-slate-600 dark:text-slate-300">
+                  📄 ฟอนต์หลักของโน้ตนี้
+                </span>
+              )}
+            </div>
+
+            {/* Font list */}
+            <div className="max-h-72 overflow-y-auto space-y-0.5 pr-0.5 custom-scrollbar">
+              {FONT_PRESETS.map((fp, idx) => {
+                const isSelected = fontFamily === fp.id;
+                const prevCategory = idx > 0 ? FONT_PRESETS[idx - 1].category : null;
+                const isNewCategory = fp.category !== prevCategory;
+                const categoryNames: Record<string, string> = {
+                  sans: 'โมเดิร์น & มินิมอล',
+                  formal: 'ทางการ & วรรณกรรม',
+                  handwriting: 'ลายมือ & สร้างสรรค์',
+                  code: 'โค้ด & พิมพ์ดีด',
+                };
+                return (
+                  <React.Fragment key={fp.id}>
+                    {isNewCategory && (
+                      <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800 first:border-t-0 first:pt-0.5">
+                        {categoryNames[fp.category] || fp.category}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => handleApplyFont(fp)}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 transition flex items-center justify-between group ${
+                        isSelected
+                          ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
+                          : 'text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      <span
+                        className="text-[13px] truncate"
+                        style={{ fontFamily: fp.family }}
+                      >
+                        {fp.name}
+                      </span>
+                      {isSelected && <Check size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {/* Reset / Set Note Default Options */}
+            {((savedFontSelectionRef.current && savedFontSelectionRef.current.from !== savedFontSelectionRef.current.to) || (editor && !editor.state.selection.empty)) && (
+              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-700 space-y-1">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleClearInlineFont}
+                  className="w-full text-left px-2 py-1 text-[11px] text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded flex items-center gap-1.5 transition"
+                >
+                  <RotateCcw size={11} />
+                  <span>ล้างฟอนต์เฉพาะคำนี้ (ใช้ตามโน้ต)</span>
+                </button>
+              </div>
+            )}
+          </ViewportPopover>
+        </div>
+
+        {/* Font Size Dropdown */}
+        <div className="relative">
+          <button
+            ref={fontSizeBtnRef}
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (editor && !editor.state.selection.empty) {
+                savedFontSizeSelectionRef.current = {
+                  from: editor.state.selection.from,
+                  to: editor.state.selection.to,
+                };
+              }
+            }}
+            onClick={() => {
+              if (editor && !editor.state.selection.empty) {
+                savedFontSizeSelectionRef.current = {
+                  from: editor.state.selection.from,
+                  to: editor.state.selection.to,
+                };
+              }
+              setIsFontSizeMenuOpen((prev) => !prev);
+            }}
+            className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1 transition shrink-0"
+            title="ขนาดตัวอักษร (Font Size)"
+            aria-label="ขนาดตัวอักษร"
+          >
+            <span>{currentFontSizePreset.name}</span>
+            <ChevronDown size={11} className="opacity-60 shrink-0" />
+          </button>
+
+          <ViewportPopover
+            triggerRef={fontSizeBtnRef}
+            isOpen={isFontSizeMenuOpen}
+            onClose={() => setIsFontSizeMenuOpen(false)}
+            className="w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-1.5 text-xs space-y-1 z-50 animate-fade-in"
+          >
+            {/* Context Notice */}
+            <div className="px-2 py-1 bg-slate-50 dark:bg-slate-900/60 rounded-lg text-[11px] mb-1 flex items-center justify-between">
+              {(savedFontSizeSelectionRef.current && savedFontSizeSelectionRef.current.from !== savedFontSizeSelectionRef.current.to) || (editor && !editor.state.selection.empty) ? (
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                  ✏️ ปรับเฉพาะคำที่เลือก
+                </span>
+              ) : (
+                <span className="font-semibold text-slate-600 dark:text-slate-300">
+                  📄 ขนาดหลักทั้งโน้ต
+                </span>
+              )}
+            </div>
+
+            {/* Custom Font Size Input */}
+            <div className="px-1 py-1.5 border-b border-slate-100 dark:border-slate-700/80 flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0">กำหนด:</span>
+              <div className="flex items-center gap-1 flex-1">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    const currentNum = parseInt(customFontSizeInput || fontSize || '16', 10);
+                    const newNum = Math.max(8, currentNum - 1);
+                    setCustomFontSizeInput(`${newNum}`);
+                    handleApplyCustomFontSize(`${newNum}px`);
+                  }}
+                  className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200"
+                  title="ลดขนาด (-1px)"
+                >
+                  -
+                </button>
+                <div className="relative flex-1">
+                  <input
+                    type="number"
+                    min={8}
+                    max={96}
+                    value={customFontSizeInput}
+                    onChange={(e) => setCustomFontSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const num = parseInt(customFontSizeInput, 10);
+                        if (!isNaN(num) && num >= 8 && num <= 96) {
+                          handleApplyCustomFontSize(`${num}px`);
+                        }
+                      }
+                    }}
+                    placeholder="ขนาด"
+                    className="w-full text-center py-0.5 px-1 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 pointer-events-none">px</span>
+                </div>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    const currentNum = parseInt(customFontSizeInput || fontSize || '16', 10);
+                    const newNum = Math.min(96, currentNum + 1);
+                    setCustomFontSizeInput(`${newNum}`);
+                    handleApplyCustomFontSize(`${newNum}px`);
+                  }}
+                  className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200"
+                  title="เพิ่มขนาด (+1px)"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    const num = parseInt(customFontSizeInput, 10);
+                    if (!isNaN(num) && num >= 8 && num <= 96) {
+                      handleApplyCustomFontSize(`${num}px`);
+                    } else {
+                      toast.error('กรุณาระบุขนาดระหว่าง 8 - 96 px');
+                    }
+                  }}
+                  className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold transition"
+                  title="ใช้งานขนาดนี้"
+                >
+                  ใช้
+                </button>
+              </div>
+            </div>
+
+            {/* Size list */}
+            <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5 custom-scrollbar">
+              {FONT_SIZE_PRESETS.map((sp) => {
+                const isSelected = (fontSize === sp.size || fontSize === sp.id);
+                return (
+                  <button
+                    key={sp.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleApplyFontSize(sp)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 transition flex items-center justify-between group ${
+                      isSelected
+                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
+                        : 'text-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{sp.name}</span>
+                      {sp.description && (
+                        <span className="text-[10px] text-slate-400">({sp.description})</span>
+                      )}
+                    </div>
+                    {isSelected && <Check size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Reset option */}
+            {((savedFontSizeSelectionRef.current && savedFontSizeSelectionRef.current.from !== savedFontSizeSelectionRef.current.to) || (editor && !editor.state.selection.empty)) && (
+              <div className="pt-1.5 border-t border-slate-100 dark:border-slate-700 space-y-1">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleClearInlineFontSize}
+                  className="w-full text-left px-2 py-1 text-[11px] text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded flex items-center gap-1.5 transition"
+                >
+                  <RotateCcw size={11} />
+                  <span>ล้างขนาดเฉพาะคำนี้ (ใช้ตามโน้ต)</span>
+                </button>
+              </div>
+            )}
+          </ViewportPopover>
+        </div>
+
         {/* Separator */}
         <div className="w-[1px] h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
 
@@ -1780,6 +2241,38 @@ export default function NoteRichToolbar({
           <span>T</span>
           <span className="text-[10px] text-rose-500">x</span>
         </button>
+
+        {/* 3D Emoji Button (Microsoft Fluent 3D) */}
+        <div className="relative">
+          <button
+            ref={emojiBtnRef}
+            type="button"
+            onClick={() => setIsEmojiPickerOpen((prev) => !prev)}
+            className={`px-1.5 py-1 rounded-lg transition flex items-center gap-1 ${
+              isEmojiPickerOpen
+                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+            }`}
+            title="แทรก Emoji 3D (Microsoft Fluent 3D)"
+            aria-label="แทรก Emoji 3D"
+          >
+            <Smile size={16} className="text-amber-500" />
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 font-mono">3D</span>
+            <ChevronDown size={10} className="opacity-50" />
+          </button>
+
+          <ViewportPopover
+            triggerRef={emojiBtnRef}
+            isOpen={isEmojiPickerOpen}
+            onClose={() => setIsEmojiPickerOpen(false)}
+            className="z-50 shadow-2xl p-0 border-0 bg-transparent"
+          >
+            <Fluent3DEmojiPicker
+              onSelectEmoji={handleSelect3DEmoji}
+              onClose={() => setIsEmojiPickerOpen(false)}
+            />
+          </ViewportPopover>
+        </div>
 
         {/* Text Color Dropdown (International Standard Style with Color Indicator Bar) */}
         <div className="relative">
@@ -1973,7 +2466,7 @@ export default function NoteRichToolbar({
           type="button"
           onClick={() => handleAlign('left')}
           className={getToolBtnClass(isAlignLeftActive)}
-          title="จัดชิดซ้าย"
+          title="จัดชิดซ้าย (Ctrl+L)"
         >
           <AlignLeft size={16} />
         </button>
@@ -1983,7 +2476,7 @@ export default function NoteRichToolbar({
           type="button"
           onClick={() => handleAlign('center')}
           className={getToolBtnClass(isAlignCenterActive)}
-          title="จัดกึ่งกลาง"
+          title="จัดกึ่งกลาง (Ctrl+E)"
         >
           <AlignCenter size={16} />
         </button>
@@ -1993,7 +2486,7 @@ export default function NoteRichToolbar({
           type="button"
           onClick={() => handleAlign('right')}
           className={getToolBtnClass(isAlignRightActive)}
-          title="จัดชิดขวา"
+          title="จัดชิดขวา (Ctrl+R)"
         >
           <AlignRight size={16} />
         </button>
@@ -2003,7 +2496,7 @@ export default function NoteRichToolbar({
           type="button"
           onClick={() => handleAlign('justify')}
           className={getToolBtnClass(isAlignJustifyActive)}
-          title="จัดเต็มบรรทัด (Justify)"
+          title="จัดเต็มบรรทัด (Ctrl+J)"
         >
           <AlignJustify size={16} />
         </button>

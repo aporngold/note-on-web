@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Node, mergeAttributes } from '@tiptap/core';
+import { Node, Extension, mergeAttributes } from '@tiptap/core';
 import Image from '@tiptap/extension-image';
 import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import {
@@ -352,3 +352,148 @@ export const ResizableImageExtension = Image.extend({
     return ReactNodeViewRenderer(ResizableImageView);
   },
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 3. Font Family Extension & Presets for TipTap
+// ══════════════════════════════════════════════════════════════════════════════
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    fontFamily: {
+      setFontFamily: (fontFamily: string) => ReturnType;
+      unsetFontFamily: () => ReturnType;
+    };
+  }
+}
+
+export interface FontPreset {
+  id: string;
+  name: string;
+  family: string;
+  className: string;
+  category: 'sans' | 'handwriting' | 'formal' | 'code';
+}
+
+export const FONT_PRESETS: FontPreset[] = [
+  // ── โมเดิร์น & มินิมอล (Sans) ──
+  { id: 'sans', name: 'ปกติ (Inter / Sans)', family: "'Inter', 'Plus Jakarta Sans', system-ui, sans-serif", className: 'font-sans-note', category: 'sans' },
+  { id: 'kanit', name: 'คณิต (Kanit)', family: "'Kanit', sans-serif", className: 'font-kanit', category: 'sans' },
+  { id: 'prompt', name: 'พร้อมท์ (Prompt)', family: "'Prompt', sans-serif", className: 'font-prompt', category: 'sans' },
+  { id: 'mitr', name: 'มิตร (Mitr)', family: "'Mitr', sans-serif", className: 'font-mitr', category: 'sans' },
+  { id: 'krub', name: 'ครับ (Krub)', family: "'Krub', sans-serif", className: 'font-krub', category: 'sans' },
+  { id: 'k2d', name: 'เคทูดี (K2D)', family: "'K2D', sans-serif", className: 'font-k2d', category: 'sans' },
+  { id: 'chakra', name: 'ชักระ เพชร (Chakra Petch)', family: "'Chakra Petch', sans-serif", className: 'font-chakra', category: 'sans' },
+  { id: 'baijamjuree', name: 'จามจุรี (Bai Jamjuree)', family: "'Bai Jamjuree', sans-serif", className: 'font-bai-jamjuree', category: 'sans' },
+  { id: 'fahkwang', name: 'ฟ้ากว้าง (Fahkwang)', family: "'Fahkwang', sans-serif", className: 'font-fahkwang', category: 'sans' },
+
+  // ── ทางการ สุภาพ & มีหัว (Formal / Serif) ──
+  { id: 'sarabun', name: 'สารบรรณ (Sarabun)', family: "'Sarabun', sans-serif", className: 'font-sarabun', category: 'formal' },
+  { id: 'pridi', name: 'ปรีดี (Pridi)', family: "'Pridi', serif", className: 'font-pridi', category: 'formal' },
+  { id: 'taviraj', name: 'ทวิราช (Taviraj)', family: "'Taviraj', serif", className: 'font-taviraj', category: 'formal' },
+  { id: 'serif', name: 'ซีรีฟ (Merriweather)', family: "'Merriweather', serif", className: 'font-serif-note', category: 'formal' },
+
+  // ── ลายมือ น่ารัก & สร้างสรรค์ (Handwriting / Creative) ──
+  { id: 'mali', name: 'ลายมือ มะลิ (Mali)', family: "'Mali', cursive, sans-serif", className: 'font-mali', category: 'handwriting' },
+  { id: 'itim', name: 'ไอติม (Itim)', family: "'Itim', cursive, sans-serif", className: 'font-itim', category: 'handwriting' },
+  { id: 'sriracha', name: 'ศรีราชา (Sriracha)', family: "'Sriracha', cursive, sans-serif", className: 'font-sriracha', category: 'handwriting' },
+  { id: 'charm', name: 'ชาม (Charm)', family: "'Charm', cursive, sans-serif", className: 'font-charm', category: 'handwriting' },
+
+  // ── โค้ด & พิมพ์ดีด (Monospace) ──
+  { id: 'mono', name: 'โค้ด (JetBrains Mono)', family: "'JetBrains Mono', monospace", className: 'font-mono-note', category: 'code' },
+];
+
+export interface FontSizePreset {
+  id: string;
+  name: string;
+  size: string;
+  desc?: string;
+  description?: string;
+}
+
+export const FONT_SIZE_PRESETS: FontSizePreset[] = [
+  { id: '12px', name: '12px', size: '12px', desc: 'เล็กมาก', description: 'เล็กมาก' },
+  { id: '14px', name: '14px', size: '14px', desc: 'เล็ก', description: 'เล็ก' },
+  { id: '16px', name: '16px', size: '16px', desc: 'ปกติ (มาตรฐาน)', description: 'ปกติ (มาตรฐาน)' },
+  { id: '18px', name: '18px', size: '18px', desc: 'ปานกลาง', description: 'ปานกลาง' },
+  { id: '20px', name: '20px', size: '20px', desc: 'ใหญ่', description: 'ใหญ่' },
+  { id: '24px', name: '24px', size: '24px', desc: 'ใหญ่พิเศษ', description: 'ใหญ่พิเศษ' },
+  { id: '28px', name: '28px', size: '28px', desc: 'หัวข้อย่อย', description: 'หัวข้อย่อย' },
+  { id: '32px', name: '32px', size: '32px', desc: 'หัวข้อ', description: 'หัวข้อ' },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 5. Inline 3D Fluent Emoji Extension for TipTap
+// ══════════════════════════════════════════════════════════════════════════════
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    inlineEmoji: {
+      insert3DEmoji: (options: { src: string; alt?: string; title?: string }) => ReturnType;
+    };
+  }
+}
+
+export const InlineEmojiExtension = Node.create({
+  name: 'inlineEmoji',
+  group: 'inline',
+  inline: true,
+  selectable: true,
+  draggable: true,
+  atom: true,
+
+  addAttributes() {
+    return {
+      src: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('src'),
+        renderHTML: (attributes) => ({ src: attributes.src }),
+      },
+      alt: {
+        default: 'emoji',
+        parseHTML: (element) => element.getAttribute('alt') || 'emoji',
+        renderHTML: (attributes) => ({ alt: attributes.alt }),
+      },
+      title: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('title') || undefined,
+        renderHTML: (attributes) => (attributes.title ? { title: attributes.title } : {}),
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'img[data-emoji="3d"]',
+      },
+      {
+        tag: 'img.fluent-emoji-3d',
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'img',
+      mergeAttributes(HTMLAttributes, {
+        'data-emoji': '3d',
+        class: 'fluent-emoji-3d inline-block select-auto pointer-events-auto cursor-pointer',
+        style: 'width: 1.25em; height: 1.25em; vertical-align: -0.22em; display: inline-block; margin: 0 0.15em; object-fit: contain;',
+      }),
+    ];
+  },
+
+  addCommands() {
+    return {
+      insert3DEmoji:
+        (options: { src: string; alt?: string; title?: string }) =>
+        ({ commands }: any) => {
+          return commands.insertContent({
+            type: this.name,
+            attrs: options,
+          });
+        },
+    };
+  },
+});
+
+
+

@@ -19,6 +19,9 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import StickyNoteItem from './StickyNoteItem';
+import StickyStickerItem from './StickyStickerItem';
+import BoardStickerModal from './BoardStickerModal';
+import { isStickerNote, BoardStickerItem } from './stickerData';
 import NoteConnectionCanvas from './NoteConnectionCanvas';
 import KanbanView from './KanbanView';
 import BoardShareModal from '../modals/BoardShareModal';
@@ -110,9 +113,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     setFullscreenNote(n);
   };
 
-  // Modals for Sharing and Backgrounds
+  // Modals for Sharing, Backgrounds, and Stickers
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
+  const [isStickerModalOpen, setIsStickerModalOpen] = useState(false);
 
   // Modals / Dropdowns for Board Management
   const [isAddBoardModalOpen, setIsAddBoardModalOpen] = useState(false);
@@ -407,25 +411,28 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Ref to suppress resetting scroll to (0,0) when focusing a newly created/saved note
   const isFocusingSavedNoteRef = useRef(false);
 
-  // Automatically focus newly created note from other views (ensures note is in view while keeping left notes visible)
+  // Automatically ensure newly created note from other views is in view without sticking any active highlight
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const focusNoteId = sessionStorage.getItem('secure_note_focus_note_id');
-    if (!focusNoteId || notes.length === 0) return;
+    if (!focusNoteId) return;
+
+    sessionStorage.removeItem('secure_note_focus_note_id');
+    if (notes.length === 0) return;
 
     const targetNote = notes.find((n) => n.id === focusNoteId);
     if (targetNote) {
-      sessionStorage.removeItem('secure_note_focus_note_id');
       isFocusingSavedNoteRef.current = true;
       setTimeout(() => {
         isFocusingSavedNoteRef.current = false;
       }, 2500);
 
       bringToFront(targetNote.id);
-      setFocusedNoteId(targetNote.id);
-      setHighlightedNoteId(targetNote.id);
+      // Ensure no active highlight or focus ring is stuck
+      setFocusedNoteId(null);
+      setHighlightedNoteId(null);
 
-      // Perform smooth scroll immediately and with backups after container layout settles
+      // Perform smooth scroll to target note
       ensureNoteInView(targetNote);
       const timer1 = setTimeout(() => {
         ensureNoteInView(targetNote);
@@ -433,17 +440,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       const timer2 = setTimeout(() => {
         ensureNoteInView(targetNote);
       }, 350);
-
-      // Dismiss subtle highlight and focus cleanly with graceful timing (1.3s highlight, 1.5s focus)
-      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
-      highlightTimerRef.current = setTimeout(() => {
-        setHighlightedNoteId(null);
-      }, 1300);
-
-      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
-      focusTimerRef.current = setTimeout(() => {
-        setFocusedNoteId((curr) => (curr === targetNote.id ? null : curr));
-      }, 1500);
 
       return () => {
         clearTimeout(timer1);
@@ -655,6 +651,33 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   };
 
+  // Quick add sticker directly onto the active board canvas
+  const handleSelectSticker = async (sticker: BoardStickerItem) => {
+    const { x, y } = findNextAvailableSlot();
+    const targetBoardId = activeBoardId || boards.find((b) => b.isDefault)?.id || boards[0]?.id || undefined;
+
+    const newNote = await createNote({
+      title: '[STICKER]',
+      content: `[STICKER]:${sticker.url}`,
+      color: '#FFFFFF',
+      textColor: '#0F172A',
+      width: sticker.defaultWidth || 140,
+      height: sticker.defaultHeight || 140,
+      rotation: 0,
+      posX: x,
+      posY: y,
+      isPinned: false,
+      boardId: targetBoardId,
+    });
+
+    if (newNote?.id) {
+      bringToFront(newNote.id);
+      setFocusedNoteId(newNote.id);
+      setHighlightedNoteId(newNote.id);
+      toast.success(`แปะ ${sticker.thName} บนกระดานแล้ว`, { icon: '✨' });
+    }
+  };
+
   // Auto-arrange all notes in a neat grid according to selected SortOption
   const handleAutoArrange = async (newSortOption?: SortOption) => {
     if (notes.length === 0) {
@@ -815,7 +838,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   };
 
   return (
-    <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-none sm:rounded-3xl border-0 sm:border border-slate-200/80 dark:border-slate-800 shadow-none sm:shadow-xl overflow-hidden animate-fade-in relative select-none">
+    <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-none border-0 shadow-none overflow-hidden animate-fade-in relative select-none">
       {/* ── TOP SECTION 1: Multi-Board Tabs Bar (Note Board style / Mobile Dropdown) ── */}
       <div className="bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 pt-2 pb-1.5 flex items-center justify-between gap-2 overflow-visible select-none z-30 relative">
         {/* Mobile Dropdown Board Selector (md:hidden) */}
@@ -1078,6 +1101,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <Palette size={14} className="text-indigo-600 dark:text-indigo-400" />
               <span className="hidden sm:inline">เปลี่ยนพื้นหลัง</span>
             </button>
+
+            {/* Board Stickers Button */}
+            <button
+              onClick={() => setIsStickerModalOpen(true)}
+              className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-amber-200 dark:border-amber-800/60 transition active:scale-95"
+              title="แปะสติกเกอร์, ลูกศร, ไอเดีย และสัญลักษณ์ตกแต่งบนกระดาน"
+            >
+              <Sparkles size={14} className="text-amber-500 animate-pulse" />
+              <span className="hidden sm:inline">สติกเกอร์</span>
+            </button>
           </div>
         </div>
       )}
@@ -1118,7 +1151,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
             }
           }}
-          className="flex-1 w-full h-full min-h-0 overflow-auto relative p-3 sm:p-4 cursor-default board-canvas-container"
+          className="flex-1 w-full h-full min-h-0 overflow-auto relative p-0 cursor-default board-canvas-container"
         >
           {/* Zoom Wrapper to allow accurate container scrolling */}
           <div
@@ -1134,7 +1167,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 transform: `scale(${zoom})`,
                 transformOrigin: 'top left',
               }}
-              className="relative rounded-3xl transition-transform duration-100 ease-out"
+              className="relative transition-transform duration-100 ease-out"
             >
               {/* SVG Visual Connection Lines Canvas */}
               <NoteConnectionCanvas
@@ -1142,26 +1175,38 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 notes={notes}
               />
 
-              {/* Sticky Notes */}
-              {notes.map((note, idx) => (
-                <StickyNoteItem
-                  key={note.id}
-                  note={note}
-                  index={idx}
-                  zoom={zoom}
-                  onDragEnd={handleDragEnd}
-                  onUnlockRequest={() => setIsVaultModalOpen(true)}
-                  onStartConnect={handleStartConnect}
-                  onTargetConnect={handleTargetConnect}
-                  onOpenFullscreen={handleOpenFullscreen}
-                  isConnectingSource={connectingSourceId === note.id}
-                  isConnectingMode={!!connectingSourceId}
-                  onBringToFront={() => handleNoteFocus(note.id)}
-                  customZIndex={noteZIndices[note.id]}
-                  isFocused={focusedNoteId === note.id}
-                  isHighlighted={highlightedNoteId === note.id}
-                />
-              ))}
+              {/* Sticky Notes & Canvas Stickers */}
+              {notes.map((note, idx) =>
+                isStickerNote(note) ? (
+                  <StickyStickerItem
+                    key={note.id}
+                    note={note}
+                    zoom={zoom}
+                    onDragEnd={handleDragEnd}
+                    onBringToFront={() => handleNoteFocus(note.id)}
+                    customZIndex={noteZIndices[note.id]}
+                    isFocused={focusedNoteId === note.id}
+                  />
+                ) : (
+                  <StickyNoteItem
+                    key={note.id}
+                    note={note}
+                    index={idx}
+                    zoom={zoom}
+                    onDragEnd={handleDragEnd}
+                    onUnlockRequest={() => setIsVaultModalOpen(true)}
+                    onStartConnect={handleStartConnect}
+                    onTargetConnect={handleTargetConnect}
+                    onOpenFullscreen={handleOpenFullscreen}
+                    isConnectingSource={connectingSourceId === note.id}
+                    isConnectingMode={!!connectingSourceId}
+                    onBringToFront={() => handleNoteFocus(note.id)}
+                    customZIndex={noteZIndices[note.id]}
+                    isFocused={focusedNoteId === note.id}
+                    isHighlighted={highlightedNoteId === note.id}
+                  />
+                )
+              )}
             </div>
           </div>
         </div>
@@ -1415,6 +1460,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             await updateBoard(activeBoardId, { bgImage: url });
           }
         }}
+      />
+
+      {/* ── MODAL: Board Stickers & Decorators ── */}
+      <BoardStickerModal
+        isOpen={isStickerModalOpen}
+        onClose={() => setIsStickerModalOpen(false)}
+        onSelectSticker={handleSelectSticker}
       />
 
       {/* ── MODAL: Board Sharing ── */}

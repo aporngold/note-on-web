@@ -41,7 +41,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { Color } from '@tiptap/extension-color';
-import { TextStyle } from '@tiptap/extension-text-style';
+import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
@@ -49,7 +49,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { ResizableImageExtension, AudioExtension } from './editorExtensions';
+import { ResizableImageExtension, AudioExtension, InlineEmojiExtension, FONT_PRESETS, FONT_SIZE_PRESETS } from './editorExtensions';
 
 import { Note, Notebook, Label, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -128,6 +128,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [newTagName, setNewTagName] = useState('');
   const [isBorderless, setIsBorderless] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [fontFamily, setFontFamily] = useState('sans');
+  const [fontSize, setFontSize] = useState('16px');
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [pendingLockAction, setPendingLockAction] = useState<'lock' | 'unlock' | null>(null);
@@ -178,6 +180,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       }),
       Underline,
       TextStyle,
+      FontFamily,
+      FontSize,
       Color,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({
@@ -209,9 +213,76 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         allowBase64: true,
       }),
       AudioExtension,
+      InlineEmojiExtension,
     ],
     content: '',
     immediatelyRender: false,
+    editorProps: {
+      handleKeyDown: (view, event) => {
+        if (event.ctrlKey || event.metaKey) {
+          const key = event.key.toLowerCase();
+          if (key === 'e') {
+            event.preventDefault();
+            (view as any).dom?.focus?.();
+            const { tr } = view.state;
+            // Execute TipTap alignment command
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'center' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+          if (key === 'l') {
+            event.preventDefault();
+            const { tr } = view.state;
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'left' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+          if (key === 'r') {
+            event.preventDefault();
+            const { tr } = view.state;
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'right' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+          if (key === 'j') {
+            event.preventDefault();
+            const { tr } = view.state;
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'justify' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+    },
     onUpdate: ({ editor }) => {
       setContent(editor.getHTML());
       hasUnsavedChangesRef.current = true;
@@ -232,6 +303,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         setTitle(n.title || '');
         setColor(n.color || COLORS[0]);
         setTextColor(n.textColor || '#0F172A');
+        setFontFamily(n.fontFamily || 'sans');
+        setFontSize(n.fontSize || '16px');
         setIsLocked(n.isLocked);
         setIsPinned(n.isPinned);
         setIsFavorite(!!n.isFavorite);
@@ -393,6 +466,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           content: finalContent,
           color,
           textColor,
+          fontFamily,
+          fontSize: fontSize || '16px',
           isLocked,
           isPinned,
           isFavorite,
@@ -402,9 +477,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           iv,
           salt,
         });
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('secure_note_focus_note_id', noteIdRef.current);
-        }
         hasUnsavedChangesRef.current = false;
         toast.success('บันทึกการเปลี่ยนแปลงแล้ว');
       } else {
@@ -415,6 +487,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           content: finalContent,
           color,
           textColor,
+          fontFamily,
+          fontSize: fontSize || '16px',
           isLocked,
           isPinned,
           isFavorite,
@@ -427,9 +501,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           salt,
         });
         noteIdRef.current = created.id;
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('secure_note_focus_note_id', created.id);
-        }
         hasUnsavedChangesRef.current = false;
         toast.success('สร้างโน้ตใหม่สำเร็จ');
         if (!isClosing) {
@@ -452,6 +523,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     title,
     color,
     textColor,
+    fontFamily,
     isPinned,
     isFavorite,
     notebookId,
@@ -526,6 +598,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           content: finalContent,
           color,
           textColor,
+          fontFamily,
+          fontSize: fontSize || '16px',
           isLocked,
           isPinned,
           isFavorite,
@@ -543,6 +617,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           content: finalContent,
           color,
           textColor,
+          fontFamily,
+          fontSize: fontSize || '16px',
           isLocked,
           isPinned,
           isFavorite,
@@ -575,6 +651,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     editor,
     color,
     textColor,
+    fontFamily,
     isPinned,
     isFavorite,
     notebookId,
@@ -609,7 +686,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [title, content, color, textColor, notebookId, boardId, selectedLabelIds, isPinned, isFavorite, isLoaded, triggerAutoSave]);
+  }, [title, content, color, textColor, fontFamily, notebookId, boardId, selectedLabelIds, isPinned, isFavorite, isLoaded, triggerAutoSave]);
 
   const handleUploadFile = async (file: File) => {
     try {
@@ -621,6 +698,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           content: currentHtml,
           color,
           textColor,
+          fontFamily,
+          fontSize: fontSize || '16px',
           isLocked,
           isPinned,
           isFavorite,
@@ -865,6 +944,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const plainText = editor ? editor.getText() : stripHtmlTags(content);
   const wordCount = plainText.trim() ? plainText.trim().split(/\s+/).length : 0;
   const charCount = plainText.length;
+  const activeFontPreset = FONT_PRESETS.find((f) => f.id === fontFamily) || FONT_PRESETS[0];
 
   return (
     <div className="w-full h-full flex flex-col animate-fade-in transition-all duration-300">
@@ -1026,6 +1106,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               setTitle(e.target.value);
               hasUnsavedChangesRef.current = true;
             }}
+            style={{ fontFamily: activeFontPreset.family }}
             className="w-full lg:flex-1 text-lg sm:text-xl font-bold bg-transparent text-slate-900 dark:text-white placeholder-slate-400/80 dark:placeholder-slate-500 focus:outline-none tracking-tight min-w-0"
           />
 
@@ -1180,6 +1261,18 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 </div>
               )}
             </div>
+
+            {/* Desktop Close / Exit Button */}
+            <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 my-auto mx-0.5" />
+            <button
+              type="button"
+              onClick={handleClose}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition flex items-center justify-center shrink-0 cursor-pointer"
+              title="ปิดโน้ต / ยกเลิก (Close)"
+              aria-label="ปิดโน้ต"
+            >
+              <X size={18} />
+            </button>
           </div>
         </div>
 
@@ -1244,6 +1337,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               toast.success('ดาวน์โหลดไฟล์ข้อความแล้ว');
             }}
             onDownloadMd={handleExportMarkdown}
+            fontFamily={fontFamily}
+            onFontFamilyChange={(f) => {
+              setFontFamily(f);
+              hasUnsavedChangesRef.current = true;
+            }}
+            fontSize={fontSize}
+            onFontSizeChange={(s) => {
+              setFontSize(s);
+              hasUnsavedChangesRef.current = true;
+            }}
           />
         </div>
 
@@ -1252,6 +1355,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           editor={editor}
           zoomLevel={zoomLevel}
           onZoomChange={(z) => setZoomLevel(z)}
+          fontFamily={fontFamily}
+          onFontFamilyChange={(f) => {
+            setFontFamily(f);
+            hasUnsavedChangesRef.current = true;
+          }}
+          fontSize={fontSize}
+          onFontSizeChange={(s) => {
+            setFontSize(s);
+            hasUnsavedChangesRef.current = true;
+          }}
           onAttachFile={() => setIsAttachmentDrawerOpen(true)}
           onRecordAudio={() => setIsAudioModalOpen(true)}
           onOpenOcr={() => setIsOcrModalOpen(true)}
@@ -1265,8 +1378,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <div
               className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed transition-all duration-150"
               style={{
-                fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
+                fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(parseInt(fontSize || '16', 10) * (zoomLevel / 100)))}px` : fontSize,
                 zoom: zoomLevel !== 100 ? `${zoomLevel}%` : undefined,
+                fontFamily: activeFontPreset.family,
               }}
               dangerouslySetInnerHTML={{
                 __html: content || '<p class="text-slate-400 italic">ไม่มีเนื้อหา...</p>',
@@ -1274,7 +1388,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             />
           ) : (
             <div
-              className="flex-1 min-h-[160px] lg:min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed font-sans transition-all duration-150"
+              className="flex-1 min-h-[160px] lg:min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed transition-all duration-150"
               onClick={() => {
                 if (editor && !editor.isFocused) {
                   editor.commands.focus();
@@ -1282,11 +1396,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
               }}
               style={{
                 color: textColor,
-                fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
+                fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(parseInt(fontSize || '16', 10) * (zoomLevel / 100)))}px` : fontSize,
                 zoom: zoomLevel !== 100 ? `${zoomLevel}%` : undefined,
+                fontFamily: activeFontPreset.family,
               }}
             >
-              <EditorContent editor={editor} />
+              <EditorContent editor={editor} style={{ fontFamily: activeFontPreset.family }} />
             </div>
           )}
         </div>

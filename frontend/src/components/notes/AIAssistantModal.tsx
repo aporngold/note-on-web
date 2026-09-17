@@ -267,9 +267,9 @@ export default function AIAssistantModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">SecureNote AI Architect</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  <span>Gemini Free Tier (Server Secret)</span>
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60 flex items-center gap-1 shadow-xs">
+                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                  <span>Powered by Gemini</span>
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">ผู้ช่วย AI อัจฉริยะจัดโครงสร้าง สรุป เรียบเรียง และแปลงเทมเพลตโน้ตอย่างปลอดภัย</p>
@@ -400,7 +400,7 @@ export default function AIAssistantModal({
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
                       <Bot className="w-3.5 h-3.5" />
-                      <span>ประมวลผลด้วย: {engineUsed === 'gemini-free' ? 'Gemini 2.0 Flash (Free Tier)' : 'Local Smart NLP (ฟรีในเครื่อง)'}</span>
+                      <span>ประมวลผลด้วย: {engineUsed === 'gemini-free' ? 'Google Gemini 2.0 Flash' : 'Local Smart NLP (ฟรีในเครื่อง)'}</span>
                     </span>
                     <button
                       type="button"
@@ -467,7 +467,7 @@ export default function AIAssistantModal({
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
                       <Bot className="w-3.5 h-3.5" />
-                      <span>ประมวลผลด้วย: {engineUsed === 'gemini-free' ? 'Gemini 2.0 Flash (Free Tier)' : 'Local Smart NLP (ฟรีในเครื่อง)'}</span>
+                      <span>ประมวลผลด้วย: {engineUsed === 'gemini-free' ? 'Google Gemini 2.0 Flash' : 'Local Smart NLP (ฟรีในเครื่อง)'}</span>
                     </span>
                     <button
                       type="button"

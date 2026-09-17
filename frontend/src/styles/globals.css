@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;600&family=Caveat:wght@600;700&family=Chakra+Petch:wght@400;600&family=Charm:wght@400;700&family=Fahkwang:wght@400;600&family=Inter:wght@300;400;500;600;700&family=Itim&family=JetBrains+Mono:wght@400;500&family=K2D:wght@400;600&family=Kanit:wght@300;400;500;600;700&family=Krub:wght@400;600&family=Mali:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Mitr:wght@300;400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Pridi:wght@400;600&family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Sriracha&family=Taviraj:wght@400;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,13 +7,88 @@
 :root {
   --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
   --font-sans: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-kanit: 'Kanit', sans-serif;
+  --font-prompt: 'Prompt', sans-serif;
+  --font-sarabun: 'Sarabun', sans-serif;
+  --font-mitr: 'Mitr', sans-serif;
+  --font-krub: 'Krub', sans-serif;
+  --font-k2d: 'K2D', sans-serif;
+  --font-chakra: 'Chakra Petch', sans-serif;
+  --font-bai-jamjuree: 'Bai Jamjuree', sans-serif;
+  --font-fahkwang: 'Fahkwang', sans-serif;
+  --font-pridi: 'Pridi', serif;
+  --font-taviraj: 'Taviraj', serif;
+  --font-mali: 'Mali', cursive, sans-serif;
+  --font-itim: 'Itim', cursive, sans-serif;
+  --font-sriracha: 'Sriracha', cursive, sans-serif;
+  --font-charm: 'Charm', cursive, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-handwriting: 'Caveat', cursive, sans-serif;
+  --font-handwriting: 'Mali', 'Caveat', cursive, sans-serif;
   --font-serif: 'Merriweather', serif;
 }
 
+.font-kanit {
+  font-family: 'Kanit', sans-serif;
+}
+
+.font-prompt {
+  font-family: 'Prompt', sans-serif;
+}
+
+.font-sarabun {
+  font-family: 'Sarabun', sans-serif;
+}
+
+.font-mitr {
+  font-family: 'Mitr', sans-serif;
+}
+
+.font-krub {
+  font-family: 'Krub', sans-serif;
+}
+
+.font-k2d {
+  font-family: 'K2D', sans-serif;
+}
+
+.font-chakra {
+  font-family: 'Chakra Petch', sans-serif;
+}
+
+.font-bai-jamjuree {
+  font-family: 'Bai Jamjuree', sans-serif;
+}
+
+.font-fahkwang {
+  font-family: 'Fahkwang', sans-serif;
+}
+
+.font-pridi {
+  font-family: 'Pridi', serif;
+}
+
+.font-taviraj {
+  font-family: 'Taviraj', serif;
+}
+
+.font-mali {
+  font-family: 'Mali', cursive, sans-serif;
+}
+
+.font-itim {
+  font-family: 'Itim', cursive, sans-serif;
+}
+
+.font-sriracha {
+  font-family: 'Sriracha', cursive, sans-serif;
+}
+
+.font-charm {
+  font-family: 'Charm', cursive, sans-serif;
+}
+
 .font-handwriting {
-  font-family: 'Caveat', cursive, sans-serif;
+  font-family: 'Mali', 'Caveat', cursive, sans-serif;
 }
 
 .font-serif-note {
@@ -112,6 +187,18 @@ body {
   cursor: text;
   padding-left: 2px;
   padding-right: 2px;
+  font-family: inherit;
+}
+
+.tiptap.ProseMirror p,
+.tiptap.ProseMirror h1,
+.tiptap.ProseMirror h2,
+.tiptap.ProseMirror h3,
+.tiptap.ProseMirror ul,
+.tiptap.ProseMirror ol,
+.tiptap.ProseMirror li,
+.tiptap.ProseMirror blockquote {
+  font-family: inherit;
 }
 
 .tiptap.ProseMirror p.is-editor-empty:first-child::before {
@@ -371,6 +458,25 @@ ul[data-type="taskList"] li[data-type="taskItem"][data-checked="true"] > div {
 .tiptap.ProseMirror img.ProseMirror-selectednode {
   outline: 3px solid #6366f1;
   outline-offset: 2px;
+}
+
+/* Inline 3D Emoji styling - Scales dynamically with surrounding font size */
+.tiptap.ProseMirror img.fluent-emoji-3d {
+  width: 1.25em !important;
+  height: 1.25em !important;
+  vertical-align: -0.22em !important;
+  display: inline-block !important;
+  margin: 0 0.15em !important;
+  object-fit: contain;
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+.tiptap.ProseMirror img.fluent-emoji-3d.ProseMirror-selectednode {
+  outline: 2px solid #6366f1 !important;
+  outline-offset: 1px;
+  border-radius: 4px;
+  background-color: rgba(99, 102, 241, 0.15);
 }
 
 /* Drag & Drop Visual Effects */

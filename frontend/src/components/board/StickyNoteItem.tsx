@@ -32,6 +32,7 @@ import toast from 'react-hot-toast';
 import ViewportPopover from '../ui/ViewportPopover';
 import ViewportContextMenu from '../ui/ViewportContextMenu';
 import ShareNoteModal from '../notes/ShareNoteModal';
+import { FONT_PRESETS } from '../notes/editorExtensions';
 
 interface StickyNoteItemProps {
   note: Note;
@@ -256,6 +257,13 @@ export default function StickyNoteItem({
   const textColor = note.textColor || (paperColor === '#1E293B' ? '#F8FAFC' : '#0F172A');
   const fontSize = note.fontSize || 'normal';
   const fontFamily = note.fontFamily || 'sans';
+  const activeFontPreset = FONT_PRESETS.find(
+    (f) =>
+      f.id === fontFamily ||
+      f.family === fontFamily ||
+      f.id.toLowerCase() === String(fontFamily).toLowerCase() ||
+      f.name.toLowerCase().includes(String(fontFamily).toLowerCase())
+  ) || FONT_PRESETS[0];
   const kanbanStatus = note.kanbanStatus || 'todo';
 
   // Rotation state: persistent from note.rotation (defaults to 0, no tilt)
@@ -648,14 +656,14 @@ export default function StickyNoteItem({
   const getFontFamilyClass = () => {
     switch (fontFamily) {
       case 'handwriting':
-        return 'font-handwriting text-[17px] leading-relaxed';
+      case 'mali':
+        return 'font-mali text-[17px] leading-relaxed';
       case 'serif':
         return 'font-serif-note text-sm';
       case 'mono':
         return 'font-mono-note text-xs';
-      case 'sans':
       default:
-        return 'font-sans-note text-sm';
+        return '';
     }
   };
 
@@ -676,6 +684,7 @@ export default function StickyNoteItem({
           height: `${size.height}px`,
           backgroundColor: paperColor,
           color: textColor,
+          fontFamily: activeFontPreset.family,
           transform: isDragging
             ? `scale(1.03) rotate(${rotation}deg)`
             : isFocused
@@ -941,24 +950,27 @@ export default function StickyNoteItem({
                     triggerRef={fontFamilyBtnRef}
                     placement="bottom-end"
                     offset={4}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 shadow-xl w-28 animate-fade-in text-slate-800 dark:text-slate-100"
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 shadow-xl w-48 max-h-64 overflow-y-auto custom-scrollbar animate-fade-in text-slate-800 dark:text-slate-100"
                   >
-                    <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">แบบอักษร:</p>
-                    {FONT_FAMILIES.map((ff) => (
-                      <button
-                        type="button"
-                        key={ff.value}
-                        onClick={() => handleFontFamilyChange(ff.value)}
-                        className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between cursor-pointer ${
-                          fontFamily === ff.value
-                            ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        <span className={ff.className}>{ff.label}</span>
-                        {fontFamily === ff.value && <Check size={11} />}
-                      </button>
-                    ))}
+                    <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">แบบอักษร ({FONT_PRESETS.length}):</p>
+                    {FONT_PRESETS.map((fp) => {
+                      const isSelected = activeFontPreset.id === fp.id;
+                      return (
+                        <button
+                          type="button"
+                          key={fp.id}
+                          onClick={() => handleFontFamilyChange(fp.id)}
+                          className={`w-full text-left px-2 py-1.5 rounded-lg text-xs transition flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <span style={{ fontFamily: fp.family }}>{fp.name}</span>
+                          {isSelected && <Check size={11} />}
+                        </button>
+                      );
+                    })}
                   </ViewportPopover>
                 )}
               </div>
@@ -1178,23 +1190,26 @@ export default function StickyNoteItem({
                   {/* Compact Mode: Font Family */}
                   {isCompact && (
                     <div className="border-b border-slate-100 dark:border-slate-700 pb-2">
-                      <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">แบบอักษร:</p>
-                      <div className="grid grid-cols-2 gap-1">
-                        {FONT_FAMILIES.map((ff) => (
-                          <button
-                            type="button"
-                            key={ff.value}
-                            onClick={() => handleFontFamilyChange(ff.value)}
-                            className={`px-2 py-1 text-xs rounded transition flex items-center justify-between cursor-pointer ${
-                              fontFamily === ff.value
-                                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
-                                : 'hover:bg-slate-100 dark:hover:bg-slate-700'
-                            }`}
-                          >
-                            <span className={ff.className}>{ff.label}</span>
-                            {fontFamily === ff.value && <Check size={11} />}
-                          </button>
-                        ))}
+                      <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">แบบอักษร ({FONT_PRESETS.length}):</p>
+                      <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-0.5">
+                        {FONT_PRESETS.map((fp) => {
+                          const isSelected = activeFontPreset.id === fp.id;
+                          return (
+                            <button
+                              type="button"
+                              key={fp.id}
+                              onClick={() => handleFontFamilyChange(fp.id)}
+                              className={`w-full text-left px-2 py-1 text-xs rounded transition flex items-center justify-between cursor-pointer ${
+                                isSelected
+                                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
+                                  : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              <span style={{ fontFamily: fp.family }}>{fp.name}</span>
+                              {isSelected && <Check size={11} />}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1373,7 +1388,10 @@ export default function StickyNoteItem({
         {/* ── Note Title Input ── */}
         <div className="mb-1.5 shrink-0 px-1">
           {note.isLocked && !isVaultUnlocked ? (
-            <div className="font-bold text-sm tracking-tight line-clamp-1 opacity-80 px-1">
+            <div
+              className="font-bold text-sm tracking-tight line-clamp-1 opacity-80 px-1"
+              style={{ fontFamily: activeFontPreset.family }}
+            >
               {note.title || 'โน้ตที่เข้ารหัสลับ'}
             </div>
           ) : (
@@ -1385,7 +1403,7 @@ export default function StickyNoteItem({
               onBlur={handleBlur}
               placeholder="หัวข้อโน้ต..."
               className={`w-full font-bold bg-transparent border-b border-black/10 focus:border-black/30 focus:outline-none px-1.5 pb-0.5 placeholder-black/30 ${getFontFamilyClass()}`}
-              style={{ color: textColor }}
+              style={{ color: textColor, fontFamily: activeFontPreset.family }}
             />
           )}
         </div>
@@ -1478,7 +1496,7 @@ export default function StickyNoteItem({
                 if (onOpenFullscreen) onOpenFullscreen(note);
               }}
               className={`w-full h-full overflow-y-auto leading-relaxed cursor-text ${getFontSizeClass()} ${getFontFamilyClass()}`}
-              style={{ color: textColor }}
+              style={{ color: textColor, fontFamily: activeFontPreset.family }}
             >
               <StickyContentEditable
                 html={displayContent}
@@ -1490,7 +1508,7 @@ export default function StickyNoteItem({
                 disabled={note.isLocked}
                 placeholder="เขียนข้อความของคุณตรงนี้..."
                 className="w-full h-full prose dark:prose-invert max-w-none text-inherit leading-relaxed"
-                style={{ color: textColor }}
+                style={{ color: textColor, fontFamily: activeFontPreset.family }}
               />
             </div>
           )}

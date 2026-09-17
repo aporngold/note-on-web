@@ -8,6 +8,7 @@ import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import { stripHtmlTags } from '@/utils/editorHelper';
+import { FONT_PRESETS } from './editorExtensions';
 import ViewportContextMenu, { ViewportMenuItem } from '../ui/ViewportContextMenu';
 import ViewportPopover from '../ui/ViewportPopover';
 import ShareNoteModal from './ShareNoteModal';
@@ -22,6 +23,13 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin, toggleFavorite, toggleNoteLock, setSelectedLabel } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
+  const fontPreset = FONT_PRESETS.find(
+    (f) =>
+      f.id === note.fontFamily ||
+      f.family === note.fontFamily ||
+      f.id.toLowerCase() === String(note.fontFamily).toLowerCase() ||
+      f.name.toLowerCase().includes(String(note.fontFamily).toLowerCase())
+  ) || FONT_PRESETS[0];
 
   // Content preview logic
   let previewText = note.content;
@@ -90,6 +98,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
       }`}
       style={{
         borderTop: `4px solid ${note.color || '#6366F1'}`,
+        fontFamily: fontPreset?.family,
       }}
     >
       <div>
@@ -214,7 +223,10 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
         </div>
 
         {/* Title */}
-        <h3 className="font-bold text-base text-slate-900 dark:text-white mb-2 line-clamp-2 leading-snug">
+        <h3
+          className="font-bold text-base text-slate-900 dark:text-white mb-2 line-clamp-2 leading-snug"
+          style={{ fontFamily: fontPreset.family }}
+        >
           {note.title || 'ไม่มีชื่อบันทึก'}
         </h3>
 
@@ -225,6 +237,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               ? 'text-amber-600 dark:text-amber-400 italic'
               : 'text-slate-600 dark:text-slate-300'
           }`}
+          style={{ fontFamily: fontPreset.family }}
         >
           {cleanPreview || 'ไม่มีเนื้อหา...'}
         </p>

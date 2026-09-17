@@ -28,7 +28,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import { Color } from '@tiptap/extension-color';
-import { TextStyle } from '@tiptap/extension-text-style';
+import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
@@ -36,7 +36,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { ResizableImageExtension, AudioExtension } from './editorExtensions';
+import { ResizableImageExtension, AudioExtension, InlineEmojiExtension, FONT_PRESETS, FONT_SIZE_PRESETS } from './editorExtensions';
 
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -123,11 +123,13 @@ export default function FullscreenNoteModal({
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string>('');
   const hasUnsavedChangesRef = useRef(false);
-  const latestDataRef = useRef<{ title: string; content: string; color: string; textColor: string }>({
+  const latestDataRef = useRef<{ title: string; content: string; color: string; textColor: string; fontFamily?: string; fontSize?: string }>({
     title: '',
     content: '',
     color: '#FEF08A',
     textColor: '#0F172A',
+    fontFamily: 'sans',
+    fontSize: '16px',
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -142,6 +144,8 @@ export default function FullscreenNoteModal({
       }),
       Underline,
       TextStyle,
+      FontFamily,
+      FontSize,
       Color,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({
@@ -173,9 +177,74 @@ export default function FullscreenNoteModal({
         allowBase64: true,
       }),
       AudioExtension,
+      InlineEmojiExtension,
     ],
     content: '',
     immediatelyRender: false,
+    editorProps: {
+      handleKeyDown: (view, event) => {
+        if (event.ctrlKey || event.metaKey) {
+          const key = event.key.toLowerCase();
+          if (key === 'e') {
+            event.preventDefault();
+            const { tr } = view.state;
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'center' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+          if (key === 'l') {
+            event.preventDefault();
+            const { tr } = view.state;
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'left' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+          if (key === 'r') {
+            event.preventDefault();
+            const { tr } = view.state;
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'right' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+          if (key === 'j') {
+            event.preventDefault();
+            const { tr } = view.state;
+            if (view.state.schema.nodes.paragraph) {
+              const { from, to } = view.state.selection;
+              view.state.doc.nodesBetween(from, to, (node, pos) => {
+                if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+                  tr.setNodeMarkup(pos, undefined, { ...node.attrs, textAlign: 'justify' });
+                }
+              });
+              if (tr.docChanged) view.dispatch(tr);
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+    },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       setContent(html);
@@ -221,6 +290,8 @@ export default function FullscreenNoteModal({
         content: initialHtml,
         color: note.color || '#FEF08A',
         textColor: note.textColor || '#0F172A',
+        fontFamily: note.fontFamily || 'sans',
+        fontSize: note.fontSize || '16px',
       };
       hasUnsavedChangesRef.current = false;
     }
@@ -249,6 +320,8 @@ export default function FullscreenNoteModal({
         content: finalContent,
         color: latestDataRef.current.color,
         textColor: latestDataRef.current.textColor,
+        fontFamily: latestDataRef.current.fontFamily || fontFamily,
+        fontSize: latestDataRef.current.fontSize || fontSize,
         isLocked: targetLocked,
         iv,
         salt,
@@ -459,6 +532,8 @@ export default function FullscreenNoteModal({
     }
   };
 
+  const activeFontPreset = FONT_PRESETS.find((f) => f.id === fontFamily) || FONT_PRESETS[0];
+
   const apiHost =
     typeof window !== 'undefined'
       ? `${window.location.protocol}//${window.location.hostname}:5000`
@@ -546,6 +621,18 @@ export default function FullscreenNoteModal({
               onToggleTrulyFullscreen={handleCloseModal}
               onCancel={handleCloseModal}
               onAccept={handleAcceptModal}
+              fontFamily={fontFamily}
+              onFontFamilyChange={(f) => {
+                setFontFamily(f);
+                latestDataRef.current.fontFamily = f;
+                hasUnsavedChangesRef.current = true;
+              }}
+              fontSize={fontSize}
+              onFontSizeChange={(s) => {
+                setFontSize(s);
+                latestDataRef.current.fontSize = s;
+                hasUnsavedChangesRef.current = true;
+              }}
             />
           </div>
 
@@ -571,8 +658,8 @@ export default function FullscreenNoteModal({
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               placeholder="หัวข้อโน้ต..."
-              className={`w-full font-bold text-lg sm:text-xl bg-transparent border-b border-black/15 focus:border-black/40 focus:outline-none pb-2 placeholder-black/30 ${getFontFamilyClass()}`}
-              style={{ color: textColor }}
+              className="w-full font-bold text-lg sm:text-xl bg-transparent border-b border-black/15 focus:border-black/40 focus:outline-none pb-2 placeholder-black/30"
+              style={{ color: textColor, fontFamily: activeFontPreset.family }}
             />
           </div>
 
@@ -649,18 +736,19 @@ export default function FullscreenNoteModal({
 
           {/* Large Note Content TipTap Editor */}
           <div
-            className="flex-1 min-h-[350px] cursor-text transition-all duration-150"
             onClick={() => {
               if (editor && !editor.isFocused) {
                 editor.commands.focus();
               }
             }}
             style={{
-              fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(16 * (zoomLevel / 100)))}px` : undefined,
+              fontSize: zoomLevel !== 100 ? `${Math.max(12, Math.round(parseInt(fontSize || '16', 10) * (zoomLevel / 100)))}px` : fontSize,
               zoom: zoomLevel !== 100 ? `${zoomLevel}%` : undefined,
+              fontFamily: activeFontPreset.family,
             }}
+            className="flex-1 min-h-[350px] cursor-text transition-all duration-150"
           >
-            <EditorContent editor={editor} />
+            <EditorContent editor={editor} style={{ fontFamily: activeFontPreset.family }} />
           </div>
         </div>
 

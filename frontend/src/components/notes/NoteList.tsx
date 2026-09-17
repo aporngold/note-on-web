@@ -6,6 +6,7 @@ import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import ShareNoteModal from './ShareNoteModal';
+import { FONT_PRESETS } from './editorExtensions';
 
 interface NoteListProps {
   notes: Note[];
@@ -22,37 +23,49 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
       <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
-        {notes.map((note) => (
-          <div
-            key={note.id}
-            onClick={() => {
-              if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {
-                onUnlockRequest();
-                return;
-              }
-              if (onOpenFullscreen) {
-                onOpenFullscreen(note);
-                return;
-              }
-              router.push(`/notes/${note.id}`);
-            }}
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              if (onOpenFullscreen) onOpenFullscreen(note);
-            }}
-            className="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition cursor-pointer group"
-          >
-            <div className="flex items-center gap-3.5 min-w-0 flex-1">
-              <div
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ backgroundColor: note.color || '#6366F1' }}
-              />
+        {notes.map((note) => {
+          const fontPreset = FONT_PRESETS.find(
+            (f) =>
+              f.id === note.fontFamily ||
+              f.family === note.fontFamily ||
+              f.id.toLowerCase() === String(note.fontFamily).toLowerCase() ||
+              f.name.toLowerCase().includes(String(note.fontFamily).toLowerCase())
+          );
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-semibold text-sm text-slate-900 dark:text-white truncate">
-                    {note.title || 'ไม่มีชื่อบันทึก'}
-                  </h4>
+          return (
+            <div
+              key={note.id}
+              onClick={() => {
+                if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {
+                  onUnlockRequest();
+                  return;
+                }
+                if (onOpenFullscreen) {
+                  onOpenFullscreen(note);
+                  return;
+                }
+                router.push(`/notes/${note.id}`);
+              }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                if (onOpenFullscreen) onOpenFullscreen(note);
+              }}
+              className="p-4 sm:px-6 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition cursor-pointer group"
+            >
+              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                <div
+                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: note.color || '#6366F1' }}
+                />
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4
+                      className="font-semibold text-sm text-slate-900 dark:text-white truncate"
+                      style={{ fontFamily: fontPreset?.family }}
+                    >
+                      {note.title || 'ไม่มีชื่อบันทึก'}
+                    </h4>
                   {note.isPinned && (
                     <Pin size={13} className="text-indigo-500 fill-indigo-500 flex-shrink-0" />
                   )}
@@ -187,7 +200,8 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
               </button>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
 
       {/* Share Note Modal */}
