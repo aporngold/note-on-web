@@ -411,28 +411,25 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Ref to suppress resetting scroll to (0,0) when focusing a newly created/saved note
   const isFocusingSavedNoteRef = useRef(false);
 
-  // Automatically ensure newly created note from other views is in view without sticking any active highlight
+  // Automatically focus newly created note from other views (ensures note is in view while keeping left notes visible)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const focusNoteId = sessionStorage.getItem('secure_note_focus_note_id');
-    if (!focusNoteId) return;
-
-    sessionStorage.removeItem('secure_note_focus_note_id');
-    if (notes.length === 0) return;
+    if (!focusNoteId || notes.length === 0) return;
 
     const targetNote = notes.find((n) => n.id === focusNoteId);
     if (targetNote) {
+      sessionStorage.removeItem('secure_note_focus_note_id');
       isFocusingSavedNoteRef.current = true;
       setTimeout(() => {
         isFocusingSavedNoteRef.current = false;
       }, 2500);
 
       bringToFront(targetNote.id);
-      // Ensure no active highlight or focus ring is stuck
-      setFocusedNoteId(null);
-      setHighlightedNoteId(null);
+      setFocusedNoteId(targetNote.id);
+      setHighlightedNoteId(targetNote.id);
 
-      // Perform smooth scroll to target note
+      // Perform smooth scroll immediately and with backups after container layout settles
       ensureNoteInView(targetNote);
       const timer1 = setTimeout(() => {
         ensureNoteInView(targetNote);
@@ -440,6 +437,17 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       const timer2 = setTimeout(() => {
         ensureNoteInView(targetNote);
       }, 350);
+
+      // Dismiss subtle highlight and focus cleanly with graceful timing (1.3s highlight, 1.5s focus)
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => {
+        setHighlightedNoteId(null);
+      }, 1300);
+
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => {
+        setFocusedNoteId((curr) => (curr === targetNote.id ? null : curr));
+      }, 1500);
 
       return () => {
         clearTimeout(timer1);

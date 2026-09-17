@@ -477,6 +477,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           iv,
           salt,
         });
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('secure_note_focus_note_id', noteIdRef.current);
+        }
         hasUnsavedChangesRef.current = false;
         toast.success('บันทึกการเปลี่ยนแปลงแล้ว');
       } else {
@@ -501,6 +504,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           salt,
         });
         noteIdRef.current = created.id;
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('secure_note_focus_note_id', created.id);
+        }
         hasUnsavedChangesRef.current = false;
         toast.success('สร้างโน้ตใหม่สำเร็จ');
         if (!isClosing) {
