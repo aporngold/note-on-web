@@ -69,13 +69,17 @@ export default function WebStickyModal({ isOpen, onClose }: WebStickyModalProps)
   };
 
   const handleSaveToBoard = async (s: WebMiniSticky) => {
-    await createNote({
-      title: `โน้ตจากเว็บ (${new URL(targetUrl).hostname})`,
-      content: `${s.text}\n\nที่มา: ${targetUrl}`,
-      color: s.color,
-      boardId: activeBoardId || undefined,
-    });
-    toast.success('บันทึกโน้ตลงในกระดานหลักแล้ว');
+    try {
+      await createNote({
+        title: `โน้ตจากเว็บ (${new URL(targetUrl).hostname})`,
+        content: `${s.text}\n\nที่มา: ${targetUrl}`,
+        color: s.color,
+        boardId: activeBoardId || undefined,
+      });
+      toast.success('บันทึกโน้ตลงในกระดานหลักแล้ว');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+    }
   };
 
   const handleRemoveSticky = (id: string) => {

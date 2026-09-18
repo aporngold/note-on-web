@@ -55,6 +55,8 @@ const TAB_COLORS = [
   '#0D9488', // Teal
 ];
 
+export const MAX_NOTES_PER_BOARD = 56;
+
 export default function StickyBoard({ notes }: StickyBoardProps) {
   const router = useRouter();
   const {
@@ -675,24 +677,37 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Quick add sticky note directly onto the active board with proper spacing, bring to front, and auto-focus
   const handleQuickAdd = async (color?: string) => {
+    const targetBoard = activeBoard || boards.find((b) => b.isDefault) || boards[0];
+    const currentCount = targetBoard ? getBoardNoteCount(targetBoard) : notes.filter((n) => !n.isArchived).length;
+    if (currentCount >= MAX_NOTES_PER_BOARD) {
+      toast.error('Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+      return;
+    }
+
     const noteColor = color || getRandomNoteColor();
     const { x, y } = findNextAvailableSlot();
-    const targetBoardId = activeBoardId || boards.find((b) => b.isDefault)?.id || boards[0]?.id || undefined;
+    const targetBoardId = targetBoard?.id || undefined;
 
-    const newNote = await createNote({
-      title: 'โน้ตใหม่',
-      content: '',
-      color: noteColor,
-      textColor: '#0F172A',
-      fontSize: 'normal',
-      fontFamily: 'sans',
-      kanbanStatus: 'todo',
-      rotation: 0,
-      posX: x,
-      posY: y,
-      isPinned: false,
-      boardId: targetBoardId,
-    });
+    let newNote;
+    try {
+      newNote = await createNote({
+        title: 'โน้ตใหม่',
+        content: '',
+        color: noteColor,
+        textColor: '#0F172A',
+        fontSize: 'normal',
+        fontFamily: 'sans',
+        kanbanStatus: 'todo',
+        rotation: 0,
+        posX: x,
+        posY: y,
+        isPinned: false,
+        boardId: targetBoardId,
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+      return;
+    }
 
     if (newNote?.id) {
       bringToFront(newNote.id);
@@ -756,22 +771,35 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Quick add sticker directly onto the active board canvas
   const handleSelectSticker = async (sticker: BoardStickerItem) => {
-    const { x, y } = findNextAvailableSlot();
-    const targetBoardId = activeBoardId || boards.find((b) => b.isDefault)?.id || boards[0]?.id || undefined;
+    const targetBoard = activeBoard || boards.find((b) => b.isDefault) || boards[0];
+    const currentCount = targetBoard ? getBoardNoteCount(targetBoard) : notes.filter((n) => !n.isArchived).length;
+    if (currentCount >= MAX_NOTES_PER_BOARD) {
+      toast.error('Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+      return;
+    }
 
-    const newNote = await createNote({
-      title: '[STICKER]',
-      content: `[STICKER]:${sticker.url}`,
-      color: '#FFFFFF',
-      textColor: '#0F172A',
-      width: sticker.defaultWidth || 140,
-      height: sticker.defaultHeight || 140,
-      rotation: 0,
-      posX: x,
-      posY: y,
-      isPinned: false,
-      boardId: targetBoardId,
-    });
+    const { x, y } = findNextAvailableSlot();
+    const targetBoardId = targetBoard?.id || undefined;
+
+    let newNote;
+    try {
+      newNote = await createNote({
+        title: '[STICKER]',
+        content: `[STICKER]:${sticker.url}`,
+        color: '#FFFFFF',
+        textColor: '#0F172A',
+        width: sticker.defaultWidth || 140,
+        height: sticker.defaultHeight || 140,
+        rotation: 0,
+        posX: x,
+        posY: y,
+        isPinned: false,
+        boardId: targetBoardId,
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+      return;
+    }
 
     if (newNote?.id) {
       bringToFront(newNote.id);
@@ -957,8 +985,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               style={{ backgroundColor: activeBoard?.color || '#4F46E5' }}
             />
             <span className="max-w-[130px] truncate">{activeBoard?.name || 'กระดานหลัก'}</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 font-semibold">
-              {activeBoard ? getBoardNoteCount(activeBoard) : 0}
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold transition ${
+                (activeBoard ? getBoardNoteCount(activeBoard) : 0) >= MAX_NOTES_PER_BOARD
+                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+              }`}
+            >
+              {activeBoard ? `${getBoardNoteCount(activeBoard)} / ${MAX_NOTES_PER_BOARD}` : `0 / ${MAX_NOTES_PER_BOARD}`}
             </span>
             <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${isBoardDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -994,8 +1028,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                         />
                         <span className="truncate">{b.name}</span>
                       </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 font-semibold">
-                        {getBoardNoteCount(b)}
+                      <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold transition ${
+                          getBoardNoteCount(b) >= MAX_NOTES_PER_BOARD
+                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                        }`}
+                      >
+                        {getBoardNoteCount(b)} / {MAX_NOTES_PER_BOARD}
                       </span>
                     </button>
                   ))}
@@ -1048,8 +1088,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 >
                   {b.name}
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 font-semibold">
-                  {getBoardNoteCount(b)}
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold transition ${
+                    getBoardNoteCount(b) >= MAX_NOTES_PER_BOARD
+                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {getBoardNoteCount(b)} / {MAX_NOTES_PER_BOARD}
                 </span>
 
                 {/* Edit board button */}
@@ -1162,6 +1208,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             {/* + โน้ตใหม่ - Desktop only (Mobile has bottom-right FAB) */}
             <button
               onClick={() => {
+                const targetBoard = activeBoard || boards.find((b) => b.isDefault) || boards[0];
+                const currentCount = targetBoard ? getBoardNoteCount(targetBoard) : notes.filter((n) => !n.isArchived).length;
+                if (currentCount >= MAX_NOTES_PER_BOARD) {
+                  toast.error('Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+                  return;
+                }
                 const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
                 router.push(url);
               }}
@@ -1171,6 +1223,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <Plus size={15} className="stroke-[2.5]" />
               <span>โน้ตใหม่</span>
             </button>
+
+            {/* Board Full Banner Warning */}
+            {(activeBoard ? getBoardNoteCount(activeBoard) : notes.filter((n) => !n.isArchived).length) >= MAX_NOTES_PER_BOARD && (
+              <span className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 shrink-0 animate-pulse">
+                <span>⚠️ Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note</span>
+              </span>
+            )}
           </div>
 
           {/* Right Tools: Share Board, Freeform mode, Change Background */}

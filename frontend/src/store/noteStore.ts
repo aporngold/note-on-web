@@ -372,18 +372,31 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   updateNote: async (id, data) => {
+    const prevNote = get().notes.find((n) => n.id === id);
     // 1. Optimistic update immediately in local store so dragging/editing never bounces back
     set((state) => ({
       notes: state.notes.map((n) => (n.id === id ? { ...n, ...data } : n)),
     }));
-    const res = await api.put(`/notes/${id}`, data);
-    const updated = res.data;
-    set((state) => ({
-      notes: state.notes.map((n) => (n.id === id ? { ...n, ...updated } : n)),
-    }));
-    get().fetchNotebooks();
-    get().fetchLabels();
-    return updated;
+    try {
+      const res = await api.put(`/notes/${id}`, data);
+      const updated = res.data;
+      set((state) => ({
+        notes: state.notes.map((n) => (n.id === id ? { ...n, ...updated } : n)),
+      }));
+      if (data.boardId !== undefined && prevNote?.boardId !== data.boardId) {
+        get().fetchBoards();
+      }
+      get().fetchNotebooks();
+      get().fetchLabels();
+      return updated;
+    } catch (error) {
+      if (prevNote) {
+        set((state) => ({
+          notes: state.notes.map((n) => (n.id === id ? prevNote : n)),
+        }));
+      }
+      throw error;
+    }
   },
 
   deleteNote: async (id, fallbackNote) => {

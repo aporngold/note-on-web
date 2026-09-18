@@ -516,7 +516,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       setLastSaved(new Date().toLocaleTimeString('th-TH'));
       return true;
     } catch (error: any) {
-      toast.error(error.message || 'บันทึกไม่สำเร็จ');
+      toast.error(error.response?.data?.error || error.message || 'บันทึกไม่สำเร็จ');
       return false;
     } finally {
       setIsSaving(false);

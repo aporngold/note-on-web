@@ -100,13 +100,22 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   };
 
   const handleAddNoteToColumn = async (status: string) => {
-    await createNote({
-      title: 'งานใหม่',
-      content: '',
-      kanbanStatus: status,
-      boardId: activeBoardId || undefined,
-      color: status === 'done' ? '#BBF7D0' : status === 'doing' ? '#BAE6FD' : '#FEF08A',
-    });
+    const activeBoardNotes = notes.filter((n) => !n.isArchived);
+    if (activeBoardNotes.length >= 56) {
+      toast.error('Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+      return;
+    }
+    try {
+      await createNote({
+        title: 'งานใหม่',
+        content: '',
+        kanbanStatus: status,
+        boardId: activeBoardId || undefined,
+        color: status === 'done' ? '#BBF7D0' : status === 'doing' ? '#BAE6FD' : '#FEF08A',
+      });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+    }
   };
 
   const moveNote = async (id: string, newStatus: string) => {

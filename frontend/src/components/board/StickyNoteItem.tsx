@@ -1295,25 +1295,46 @@ export default function StickyNoteItem({
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">ย้ายโน้ตไปที่กระดาน:</p>
                     <div className="space-y-0.5 max-h-36 overflow-y-auto">
-                      {boards.map((b) => (
-                        <button
-                          type="button"
-                          key={b.id}
-                          onClick={async () => {
-                            await updateNote(note.id, { boardId: b.id });
-                            setIsMoveBoardOpen(false);
-                            toast.success(`ย้ายโน้ตไปที่กระดาน "${b.name}" แล้ว`);
-                          }}
-                          className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between cursor-pointer ${
-                            note.boardId === b.id
-                              ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
-                              : 'hover:bg-slate-100 dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          <span className="truncate">{b.name}</span>
-                          {note.boardId === b.id && <Check size={11} />}
-                        </button>
-                      ))}
+                      {boards.map((b) => {
+                        const isTargetFull = b.id !== note.boardId && (b.noteCount ?? 0) >= 56;
+                        return (
+                          <button
+                            type="button"
+                            key={b.id}
+                            disabled={isTargetFull}
+                            onClick={async () => {
+                              if (isTargetFull) {
+                                toast.error('Board นี้มีครบ 56 Notes แล้ว');
+                                return;
+                              }
+                              try {
+                                await updateNote(note.id, { boardId: b.id });
+                                setIsMoveBoardOpen(false);
+                                toast.success(`ย้ายโน้ตไปที่กระดาน "${b.name}" แล้ว`);
+                              } catch (err: any) {
+                                toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว');
+                              }
+                            }}
+                            className={`w-full text-left px-2 py-1 rounded text-xs transition flex items-center justify-between ${
+                              isTargetFull
+                                ? 'opacity-50 cursor-not-allowed text-slate-400 bg-slate-50/50 dark:bg-slate-800/30'
+                                : 'cursor-pointer'
+                            } ${
+                              note.boardId === b.id
+                                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
+                                : !isTargetFull ? 'hover:bg-slate-100 dark:hover:bg-slate-700' : ''
+                            }`}
+                          >
+                            <span className="truncate">{b.name}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`text-[10px] ${isTargetFull ? 'text-rose-500 font-bold' : 'text-slate-400'}`}>
+                                {isTargetFull ? '(เต็ม 56/56)' : `${b.noteCount ?? 0}/56`}
+                              </span>
+                              {note.boardId === b.id && <Check size={11} />}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 

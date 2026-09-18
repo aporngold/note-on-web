@@ -26,6 +26,8 @@ const createNoteSchema = z.object({
   salt: z.string().optional().nullable(),
 });
 
+export const MAX_NOTES_PER_BOARD = 56;
+
 const updateNoteSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
@@ -248,12 +250,36 @@ export class NoteController {
         }
       }
 
+      // Determine target boardId (if null/undefined, check if user has a default board)
+      let resolvedBoardId = boardId || null;
+      if (!resolvedBoardId) {
+        const defaultBoard = await prisma.board.findFirst({
+          where: { userId, isDefault: true },
+          select: { id: true },
+        });
+        if (defaultBoard) {
+          resolvedBoardId = defaultBoard.id;
+        }
+      }
+
+      // Enforce maximum 56 notes per board limit
+      if (resolvedBoardId) {
+        const activeBoardNoteCount = await prisma.note.count({
+          where: { userId, boardId: resolvedBoardId, isArchived: false },
+        });
+        if (activeBoardNoteCount >= MAX_NOTES_PER_BOARD) {
+          return res.status(400).json({
+            error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+          });
+        }
+      }
+
       let resolvedPosX = posX;
       let resolvedPosY = posY;
 
       // Query existing active notes on this board to verify coordinates and prevent overlapping notes
       const existingNotes = await prisma.note.findMany({
-        where: { userId, boardId: boardId || null, isArchived: false },
+        where: { userId, boardId: resolvedBoardId, isArchived: false },
         select: { posX: true, posY: true, width: true, height: true },
       });
 
@@ -325,7 +351,7 @@ export class NoteController {
           salt: salt || null,
           userId,
           notebookId: notebookId || null,
-          boardId: boardId || null,
+          boardId: resolvedBoardId,
           labels: {
             create: labelIds.map((lid) => ({
               label: {
@@ -397,6 +423,33 @@ export class NoteController {
         iv,
         salt,
       } = parsed.data;
+
+      // Check if moving note to a different board
+      if (boardId !== undefined && boardId !== null && boardId !== note.boardId) {
+        const destCount = await prisma.note.count({
+          where: { userId, boardId, isArchived: false },
+        });
+        if (destCount >= MAX_NOTES_PER_BOARD) {
+          return res.status(400).json({
+            error: 'Board นี้มีครบ 56 Notes แล้ว',
+          });
+        }
+      }
+
+      // Check if unarchiving note on its current or target board
+      if (isArchived === false && note.isArchived) {
+        const targetBoardId = boardId !== undefined ? boardId : note.boardId;
+        if (targetBoardId) {
+          const destCount = await prisma.note.count({
+            where: { userId, boardId: targetBoardId, isArchived: false },
+          });
+          if (destCount >= MAX_NOTES_PER_BOARD) {
+            return res.status(400).json({
+              error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+            });
+          }
+        }
+      }
 
       // Handle label relations update if provided
       if (labelIds !== undefined) {
@@ -519,6 +572,17 @@ export class NoteController {
         return res.status(404).json({ error: 'Note not found' });
       }
 
+      if (note.boardId) {
+        const boardCount = await prisma.note.count({
+          where: { userId, boardId: note.boardId, isArchived: false },
+        });
+        if (boardCount >= MAX_NOTES_PER_BOARD) {
+          return res.status(400).json({
+            error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+          });
+        }
+      }
+
       const restored = await prisma.note.update({
         where: { id },
         data: { isArchived: false },
@@ -563,6 +627,17 @@ export class NoteController {
         return res.status(404).json({ error: 'Note not found' });
       }
 
+      if (original.boardId) {
+        const boardCount = await prisma.note.count({
+          where: { userId, boardId: original.boardId, isArchived: false },
+        });
+        if (boardCount >= MAX_NOTES_PER_BOARD) {
+          return res.status(400).json({
+            error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+          });
+        }
+      }
+
       const duplicated = await prisma.note.create({
         data: {
           title: original.title ? `[คัดลอก] ${original.title}` : '[คัดลอก] ไม่มีชื่อ',
@@ -575,6 +650,7 @@ export class NoteController {
           salt: original.salt,
           userId,
           notebookId: original.notebookId,
+          boardId: original.boardId || null,
           labels: {
             create: original.labels.map((l) => ({
               labelId: l.labelId,

@@ -240,17 +240,21 @@ export default function StickyStickerItem({
   // Duplicate Sticker
   const handleDuplicate = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    await createNote({
-      title: '[STICKER]',
-      content: note.content,
-      width: size.width,
-      height: size.height,
-      rotation: rotation,
-      posX: pos.x + 30,
-      posY: pos.y + 30,
-      boardId: note.boardId || undefined,
-    });
-    toast.success('คัดลอกสติกเกอร์แล้ว');
+    try {
+      await createNote({
+        title: '[STICKER]',
+        content: note.content,
+        width: size.width,
+        height: size.height,
+        rotation: rotation,
+        posX: pos.x + 30,
+        posY: pos.y + 30,
+        boardId: note.boardId || undefined,
+      });
+      toast.success('คัดลอกสติกเกอร์แล้ว');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+    }
   };
 
   return (
