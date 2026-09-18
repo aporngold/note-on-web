@@ -204,7 +204,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   };
 
-  // Handle double-click on empty canvas area on Desktop: return to 100% zoom and smoothly center on clicked point
+  // Handle double-click on empty canvas area on Desktop: toggle between 20% (overview) and 100% (detail) zoom and smoothly center on clicked point
   const handleCanvasDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (
@@ -233,13 +233,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const canvasPointX = (currentScrollX + clickXInViewport) / zoom;
     const canvasPointY = (currentScrollY + clickYInViewport) / zoom;
 
-    // Set zoom to 100% (1.0) directly as requested
-    setZoom(1.0);
+    // Toggle between 20% (0.20) overview and 100% (1.0) normal view
+    // If currently at or near 20% (zoom <= 0.25), toggle back to 100% (1.0)
+    // Otherwise, toggle to 20% (0.20)
+    const nextZoom = zoom <= 0.25 ? 1.0 : 0.20;
+    setZoom(nextZoom);
     showZoomOverlay();
 
-    // At zoom 1.0, center the clicked point in viewport
-    const targetScrollLeft = Math.max(0, canvasPointX - container.clientWidth / 2);
-    const targetScrollTop = Math.max(0, canvasPointY - container.clientHeight / 2);
+    // Center the clicked point in viewport at the new zoom scale
+    const targetScrollLeft = Math.max(0, canvasPointX * nextZoom - container.clientWidth / 2);
+    const targetScrollTop = Math.max(0, canvasPointY * nextZoom - container.clientHeight / 2);
 
     setTimeout(() => {
       container.scrollTo({
