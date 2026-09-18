@@ -49,6 +49,8 @@ interface StickyNoteItemProps {
   isFocused?: boolean;
   isHighlighted?: boolean;
   zoom?: number;
+  onQuickPeek?: (note: Note, rect: DOMRect) => void;
+  onQuickPeekClose?: () => void;
 }
 
 const PAPER_COLORS = [
@@ -190,8 +192,20 @@ export default function StickyNoteItem({
   isFocused = false,
   isHighlighted = false,
   zoom = 1,
+  onQuickPeek,
+  onQuickPeekClose,
 }: StickyNoteItemProps) {
   const router = useRouter();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const peekTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up peek timer on unmount
+  useEffect(() => {
+    return () => {
+      if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+    };
+  }, []);
+
   const {
     updateNote,
     deleteNote,
@@ -673,10 +687,29 @@ export default function StickyNoteItem({
   const currentKanbanObj = KANBAN_STATUSES.find((k) => k.value === kanbanStatus) || KANBAN_STATUSES[0];
   const attachments = note.attachments || [];
 
+  const isZoomedOut = (zoom ?? 1) <= 0.65;
+
   return (
     <>
       <div
+        ref={cardRef}
         id={`note-card-${note.id}`}
+        onMouseEnter={() => {
+          if (isZoomedOut && onQuickPeek) {
+            if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+            peekTimerRef.current = setTimeout(() => {
+              if (cardRef.current && !isDragging) {
+                onQuickPeek(note, cardRef.current.getBoundingClientRect());
+              }
+            }, 180);
+          }
+        }}
+        onMouseLeave={() => {
+          if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+          if (isZoomedOut && onQuickPeekClose) {
+            onQuickPeekClose();
+          }
+        }}
         style={{
           left: `${pos.x}px`,
           top: `${pos.y}px`,
@@ -702,7 +735,7 @@ export default function StickyNoteItem({
           boxShadow: isDragging || resizingDir
             ? '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
             : isHighlighted
-            ? '0 0 0 3px #6366F1, 0 10px 25px -5px rgba(99, 102, 241, 0.35)'
+            ? undefined
             : isFocused
             ? '0 0 0 2px #6366F1, 0 10px 20px -5px rgba(99, 102, 241, 0.2)'
             : isConnectingSource
@@ -717,14 +750,19 @@ export default function StickyNoteItem({
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${
           isHighlighted
-            ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900'
+            ? 'animate-highlight-fade'
             : isFocused
             ? 'ring-1 ring-indigo-400/80'
             : ''
         } ${
           isConnectingMode && !isConnectingSource ? 'hover:ring-4 hover:ring-indigo-400 cursor-pointer' : ''
         }`}
-        onClick={() => onBringToFront?.()}
+        onClick={() => {
+          onBringToFront?.();
+          if (isZoomedOut && onQuickPeek && cardRef.current && !isDragging) {
+            onQuickPeek(note, cardRef.current.getBoundingClientRect());
+          }
+        }}
         onFocusCapture={() => onBringToFront?.()}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}

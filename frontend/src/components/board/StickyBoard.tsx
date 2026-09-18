@@ -21,6 +21,7 @@ import {
 import StickyNoteItem from './StickyNoteItem';
 import StickyStickerItem from './StickyStickerItem';
 import BoardStickerModal from './BoardStickerModal';
+import NoteQuickPeek from './NoteQuickPeek';
 import { isStickerNote, BoardStickerItem } from './stickerData';
 import NoteConnectionCanvas from './NoteConnectionCanvas';
 import KanbanView from './KanbanView';
@@ -142,6 +143,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const focusTimerRef = useRef<NodeJS.Timeout | null>(null);
   const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Zoom-Out Quick Peek state (Desktop Hover, Mobile/iPad Tap)
+  const [quickPeekNote, setQuickPeekNote] = useState<Note | null>(null);
+  const [quickPeekAnchor, setQuickPeekAnchor] = useState<DOMRect | null>(null);
+
   // Reservation of slots to prevent overlapping when creating notes rapidly
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
 
@@ -163,6 +168,87 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [zoom, setZoom] = useState<number>(1.0);
   const [isZoomOverlayVisible, setIsZoomOverlayVisible] = useState<boolean>(false);
   const zoomTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const peekCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-dismiss Quick Peek when zooming back in (> 0.65)
+  useEffect(() => {
+    if (zoom > 0.65) {
+      if (peekCloseTimerRef.current) clearTimeout(peekCloseTimerRef.current);
+      setQuickPeekNote(null);
+      setQuickPeekAnchor(null);
+    }
+  }, [zoom]);
+
+  // Hover Bridge handlers for Quick Peek: allows user to move mouse into the card to click Edit/Fullscreen
+  const handleOpenQuickPeek = (note: Note, anchorRect: DOMRect) => {
+    if (peekCloseTimerRef.current) {
+      clearTimeout(peekCloseTimerRef.current);
+      peekCloseTimerRef.current = null;
+    }
+    setQuickPeekNote(note);
+    setQuickPeekAnchor(anchorRect);
+  };
+
+  const handleScheduleCloseQuickPeek = () => {
+    if (peekCloseTimerRef.current) clearTimeout(peekCloseTimerRef.current);
+    peekCloseTimerRef.current = setTimeout(() => {
+      setQuickPeekNote(null);
+      setQuickPeekAnchor(null);
+    }, 300); // 300ms grace period to move mouse into card
+  };
+
+  const handleCancelCloseQuickPeek = () => {
+    if (peekCloseTimerRef.current) {
+      clearTimeout(peekCloseTimerRef.current);
+      peekCloseTimerRef.current = null;
+    }
+  };
+
+  // Handle double-click on empty canvas area on Desktop: return to 100% zoom and smoothly center on clicked point
+  const handleCanvasDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (
+      !target ||
+      target.closest('.sticky-note-item') ||
+      target.closest('[data-note-card="true"]') ||
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('.no-drag')
+    ) {
+      return;
+    }
+
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    // Calculate canvas coordinates of double-click point relative to container
+    const containerRect = container.getBoundingClientRect();
+    const clickXInViewport = e.clientX - containerRect.left;
+    const clickYInViewport = e.clientY - containerRect.top;
+
+    // Point in actual canvas space before zoom change
+    const currentScrollX = container.scrollLeft;
+    const currentScrollY = container.scrollTop;
+    const canvasPointX = (currentScrollX + clickXInViewport) / zoom;
+    const canvasPointY = (currentScrollY + clickYInViewport) / zoom;
+
+    // Set zoom to 100% (1.0) directly as requested
+    setZoom(1.0);
+    showZoomOverlay();
+
+    // At zoom 1.0, center the clicked point in viewport
+    const targetScrollLeft = Math.max(0, canvasPointX - container.clientWidth / 2);
+    const targetScrollTop = Math.max(0, canvasPointY - container.clientHeight / 2);
+
+    setTimeout(() => {
+      container.scrollTo({
+        left: targetScrollLeft,
+        top: targetScrollTop,
+        behavior: 'smooth',
+      });
+    }, 20);
+  };
 
   const showZoomOverlay = () => {
     setIsZoomOverlayVisible(true);
@@ -263,11 +349,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     };
 
     container.addEventListener('touchend', handleDoubleTap, { passive: true });
-    container.addEventListener('dblclick', handleDoubleTap, { passive: true });
 
     return () => {
       container.removeEventListener('touchend', handleDoubleTap);
-      container.removeEventListener('dblclick', handleDoubleTap);
     };
   }, [zoom]);
 
@@ -438,20 +522,28 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         ensureNoteInView(targetNote);
       }, 350);
 
-      // Dismiss subtle highlight and focus cleanly with graceful timing (1.3s highlight, 1.5s focus)
+      // Dismiss subtle highlight and focus cleanly within 0.50s (500ms)
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
       highlightTimerRef.current = setTimeout(() => {
         setHighlightedNoteId(null);
-      }, 1300);
+      }, 500);
 
       if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
       focusTimerRef.current = setTimeout(() => {
         setFocusedNoteId((curr) => (curr === targetNote.id ? null : curr));
-      }, 1500);
+      }, 500);
 
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
+        if (highlightTimerRef.current) {
+          clearTimeout(highlightTimerRef.current);
+          setHighlightedNoteId(null);
+        }
+        if (focusTimerRef.current) {
+          clearTimeout(focusTimerRef.current);
+          setFocusedNoteId((curr) => (curr === targetNote.id ? null : curr));
+        }
       };
     }
   }, [notes, bringToFront, ensureNoteInView]);
@@ -1146,6 +1238,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         <div
           ref={canvasContainerRef}
           style={getBoardStyle()}
+          onDoubleClick={handleCanvasDoubleClick}
           onClick={(e) => {
             const target = e.target as HTMLElement | null;
             if (
@@ -1212,12 +1305,38 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     customZIndex={noteZIndices[note.id]}
                     isFocused={focusedNoteId === note.id}
                     isHighlighted={highlightedNoteId === note.id}
+                    onQuickPeek={handleOpenQuickPeek}
+                    onQuickPeekClose={handleScheduleCloseQuickPeek}
                   />
                 )
               )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Zoom-Out Quick Peek Reader (Hover on Desktop, Tap on Mobile/iPad) ── */}
+      {quickPeekNote && (
+        <NoteQuickPeek
+          note={quickPeekNote}
+          anchorRect={quickPeekAnchor}
+          onMouseEnter={handleCancelCloseQuickPeek}
+          onMouseLeave={handleScheduleCloseQuickPeek}
+          onClose={() => {
+            setQuickPeekNote(null);
+            setQuickPeekAnchor(null);
+          }}
+          onEdit={(n) => {
+            setQuickPeekNote(null);
+            setQuickPeekAnchor(null);
+            router.push(`/notes/${n.id}`);
+          }}
+          onFullscreen={(n) => {
+            setQuickPeekNote(null);
+            setQuickPeekAnchor(null);
+            handleOpenFullscreen(n);
+          }}
+        />
       )}
 
       {/* ── Center Zoom Indicator (Big overlay as in video zoom.mp4) ── */}
