@@ -377,7 +377,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     zoomRef.current = zoom;
   }, [zoom]);
 
-  // Ref tracking 2-finger pinch state with smooth continuous zoom
+  // Ref tracking 2-finger pinch state with Apple-grade smooth physics
   const pinchRef = useRef<{
     isPinching: boolean;
     initialDist: number;
@@ -387,6 +387,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     startMidX: number;
     startMidY: number;
     latestZoom: number;
+    lastTime: number;
+    lastZoom: number;
+    zoomVelocity: number;
   }>({
     isPinching: false,
     initialDist: 0,
@@ -396,9 +399,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     startMidX: 0,
     startMidY: 0,
     latestZoom: 1,
+    lastTime: 0,
+    lastZoom: 1,
+    zoomVelocity: 0,
   });
 
   const rafIdRef = useRef<number | null>(null);
+  const settleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track last tap timestamp and position for double-tap zoom toggle on empty board
   const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
@@ -410,6 +417,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
+        if (settleTimeoutRef.current) {
+          clearTimeout(settleTimeoutRef.current);
+          settleTimeoutRef.current = null;
+        }
         const t1 = e.touches[0];
         const t2 = e.touches[1];
         const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
@@ -435,10 +446,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           startMidX,
           startMidY,
           latestZoom: currentZ,
+          lastTime: Date.now(),
+          lastZoom: currentZ,
+          zoomVelocity: 0,
         };
         setIsPinching(true);
         if (canvasElementRef.current) {
           canvasElementRef.current.style.transition = 'none';
+        }
+        if (zoomWrapperRef.current) {
+          zoomWrapperRef.current.style.transition = 'none';
         }
         setIsZoomOverlayVisible(true);
         lastTouchActionTimeRef.current = Date.now();
@@ -454,10 +471,24 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         const t2 = e.touches[1];
         const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
         const ratio = dist / pinchRef.current.initialDist;
-        const rawZoom = pinchRef.current.initialZoom * ratio;
-        // Continuous smooth zoom without quantization jump
-        const clampedZoom = Math.max(0.15, Math.min(3.0, rawZoom));
-        pinchRef.current.latestZoom = clampedZoom;
+        let rawZoom = pinchRef.current.initialZoom * ratio;
+
+        // Elastic Rubber-band resistance at boundaries (Apple iOS physics)
+        if (rawZoom < 0.15) {
+          const under = 0.15 - rawZoom;
+          rawZoom = 0.15 - under * 0.28; // gentle rubber-band stretch down to ~0.11
+        } else if (rawZoom > 3.0) {
+          const over = rawZoom - 3.0;
+          rawZoom = 3.0 + over * 0.28; // gentle rubber-band stretch up to ~3.2
+        }
+
+        const now = Date.now();
+        const dt = Math.max(1, now - pinchRef.current.lastTime);
+        const dZoom = rawZoom - pinchRef.current.lastZoom;
+        pinchRef.current.zoomVelocity = dZoom / dt;
+        pinchRef.current.lastTime = now;
+        pinchRef.current.lastZoom = rawZoom;
+        pinchRef.current.latestZoom = rawZoom;
 
         const currentMidX = (t1.clientX + t2.clientX) / 2;
         const currentMidY = (t1.clientY + t2.clientY) / 2;
@@ -466,8 +497,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
         const screenCenterX = container.clientWidth / 2;
         const screenCenterY = container.clientHeight / 2;
-        const newScrollLeft = Math.max(0, pinchRef.current.centerCanvasX * clampedZoom - screenCenterX - panDeltaX);
-        const newScrollTop = Math.max(0, pinchRef.current.centerCanvasY * clampedZoom - screenCenterY - panDeltaY);
+        const newScrollLeft = Math.max(0, pinchRef.current.centerCanvasX * rawZoom - screenCenterX - panDeltaX);
+        const newScrollTop = Math.max(0, pinchRef.current.centerCanvasY * rawZoom - screenCenterY - panDeltaY);
 
         if (rafIdRef.current) {
           cancelAnimationFrame(rafIdRef.current);
@@ -478,14 +509,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           const baseW = parseInt(dynamicCanvasSize.minWidth) || 2200;
           const baseH = parseInt(dynamicCanvasSize.minHeight) || 1600;
 
-          // 1. Direct GPU transform on canvas (zero React lag)
+          // 1. Direct GPU 3D transform on canvas (hardware-accelerated layer)
           if (canvasElementRef.current) {
-            canvasElementRef.current.style.transform = `scale(${clampedZoom})`;
+            canvasElementRef.current.style.transform = `translate3d(0, 0, 0) scale(${rawZoom})`;
           }
           // 2. Direct size update on zoom wrapper
           if (zoomWrapperRef.current) {
-            zoomWrapperRef.current.style.width = `${Math.round(baseW * clampedZoom)}px`;
-            zoomWrapperRef.current.style.height = `${Math.round(baseH * clampedZoom)}px`;
+            zoomWrapperRef.current.style.width = `${Math.round(baseW * rawZoom)}px`;
+            zoomWrapperRef.current.style.height = `${Math.round(baseH * rawZoom)}px`;
           }
           // 3. Direct synchronized scroll
           container.scrollLeft = newScrollLeft;
@@ -494,7 +525,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           // 4. Update overlay text without React re-render
           const overlayText = document.getElementById('zoom-overlay-text');
           if (overlayText) {
-            overlayText.innerText = `ZOOM: ${Math.round(clampedZoom * 100)}%`;
+            overlayText.innerText = `ZOOM: ${Math.round(rawZoom * 100)}%`;
           }
         });
       }
@@ -510,14 +541,40 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             rafIdRef.current = null;
           }
 
-          // Commit final clean zoom to React state once
-          const finalZoom = Math.max(0.15, Math.min(3.0, Math.round(pinchRef.current.latestZoom * 100) / 100));
+          // Soft momentum + snap back from rubber band
+          let targetZoom = pinchRef.current.latestZoom;
+          const velocity = pinchRef.current.zoomVelocity;
+          if (Math.abs(velocity) > 0.001) {
+            targetZoom += velocity * 50; // gentle deceleration glide
+          }
+
+          // Strict boundary clamping [0.15, 3.0]
+          const finalZoom = Math.max(0.15, Math.min(3.0, Math.round(targetZoom * 100) / 100));
+
+          // Soft-settle momentum transition (Apple-like graceful deceleration)
+          if (canvasElementRef.current) {
+            canvasElementRef.current.style.transition = 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1)';
+            canvasElementRef.current.style.transform = `translate3d(0, 0, 0) scale(${finalZoom})`;
+          }
+          if (zoomWrapperRef.current) {
+            zoomWrapperRef.current.style.transition = 'width 220ms cubic-bezier(0.16, 1, 0.3, 1), height 220ms cubic-bezier(0.16, 1, 0.3, 1)';
+            const baseW = parseInt(dynamicCanvasSize.minWidth) || 2200;
+            const baseH = parseInt(dynamicCanvasSize.minHeight) || 1600;
+            zoomWrapperRef.current.style.width = `${Math.round(baseW * finalZoom)}px`;
+            zoomWrapperRef.current.style.height = `${Math.round(baseH * finalZoom)}px`;
+          }
+
           setZoom(finalZoom);
           setIsPinching(false);
 
-          if (canvasElementRef.current) {
-            canvasElementRef.current.style.transition = '';
-          }
+          settleTimeoutRef.current = setTimeout(() => {
+            if (canvasElementRef.current) {
+              canvasElementRef.current.style.transition = '';
+            }
+            if (zoomWrapperRef.current) {
+              zoomWrapperRef.current.style.transition = '';
+            }
+          }, 240);
 
           showZoomOverlay();
           lastTouchActionTimeRef.current = Date.now();
@@ -567,6 +624,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
     return () => {
       if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
@@ -1628,9 +1686,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               ref={canvasElementRef}
               style={{
                 ...dynamicCanvasSize,
-                transform: `scale(${zoom})`,
+                transform: `translate3d(0, 0, 0) scale(${zoom})`,
                 transformOrigin: 'top left',
-                transition: isPinching ? 'none' : 'transform 120ms cubic-bezier(0.16, 1, 0.3, 1)',
+                transition: isPinching ? 'none' : 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                willChange: isPinching ? 'transform' : 'auto',
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
               }}
               className="relative"
             >
