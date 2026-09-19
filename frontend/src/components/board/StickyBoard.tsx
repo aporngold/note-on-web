@@ -1091,19 +1091,18 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
 
     const targetBoardId = targetBoard?.id || undefined;
-    const slot = findNextAvailableSlot();
-
     const stickerWidth = sticker.defaultWidth || 140;
     const stickerHeight = sticker.defaultHeight || 140;
 
     // Check if opened explicitly from a specific note's menu
     const targetNote = stickerTargetNoteId ? notes.find((n) => n.id === stickerTargetNoteId && !isStickerNote(n)) : null;
 
-    let posX = slot.x;
-    let posY = slot.y;
+    let posX = 16;
+    let posY = 16;
     let encodedContent = encodeStickerContent(sticker.url);
 
     if (targetNote && targetNote.posX != null && targetNote.posY != null) {
+      // ── Case 1: Targeted Note Attachment (Attach to note's top-right) ──
       const noteW = targetNote.width || 260;
       posX = Math.round(targetNote.posX + noteW - stickerWidth * 0.7);
       posY = Math.round(targetNote.posY - stickerHeight * 0.3);
@@ -1112,6 +1111,35 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         offsetX: posX - targetNote.posX,
         offsetY: posY - targetNote.posY,
       });
+    } else {
+      // ── Case 2: General Board Sticker (Place directly in Current View center) ──
+      const container = canvasContainerRef.current;
+      if (container) {
+        const viewW = container.clientWidth;
+        const viewH = container.clientHeight;
+        const currentZ = zoomRef.current || zoom || 1.0;
+
+        // Calculate exact canvas coordinate for the center of visible viewport
+        const centerCanvasX = (container.scrollLeft + viewW / 2) / currentZ;
+        const centerCanvasY = (container.scrollTop + viewH / 2) / currentZ;
+
+        // Add subtle random jitter (-20px to +20px) so consecutive stickers don't stack exactly pixel-for-pixel
+        const jitterX = Math.round((Math.random() - 0.5) * 40);
+        const jitterY = Math.round((Math.random() - 0.5) * 40);
+
+        posX = Math.round(centerCanvasX - stickerWidth / 2 + jitterX);
+        posY = Math.round(centerCanvasY - stickerHeight / 2 + jitterY);
+
+        // Keep inside board boundaries
+        const maxCanvasW = (parseInt(dynamicCanvasSize.minWidth) || 2200) - stickerWidth - 16;
+        const maxCanvasH = (parseInt(dynamicCanvasSize.minHeight) || 1600) - stickerHeight - 16;
+        posX = Math.max(16, Math.min(maxCanvasW, posX));
+        posY = Math.max(16, Math.min(maxCanvasH, posY));
+      } else {
+        const slot = findNextAvailableSlot();
+        posX = slot.x;
+        posY = slot.y;
+      }
     }
 
     let newNote;
