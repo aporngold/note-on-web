@@ -22,13 +22,12 @@ import StickyNoteItem from './StickyNoteItem';
 import StickyStickerItem from './StickyStickerItem';
 import BoardStickerModal from './BoardStickerModal';
 import NoteQuickPeek from './NoteQuickPeek';
-import { isStickerNote, BoardStickerItem } from './stickerData';
+import { isStickerNote, BoardStickerItem, getStickerMetadata, encodeStickerContent, getNoteStickers } from './stickerData';
 import NoteConnectionCanvas from './NoteConnectionCanvas';
 import KanbanView from './KanbanView';
 import BoardShareModal from '../modals/BoardShareModal';
 import BoardBackgroundModal, { BOARD_PATTERNS, CURATED_WALLPAPERS } from './BoardBackgroundModal';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
-import SortDropdown from '../ui/SortDropdown';
 import { Note, Board, BoardViewMode, SortOption } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -120,6 +119,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
   const [isStickerModalOpen, setIsStickerModalOpen] = useState(false);
+  const [stickerTargetNoteId, setStickerTargetNoteId] = useState<string | null>(null);
+  const [lastActiveNoteId, setLastActiveNoteId] = useState<string | null>(null);
 
   // Modals / Dropdowns for Board Management
   const [isAddBoardModalOpen, setIsAddBoardModalOpen] = useState(false);
@@ -206,7 +207,105 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   };
 
-  // Handle double-click on empty canvas area on Desktop: toggle between 20% (overview) and 100% (detail) zoom and smoothly center on clicked point
+  // Zoom to 100% and smoothly center viewport on a specific note/sticker
+  const handleZoomToNote = useCallback((targetNote: Note) => {
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    const noteCenterX = (targetNote.posX ?? 0) + (targetNote.width || 260) / 2;
+    const noteCenterY = (targetNote.posY ?? 0) + (targetNote.height || 260) / 2;
+
+    setZoom(1.0);
+    showZoomOverlay();
+
+    // If note is in top row area (Y < 380), scrollTop = 0 keeps note and its top stickers perfectly framed
+    // without pushing them up under the header bar (fixes cut-off bug in 1.mp4)
+    const targetScrollLeft = Math.max(0, noteCenterX - container.clientWidth / 2);
+    const targetScrollTop = noteCenterY < 380 ? 0 : Math.max(0, noteCenterY - container.clientHeight / 2);
+
+    setTimeout(() => {
+      if (canvasContainerRef.current) {
+        canvasContainerRef.current.scrollTo({
+          left: Math.round(targetScrollLeft),
+          top: Math.round(targetScrollTop),
+          behavior: 'smooth',
+        });
+      }
+    }, 40);
+  }, []);
+
+  const handleZoomToSticker = useCallback((stickerNote: Note) => {
+    const meta = getStickerMetadata(stickerNote);
+    const targetNoteId = meta.attachedToNoteId || meta.anchorId;
+    const parentNote = targetNoteId ? notes.find((n) => n.id === targetNoteId) : null;
+    handleZoomToNote(parentNote || stickerNote);
+  }, [notes, handleZoomToNote]);
+
+  // Unified Double-Tap & Double-Click Zoom Toggle across Desktop, Tablet, iPad & Mobile
+  const triggerZoomToggleAtPoint = useCallback((clientX: number, clientY: number) => {
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    if (zoom <= 0.25) {
+      // ── Zoom IN: Toggle from 20% -> 100% ──
+      const containerRect = container.getBoundingClientRect();
+      const clickXInViewport = clientX - containerRect.left;
+      const clickYInViewport = clientY - containerRect.top;
+
+      // Actual raw canvas click point
+      const rawCanvasX = (container.scrollLeft + clickXInViewport) / zoom;
+      const rawCanvasY = (container.scrollTop + clickYInViewport) / zoom;
+
+      // Check current board's notes
+      const boardNotes = notes.filter(
+        (n) => !n.isArchived && (activeBoard ? n.boardId === activeBoard.id : true)
+      );
+
+      if (boardNotes.length > 0) {
+        // Find nearest note to the click point to prevent zooming into empty desert
+        let nearestNote = boardNotes[0];
+        let minDist = Infinity;
+        for (const n of boardNotes) {
+          const nX = (n.posX ?? 0) + (n.width || 260) / 2;
+          const nY = (n.posY ?? 0) + (n.height || 260) / 2;
+          const d = Math.hypot(rawCanvasX - nX, rawCanvasY - nY);
+          if (d < minDist) {
+            minDist = d;
+            nearestNote = n;
+          }
+        }
+        handleZoomToNote(nearestNote);
+      } else {
+        // No notes on board, simply zoom in to (0, 0)
+        setZoom(1.0);
+        showZoomOverlay();
+        setTimeout(() => {
+          if (canvasContainerRef.current) {
+            canvasContainerRef.current.scrollTo({
+              left: 0,
+              top: 0,
+              behavior: 'smooth',
+            });
+          }
+        }, 40);
+      }
+    } else {
+      // ── Zoom OUT: Toggle from 100% -> 20% overview (shows all notes on Mobile/Tablet/iPad/Desktop) ──
+      setZoom(0.20);
+      showZoomOverlay();
+      setTimeout(() => {
+        if (canvasContainerRef.current) {
+          canvasContainerRef.current.scrollTo({
+            left: 0,
+            top: 0,
+            behavior: 'smooth',
+          });
+        }
+      }, 40);
+    }
+  }, [zoom, notes, activeBoard, handleZoomToNote]);
+
+  // Handle double-click on empty canvas area on Desktop:
   const handleCanvasDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (
@@ -220,39 +319,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     ) {
       return;
     }
-
-    const container = canvasContainerRef.current;
-    if (!container) return;
-
-    // Calculate canvas coordinates of double-click point relative to container
-    const containerRect = container.getBoundingClientRect();
-    const clickXInViewport = e.clientX - containerRect.left;
-    const clickYInViewport = e.clientY - containerRect.top;
-
-    // Point in actual canvas space before zoom change
-    const currentScrollX = container.scrollLeft;
-    const currentScrollY = container.scrollTop;
-    const canvasPointX = (currentScrollX + clickXInViewport) / zoom;
-    const canvasPointY = (currentScrollY + clickYInViewport) / zoom;
-
-    // Toggle between 20% (0.20) overview and 100% (1.0) normal view
-    // If currently at or near 20% (zoom <= 0.25), toggle back to 100% (1.0)
-    // Otherwise, toggle to 20% (0.20)
-    const nextZoom = zoom <= 0.25 ? 1.0 : 0.20;
-    setZoom(nextZoom);
-    showZoomOverlay();
-
-    // Center the clicked point in viewport at the new zoom scale
-    const targetScrollLeft = Math.max(0, canvasPointX * nextZoom - container.clientWidth / 2);
-    const targetScrollTop = Math.max(0, canvasPointY * nextZoom - container.clientHeight / 2);
-
-    setTimeout(() => {
-      container.scrollTo({
-        left: targetScrollLeft,
-        top: targetScrollTop,
-        behavior: 'smooth',
-      });
-    }, 20);
+    triggerZoomToggleAtPoint(e.clientX, e.clientY);
   };
 
   const showZoomOverlay = () => {
@@ -295,29 +362,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Track last tap timestamp and position for double-tap zoom toggle on empty board
   const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
 
-  // Calculate zoom level that fits the entire board (2060px wide) into the current container width
-  const getFitZoom = () => {
-    const container = canvasContainerRef.current;
-    if (!container) return 0.18;
-    const clientWidth = container.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 390);
-    const fit = Math.round((clientWidth / 2080) * 100) / 100;
-    return Math.max(0.15, Math.min(0.85, fit));
-  };
-
-  // Toggle between Fit-Board view and 100% (1.0) view on double-tap empty canvas
-  const toggleFitZoom = () => {
-    const fitLevel = getFitZoom();
-    if (zoom > 0.45) {
-      setZoom(fitLevel);
-      showZoomOverlay();
-      if (canvasContainerRef.current) {
-        canvasContainerRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
-      }
-    } else {
-      setZoom(1.0);
-      showZoomOverlay();
-    }
-  };
 
   // Double-tap on empty canvas area to toggle between seeing entire board and 100%
   useEffect(() => {
@@ -331,7 +375,9 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         target.closest('.sticky-note-item') ||
         target.closest('[data-note-card="true"]') ||
         target.closest('button') ||
-        target.closest('input')
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('.no-drag')
       ) {
         return;
       }
@@ -345,8 +391,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       const dist = Math.hypot(clientX - prev.x, clientY - prev.y);
 
       if (timeDiff > 50 && timeDiff < 380 && dist < 35) {
-        // Valid double-tap on empty canvas!
-        toggleFitZoom();
+        // Valid double-tap on empty canvas on Touch Devices (Mobile / Tablet / iPad)!
+        triggerZoomToggleAtPoint(clientX, clientY);
         lastTapRef.current = { time: 0, x: 0, y: 0 };
       } else {
         lastTapRef.current = { time: now, x: clientX, y: clientY };
@@ -358,7 +404,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     return () => {
       container.removeEventListener('touchend', handleDoubleTap);
     };
-  }, [zoom]);
+  }, [triggerZoomToggleAtPoint]);
 
   // Clean up focus & highlight timers on unmount
   useEffect(() => {
@@ -424,6 +470,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     (noteId: string) => {
       bringToFront(noteId);
       setFocusedNoteId(noteId);
+      setLastActiveNoteId(noteId);
       // Dismiss any active highlight immediately so clicking another note never leaves old highlight stuck
       setHighlightedNoteId(null);
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
@@ -570,13 +617,44 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const freeX = Math.max(0, Math.round(x));
     const freeY = Math.max(0, Math.round(y));
 
-    // Optimistically update store immediately so the note stays locked in place with zero bounce
+    // Check if the dragged item is a note with attached stickers
+    const targetNote = notes.find((n) => n.id === id);
+    const stickerUpdates: { id: string; posX: number; posY: number }[] = [];
+
+    if (targetNote && !isStickerNote(targetNote) && targetNote.posX != null && targetNote.posY != null) {
+      const dx = freeX - targetNote.posX;
+      const dy = freeY - targetNote.posY;
+      if (dx !== 0 || dy !== 0) {
+        const attachedStickers = getNoteStickers(targetNote.id, notes);
+        attachedStickers.forEach((stk) => {
+          if (stk.posX != null && stk.posY != null) {
+            stickerUpdates.push({
+              id: stk.id,
+              posX: Math.round(stk.posX + dx),
+              posY: Math.round(stk.posY + dy),
+            });
+          }
+        });
+      }
+    }
+
+    // Optimistically update store immediately so the note and attached stickers stay locked in place with zero bounce
     useNoteStore.setState((state) => ({
-      notes: state.notes.map((n) => (n.id === id ? { ...n, posX: freeX, posY: freeY } : n)),
+      notes: state.notes.map((n) => {
+        if (n.id === id) return { ...n, posX: freeX, posY: freeY };
+        const stkMatch = stickerUpdates.find((u) => u.id === n.id);
+        if (stkMatch) return { ...n, posX: stkMatch.posX, posY: stkMatch.posY };
+        return n;
+      }),
     }));
 
     try {
       await updateNote(id, { posX: freeX, posY: freeY });
+      if (stickerUpdates.length > 0) {
+        await Promise.all(
+          stickerUpdates.map((u) => updateNote(u.id, { posX: u.posX, posY: u.posY }))
+        );
+      }
     } catch (e) {
       console.error('Failed to save note position:', e);
     }
@@ -769,6 +847,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   };
 
+  // Open sticker picker targeted specifically to a note
+  const handleOpenStickerForNote = (noteId: string) => {
+    setStickerTargetNoteId(noteId);
+    setLastActiveNoteId(noteId);
+    setFocusedNoteId(noteId);
+    setIsStickerModalOpen(true);
+  };
+
   // Quick add sticker directly onto the active board canvas
   const handleSelectSticker = async (sticker: BoardStickerItem) => {
     const targetBoard = activeBoard || boards.find((b) => b.isDefault) || boards[0];
@@ -778,21 +864,42 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       return;
     }
 
-    const { x, y } = findNextAvailableSlot();
     const targetBoardId = targetBoard?.id || undefined;
+    const slot = findNextAvailableSlot();
+
+    const stickerWidth = sticker.defaultWidth || 140;
+    const stickerHeight = sticker.defaultHeight || 140;
+
+    // Check if opened explicitly from a specific note's menu
+    const targetNote = stickerTargetNoteId ? notes.find((n) => n.id === stickerTargetNoteId && !isStickerNote(n)) : null;
+
+    let posX = slot.x;
+    let posY = slot.y;
+    let encodedContent = encodeStickerContent(sticker.url);
+
+    if (targetNote && targetNote.posX != null && targetNote.posY != null) {
+      const noteW = targetNote.width || 260;
+      posX = Math.round(targetNote.posX + noteW - stickerWidth * 0.7);
+      posY = Math.round(targetNote.posY - stickerHeight * 0.3);
+      encodedContent = encodeStickerContent(sticker.url, {
+        attachedToNoteId: targetNote.id,
+        offsetX: posX - targetNote.posX,
+        offsetY: posY - targetNote.posY,
+      });
+    }
 
     let newNote;
     try {
       newNote = await createNote({
         title: '[STICKER]',
-        content: `[STICKER]:${sticker.url}`,
+        content: encodedContent,
         color: '#FFFFFF',
         textColor: '#0F172A',
-        width: sticker.defaultWidth || 140,
-        height: sticker.defaultHeight || 140,
+        width: stickerWidth,
+        height: stickerHeight,
         rotation: 0,
-        posX: x,
-        posY: y,
+        posX,
+        posY,
         isPinned: false,
         boardId: targetBoardId,
       });
@@ -805,13 +912,23 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       bringToFront(newNote.id);
       setFocusedNoteId(newNote.id);
       setHighlightedNoteId(newNote.id);
-      toast.success(`แปะ ${sticker.thName} บนกระดานแล้ว`, { icon: '✨' });
+      setStickerTargetNoteId(null);
+      toast.success(
+        targetNote
+          ? `📌 ดูดติดสติกเกอร์กับโน้ต "${targetNote.title || 'ไม่มีชื่อ'}" แล้ว`
+          : `แปะ ${sticker.thName} บนกระดานแล้ว`,
+        { icon: '✨' }
+      );
     }
   };
 
   // Auto-arrange all notes in a neat grid according to selected SortOption
   const handleAutoArrange = async (newSortOption?: SortOption) => {
-    if (notes.length === 0) {
+    // 1. Separate real notes from stickers
+    const realNotes = notes.filter((n) => !isStickerNote(n));
+    const stickers = notes.filter((n) => isStickerNote(n));
+
+    if (realNotes.length === 0) {
       toast('ไม่มีโน้ตบนกระดานให้จัดเรียง', { icon: 'ℹ️' });
       return;
     }
@@ -830,27 +947,49 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const cols = 7;
 
     // Sort notes by selected sort option (pinned always first)
-    const sortedNotes = sortNotes(notes, targetSort);
+    const sortedNotes = sortNotes(realNotes, targetSort);
 
-    const updates = sortedNotes.map((n, idx) => {
+    // Map each note's delta
+    const noteDeltas = new Map<string, { dx: number; dy: number }>();
+    const noteUpdates = sortedNotes.map((n, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
       const newX = startX + col * spacingX;
       const newY = startY + row * spacingY;
+      const oldX = n.posX ?? 0;
+      const oldY = n.posY ?? 0;
+      noteDeltas.set(n.id, { dx: newX - oldX, dy: newY - oldY });
       return { id: n.id, posX: newX, posY: newY };
     });
+
+    // 2. Compute updates ONLY for stickers explicitly attached to a note
+    const stickerUpdates: { id: string; posX: number; posY: number }[] = [];
+    stickers.forEach((stk) => {
+      const meta = getStickerMetadata(stk);
+      const targetNoteId = meta.attachedToNoteId || meta.anchorId;
+
+      if (targetNoteId && noteDeltas.has(targetNoteId)) {
+        const delta = noteDeltas.get(targetNoteId)!;
+        const newStkX = Math.round((stk.posX ?? 0) + delta.dx);
+        const newStkY = Math.round((stk.posY ?? 0) + delta.dy);
+        stickerUpdates.push({ id: stk.id, posX: newStkX, posY: newStkY });
+      }
+      // Freeboard stickers without attachedToNoteId remain in place!
+    });
+
+    const allUpdates = [...noteUpdates, ...stickerUpdates];
 
     // Optimistic local state update for instant, smooth animation
     useNoteStore.setState((state) => ({
       notes: state.notes.map((n) => {
-        const match = updates.find((u) => u.id === n.id);
+        const match = allUpdates.find((u) => u.id === n.id);
         return match ? { ...n, posX: match.posX, posY: match.posY } : n;
       }),
     }));
 
     try {
       await Promise.all(
-        updates.map((u) => updateNote(u.id, { posX: u.posX, posY: u.posY }))
+        allUpdates.map((u) => updateNote(u.id, { posX: u.posX, posY: u.posY }))
       );
       const sortMeta = SORT_OPTIONS.find((o) => o.value === targetSort);
       toast.success(`จัดเรียงโน้ตตาม: ${sortMeta?.label || 'ลำดับ'} เรียบร้อยแล้ว`);
@@ -1246,14 +1385,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               </button>
             )}
 
-            {/* Auto Arrange Dropdown Menu */}
-            <SortDropdown
-              value={sortBy}
-              onChange={(opt) => handleAutoArrange(opt)}
-              variant="board"
-              isArranging={isArranging}
-            />
-
             {/* Change Background Button */}
             <button
               onClick={() => setIsBackgroundModalOpen(true)}
@@ -1349,6 +1480,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     onBringToFront={() => handleNoteFocus(note.id)}
                     customZIndex={noteZIndices[note.id]}
                     isFocused={focusedNoteId === note.id}
+                    onZoomToSticker={handleZoomToSticker}
                   />
                 ) : (
                   <StickyNoteItem
@@ -1369,6 +1501,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     isHighlighted={highlightedNoteId === note.id}
                     onQuickPeek={handleOpenQuickPeek}
                     onQuickPeekClose={handleScheduleCloseQuickPeek}
+                    onOpenStickerModal={() => handleOpenStickerForNote(note.id)}
+                    onZoomToNote={handleZoomToNote}
                   />
                 )
               )}
@@ -1654,7 +1788,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       {/* ── MODAL: Board Stickers & Decorators ── */}
       <BoardStickerModal
         isOpen={isStickerModalOpen}
-        onClose={() => setIsStickerModalOpen(false)}
+        onClose={() => {
+          setIsStickerModalOpen(false);
+          setStickerTargetNoteId(null);
+        }}
         onSelectSticker={handleSelectSticker}
       />
 

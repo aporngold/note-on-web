@@ -830,11 +830,81 @@ export const isStickerNote = (note: { title?: string | null; content: string }):
   return false;
 };
 
+export interface StickerMetadata {
+  url: string;
+  attachedToNoteId?: string | null;
+  anchorId?: string | null; // backward compatibility
+  offsetX?: number;
+  offsetY?: number;
+}
+
 // Helper to extract sticker URL from note content
 export const getStickerUrl = (note: { content: string }): string => {
   if (!note || !note.content) return '';
-  if (note.content.startsWith('[STICKER]:')) {
-    return note.content.replace('[STICKER]:', '').trim();
+  let raw = note.content;
+  if (raw.startsWith('[STICKER]:')) {
+    raw = raw.slice('[STICKER]:'.length);
   }
-  return note.content;
+  const metaIdx = raw.indexOf('::meta::');
+  if (metaIdx !== -1) {
+    raw = raw.slice(0, metaIdx);
+  }
+  return raw.trim();
 };
+
+// Helper to extract full metadata including attachedToNoteId and relative offsets
+export const getStickerMetadata = (note: { content: string }): StickerMetadata => {
+  if (!note || !note.content) return { url: '' };
+  let raw = note.content;
+  if (raw.startsWith('[STICKER]:')) {
+    raw = raw.slice('[STICKER]:'.length);
+  }
+  const metaIdx = raw.indexOf('::meta::');
+  if (metaIdx === -1) {
+    return { url: raw.trim() };
+  }
+  const url = raw.slice(0, metaIdx).trim();
+  const metaStr = raw.slice(metaIdx + '::meta::'.length).trim();
+  try {
+    const parsed = JSON.parse(metaStr);
+    const targetId = parsed.attachedToNoteId || parsed.anchorId || null;
+    return {
+      url,
+      attachedToNoteId: targetId,
+      anchorId: targetId,
+      offsetX: parsed.offsetX,
+      offsetY: parsed.offsetY,
+    };
+  } catch {
+    return { url };
+  }
+};
+
+// Helper to encode sticker URL with attached note metadata
+export const encodeStickerContent = (
+  url: string,
+  meta?: { attachedToNoteId?: string | null; anchorId?: string | null; offsetX?: number; offsetY?: number }
+): string => {
+  const targetId = meta?.attachedToNoteId || meta?.anchorId;
+  if (!meta || !targetId) {
+    return `[STICKER]:${url}`;
+  }
+  return `[STICKER]:${url}::meta::${JSON.stringify({
+    attachedToNoteId: targetId,
+    anchorId: targetId,
+    offsetX: meta.offsetX ?? 0,
+    offsetY: meta.offsetY ?? 0,
+  })}`;
+};
+
+// Helper to find all stickers explicitly attached to a specific note
+export const getNoteStickers = (noteId: string, allNotes: any[]): any[] => {
+  if (!noteId || !Array.isArray(allNotes)) return [];
+  return allNotes.filter((n) => {
+    if (!isStickerNote(n) || n.isArchived) return false;
+    const meta = getStickerMetadata(n);
+    const targetId = meta.attachedToNoteId || meta.anchorId;
+    return targetId === noteId;
+  });
+};
+

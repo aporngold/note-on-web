@@ -23,6 +23,7 @@ import {
   RotateCw,
   Volume2,
   Share2,
+  Sparkles,
 } from 'lucide-react';
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -51,6 +52,8 @@ interface StickyNoteItemProps {
   zoom?: number;
   onQuickPeek?: (note: Note, rect: DOMRect) => void;
   onQuickPeekClose?: () => void;
+  onOpenStickerModal?: () => void;
+  onZoomToNote?: (note: Note) => void;
 }
 
 const PAPER_COLORS = [
@@ -194,6 +197,8 @@ export default function StickyNoteItem({
   zoom = 1,
   onQuickPeek,
   onQuickPeekClose,
+  onOpenStickerModal,
+  onZoomToNote,
 }: StickyNoteItemProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -205,6 +210,40 @@ export default function StickyNoteItem({
       if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
     };
   }, []);
+
+  // Track double-tap on touch devices (Tablet, iPad, Mobile)
+  const lastNoteTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
+
+  const handleNoteTouchEnd = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('.no-drag') ||
+      target.closest('input') ||
+      target.closest('textarea')
+    ) {
+      return;
+    }
+
+    const touch = e.changedTouches?.[0];
+    if (!touch) return;
+    const now = Date.now();
+    const prev = lastNoteTapRef.current;
+    const timeDiff = now - prev.time;
+    const dist = Math.hypot(touch.clientX - prev.x, touch.clientY - prev.y);
+
+    if (timeDiff > 50 && timeDiff < 380 && dist < 35) {
+      // Double-tap on note detected on touch screen (iPad / Tablet / Mobile)
+      if (zoom <= 0.35 && onZoomToNote) {
+        onZoomToNote(note);
+      } else if (onOpenFullscreen) {
+        onOpenFullscreen(note);
+      }
+      lastNoteTapRef.current = { time: 0, x: 0, y: 0 };
+    } else {
+      lastNoteTapRef.current = { time: now, x: touch.clientX, y: touch.clientY };
+    }
+  };
 
   const {
     updateNote,
@@ -766,6 +805,7 @@ export default function StickyNoteItem({
         onFocusCapture={() => onBringToFront?.()}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
+        onTouchEnd={handleNoteTouchEnd}
         onDoubleClick={(e) => {
           e.stopPropagation();
           // Never open fullscreen when double-clicking on buttons, controls, inputs, or .no-drag elements
@@ -775,6 +815,10 @@ export default function StickyNoteItem({
             (e.target as HTMLElement).closest('input') ||
             (e.target as HTMLElement).closest('textarea')
           ) {
+            return;
+          }
+          if (zoom <= 0.35 && onZoomToNote) {
+            onZoomToNote(note);
             return;
           }
           if (onOpenFullscreen) onOpenFullscreen(note);
@@ -1291,6 +1335,23 @@ export default function StickyNoteItem({
                     </div>
                   )}
 
+                  {/* Attach Sticker to Note Corner */}
+                  {onOpenStickerModal && (
+                    <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMoveBoardOpen(false);
+                          onOpenStickerModal();
+                        }}
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left cursor-pointer text-indigo-600 dark:text-indigo-400"
+                      >
+                        <Sparkles size={13} />
+                        <span>แปะสติกเกอร์ที่โน้ตนี้</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Move to Board */}
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 mb-1 px-1">ย้ายโน้ตไปที่กระดาน:</p>
@@ -1712,6 +1773,19 @@ export default function StickyNoteItem({
             <Star size={13} className={note.isFavorite ? 'fill-current text-amber-500' : 'text-slate-400'} />
             <span>{note.isFavorite ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}</span>
           </button>
+          {onOpenStickerModal && (
+            <button
+              type="button"
+              onClick={() => {
+                setContextMenu({ isOpen: false, x: 0, y: 0 });
+                onOpenStickerModal();
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition text-indigo-600 dark:text-indigo-400"
+            >
+              <Sparkles size={13} />
+              <span>แปะสติกเกอร์ที่มุมโน้ตนี้</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {

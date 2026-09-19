@@ -48,6 +48,7 @@ import MasterPasswordModal from './MasterPasswordModal';
 import AudioRecorderModal from './AudioRecorderModal';
 import ShareNoteModal from './ShareNoteModal';
 import VersionHistoryDrawer from './VersionHistoryDrawer';
+import { getNoteStickers, getStickerUrl } from '../board/stickerData';
 import ImageOcrModal from './ImageOcrModal';
 import AIAssistantModal from './AIAssistantModal';
 import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
@@ -106,6 +107,8 @@ export default function FullscreenNoteModal({
   const [isTrulyFullscreen, setIsTrulyFullscreen] = useState(true);
   const [isBorderless, setIsBorderless] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const allNotes = useNoteStore((state) => state.notes);
+  const attachedStickers = note ? getNoteStickers(note.id, allNotes) : [];
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [isLocked, setIsLocked] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -651,8 +654,8 @@ export default function FullscreenNoteModal({
               <p className="font-bold text-base">ปล่อยไฟล์ที่นี่เพื่อแนบหรือแทรกลงในโน้ต</p>
             </div>
           )}
-          {/* Note Title Input */}
-          <div>
+          {/* Note Title Input & Corner Sticker Stamp */}
+          <div className="flex items-center justify-between gap-3">
             <input
               type="text"
               value={title}
@@ -661,6 +664,22 @@ export default function FullscreenNoteModal({
               className="w-full font-bold text-lg sm:text-xl bg-transparent border-b border-black/15 focus:border-black/40 focus:outline-none pb-2 placeholder-black/30"
               style={{ color: textColor, fontFamily: activeFontPreset.family }}
             />
+            {attachedStickers.length > 0 && (
+              <div className="shrink-0 flex items-center gap-1.5 pointer-events-none">
+                {attachedStickers.slice(0, 2).map((stk) => {
+                  const url = getStickerUrl(stk);
+                  if (!url) return null;
+                  return (
+                    <img
+                      key={stk.id}
+                      src={url}
+                      alt="sticker"
+                      className="w-10 h-10 object-contain drop-shadow-md select-none transform rotate-3"
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Attachments Showcase */}

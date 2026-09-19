@@ -22,7 +22,7 @@ import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import { stripHtmlTags } from '@/utils/editorHelper';
 import { FONT_PRESETS } from '../notes/editorExtensions';
-import { isStickerNote } from './stickerData';
+import { isStickerNote, getNoteStickers, getStickerUrl } from './stickerData';
 
 interface KanbanViewProps {
   notes: Note[];
@@ -229,6 +229,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                         f.id.toLowerCase() === String(note.fontFamily).toLowerCase() ||
                         f.name.toLowerCase().includes(String(note.fontFamily).toLowerCase())
                     );
+                    const attachedStickers = getNoteStickers(note.id, notes);
 
                     return (
                       <div
@@ -245,6 +246,28 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                         className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all cursor-grab active:cursor-grabbing group select-none relative cursor-pointer"
                         title="คลิกหรือดับเบิ้ลคลิกเพื่อเปิดแก้ไขเต็มจอ / ลากเพื่อเปลี่ยนสถานะ"
                       >
+                        {/* Attached Corner Sticker Stamp */}
+                        {attachedStickers.length > 0 && (
+                          <div
+                            className={`absolute ${
+                              note.isPinned ? '-top-3 right-6' : '-top-3 -right-2'
+                            } z-20 pointer-events-none flex items-center gap-1`}
+                          >
+                            {attachedStickers.slice(0, 1).map((stk) => {
+                              const url = getStickerUrl(stk);
+                              if (!url) return null;
+                              return (
+                                <img
+                                  key={stk.id}
+                                  src={url}
+                                  alt="sticker"
+                                  className="w-7 h-7 object-contain drop-shadow-md select-none transform rotate-6"
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+
                         {/* Pin status badge at Top-Right (as in reference) */}
                         {note.isPinned && (
                           <div

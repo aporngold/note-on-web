@@ -12,6 +12,7 @@ import { FONT_PRESETS } from './editorExtensions';
 import ViewportContextMenu, { ViewportMenuItem } from '../ui/ViewportContextMenu';
 import ViewportPopover from '../ui/ViewportPopover';
 import ShareNoteModal from './ShareNoteModal';
+import { getNoteStickers, getStickerUrl } from '../board/stickerData';
 
 interface NoteCardProps {
   note: Note;
@@ -22,6 +23,8 @@ interface NoteCardProps {
 export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: NoteCardProps) {
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin, toggleFavorite, toggleNoteLock, setSelectedLabel } = useNoteStore();
+  const allNotes = useNoteStore((state) => state.notes);
+  const attachedStickers = getNoteStickers(note.id, allNotes);
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const fontPreset = FONT_PRESETS.find(
     (f) =>
@@ -101,6 +104,24 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
         fontFamily: fontPreset?.family,
       }}
     >
+      {/* Attached Corner Sticker Stamp */}
+      {attachedStickers.length > 0 && (
+        <div className="absolute top-2 right-24 z-10 pointer-events-none flex items-center gap-1">
+          {attachedStickers.slice(0, 2).map((stk) => {
+            const url = getStickerUrl(stk);
+            if (!url) return null;
+            return (
+              <img
+                key={stk.id}
+                src={url}
+                alt="sticker"
+                className="w-8 h-8 object-contain drop-shadow-md select-none transform rotate-6 opacity-95 group-hover:scale-110 transition-transform duration-200"
+              />
+            );
+          })}
+        </div>
+      )}
+
       <div>
         {/* Header Badges */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
