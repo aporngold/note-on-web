@@ -135,8 +135,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Interactive Note Connection Mode state
   const [connectingSourceId, setConnectingSourceId] = useState<string | null>(null);
 
-  // Canvas scroll container ref
+  // Canvas scroll container ref and canvas element ref
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const canvasElementRef = useRef<HTMLDivElement>(null);
+  const [isPinching, setIsPinching] = useState<boolean>(false);
 
   // Z-index management so clicked or interacted notes always sit on top
   const [noteZIndices, setNoteZIndices] = useState<Record<string, number>>({});
@@ -379,19 +381,17 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     isPinching: boolean;
     initialDist: number;
     initialZoom: number;
-    midViewX: number;
-    midViewY: number;
     canvasPointX: number;
     canvasPointY: number;
   }>({
     isPinching: false,
     initialDist: 0,
     initialZoom: 1,
-    midViewX: 0,
-    midViewY: 0,
     canvasPointX: 0,
     canvasPointY: 0,
   });
+
+  const rafIdRef = useRef<number | null>(null);
 
   // Track last tap timestamp and position for double-tap zoom toggle on empty board
   const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
@@ -420,11 +420,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           isPinching: true,
           initialDist: dist,
           initialZoom: currentZ,
-          midViewX,
-          midViewY,
           canvasPointX,
           canvasPointY,
         };
+        setIsPinching(true);
+        if (canvasElementRef.current) {
+          canvasElementRef.current.style.transition = 'none';
+        }
         lastTouchActionTimeRef.current = Date.now();
       }
     };
@@ -443,14 +445,27 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         // Allows full zoom out down to 15% (0.15) to see the entire board, and up to 300% (3.0)
         const clampedZoom = Math.max(0.15, Math.min(3.0, Math.round(rawZoom * 100) / 100));
 
-        setZoom(clampedZoom);
-        showZoomOverlay();
+        const containerRect = container.getBoundingClientRect();
+        const currentMidX = (t1.clientX + t2.clientX) / 2;
+        const currentMidY = (t1.clientY + t2.clientY) / 2;
+        const currentMidViewX = currentMidX - containerRect.left;
+        const currentMidViewY = currentMidY - containerRect.top;
 
-        // Adjust scroll position to keep the pinch center point anchored
-        const newScrollLeft = pinchRef.current.canvasPointX * clampedZoom - pinchRef.current.midViewX;
-        const newScrollTop = pinchRef.current.canvasPointY * clampedZoom - pinchRef.current.midViewY;
-        container.scrollLeft = Math.max(0, newScrollLeft);
-        container.scrollTop = Math.max(0, newScrollTop);
+        // Keep focal point glued under fingers during simultaneous zoom + pan
+        const newScrollLeft = Math.max(0, pinchRef.current.canvasPointX * clampedZoom - currentMidViewX);
+        const newScrollTop = Math.max(0, pinchRef.current.canvasPointY * clampedZoom - currentMidViewY);
+
+        if (rafIdRef.current) {
+          cancelAnimationFrame(rafIdRef.current);
+        }
+
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          setZoom(clampedZoom);
+          setIsZoomOverlayVisible(true);
+          container.scrollLeft = newScrollLeft;
+          container.scrollTop = newScrollTop;
+        });
       }
     };
 
@@ -459,6 +474,15 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         if (e.touches.length < 2) {
           pinchRef.current.isPinching = false;
           pinchRef.current.initialDist = 0;
+          setIsPinching(false);
+          if (canvasElementRef.current) {
+            canvasElementRef.current.style.transition = '';
+          }
+          if (rafIdRef.current) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = null;
+          }
+          showZoomOverlay();
           lastTouchActionTimeRef.current = Date.now();
           lastTapRef.current = { time: 0, x: 0, y: 0 };
         }
@@ -505,6 +529,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     container.addEventListener('touchcancel', handleTouchEnd, { passive: true });
 
     return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
@@ -1562,12 +1587,14 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           >
             <div
               id="sticky-board-canvas"
+              ref={canvasElementRef}
               style={{
                 ...dynamicCanvasSize,
                 transform: `scale(${zoom})`,
                 transformOrigin: 'top left',
+                transition: isPinching ? 'none' : 'transform 120ms cubic-bezier(0.16, 1, 0.3, 1)',
               }}
-              className="relative transition-transform duration-100 ease-out"
+              className="relative"
             >
               {/* SVG Visual Connection Lines Canvas */}
               <NoteConnectionCanvas
