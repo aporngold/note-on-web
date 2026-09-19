@@ -135,9 +135,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Interactive Note Connection Mode state
   const [connectingSourceId, setConnectingSourceId] = useState<string | null>(null);
 
-  // Canvas scroll container ref and canvas element ref
+  // Canvas scroll container ref, canvas element ref, and zoom wrapper ref
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const canvasElementRef = useRef<HTMLDivElement>(null);
+  const zoomWrapperRef = useRef<HTMLDivElement>(null);
   const [isPinching, setIsPinching] = useState<boolean>(false);
 
   // Z-index management so clicked or interacted notes always sit on top
@@ -376,19 +377,25 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     zoomRef.current = zoom;
   }, [zoom]);
 
-  // Ref tracking 2-finger pinch state
+  // Ref tracking 2-finger pinch state with smooth continuous zoom
   const pinchRef = useRef<{
     isPinching: boolean;
     initialDist: number;
     initialZoom: number;
-    canvasPointX: number;
-    canvasPointY: number;
+    centerCanvasX: number;
+    centerCanvasY: number;
+    startMidX: number;
+    startMidY: number;
+    latestZoom: number;
   }>({
     isPinching: false,
     initialDist: 0,
     initialZoom: 1,
-    canvasPointX: 0,
-    canvasPointY: 0,
+    centerCanvasX: 0,
+    centerCanvasY: 0,
+    startMidX: 0,
+    startMidY: 0,
+    latestZoom: 1,
   });
 
   const rafIdRef = useRef<number | null>(null);
@@ -406,34 +413,40 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         const t1 = e.touches[0];
         const t2 = e.touches[1];
         const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-        const containerRect = container.getBoundingClientRect();
-        const midX = (t1.clientX + t2.clientX) / 2;
-        const midY = (t1.clientY + t2.clientY) / 2;
-        const midViewX = midX - containerRect.left;
-        const midViewY = midY - containerRect.top;
-
         const currentZ = zoomRef.current;
-        const canvasPointX = (container.scrollLeft + midViewX) / currentZ;
-        const canvasPointY = (container.scrollTop + midViewY) / currentZ;
+        const viewportW = container.clientWidth;
+        const viewportH = container.clientHeight;
+
+        // Anchor to screen center so zoom expands and contracts perfectly steady without wobbling
+        const screenCenterX = viewportW / 2;
+        const screenCenterY = viewportH / 2;
+        const centerCanvasX = (container.scrollLeft + screenCenterX) / currentZ;
+        const centerCanvasY = (container.scrollTop + screenCenterY) / currentZ;
+
+        const startMidX = (t1.clientX + t2.clientX) / 2;
+        const startMidY = (t1.clientY + t2.clientY) / 2;
 
         pinchRef.current = {
           isPinching: true,
           initialDist: dist,
           initialZoom: currentZ,
-          canvasPointX,
-          canvasPointY,
+          centerCanvasX,
+          centerCanvasY,
+          startMidX,
+          startMidY,
+          latestZoom: currentZ,
         };
         setIsPinching(true);
         if (canvasElementRef.current) {
           canvasElementRef.current.style.transition = 'none';
         }
+        setIsZoomOverlayVisible(true);
         lastTouchActionTimeRef.current = Date.now();
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && pinchRef.current.isPinching && pinchRef.current.initialDist > 0) {
-        // Prevent native full-page browser magnification
         if (e.cancelable) {
           e.preventDefault();
         }
@@ -442,18 +455,19 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
         const ratio = dist / pinchRef.current.initialDist;
         const rawZoom = pinchRef.current.initialZoom * ratio;
-        // Allows full zoom out down to 15% (0.15) to see the entire board, and up to 300% (3.0)
-        const clampedZoom = Math.max(0.15, Math.min(3.0, Math.round(rawZoom * 100) / 100));
+        // Continuous smooth zoom without quantization jump
+        const clampedZoom = Math.max(0.15, Math.min(3.0, rawZoom));
+        pinchRef.current.latestZoom = clampedZoom;
 
-        const containerRect = container.getBoundingClientRect();
         const currentMidX = (t1.clientX + t2.clientX) / 2;
         const currentMidY = (t1.clientY + t2.clientY) / 2;
-        const currentMidViewX = currentMidX - containerRect.left;
-        const currentMidViewY = currentMidY - containerRect.top;
+        const panDeltaX = currentMidX - pinchRef.current.startMidX;
+        const panDeltaY = currentMidY - pinchRef.current.startMidY;
 
-        // Keep focal point glued under fingers during simultaneous zoom + pan
-        const newScrollLeft = Math.max(0, pinchRef.current.canvasPointX * clampedZoom - currentMidViewX);
-        const newScrollTop = Math.max(0, pinchRef.current.canvasPointY * clampedZoom - currentMidViewY);
+        const screenCenterX = container.clientWidth / 2;
+        const screenCenterY = container.clientHeight / 2;
+        const newScrollLeft = Math.max(0, pinchRef.current.centerCanvasX * clampedZoom - screenCenterX - panDeltaX);
+        const newScrollTop = Math.max(0, pinchRef.current.centerCanvasY * clampedZoom - screenCenterY - panDeltaY);
 
         if (rafIdRef.current) {
           cancelAnimationFrame(rafIdRef.current);
@@ -461,10 +475,27 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
         rafIdRef.current = requestAnimationFrame(() => {
           rafIdRef.current = null;
-          setZoom(clampedZoom);
-          setIsZoomOverlayVisible(true);
+          const baseW = parseInt(dynamicCanvasSize.minWidth) || 2200;
+          const baseH = parseInt(dynamicCanvasSize.minHeight) || 1600;
+
+          // 1. Direct GPU transform on canvas (zero React lag)
+          if (canvasElementRef.current) {
+            canvasElementRef.current.style.transform = `scale(${clampedZoom})`;
+          }
+          // 2. Direct size update on zoom wrapper
+          if (zoomWrapperRef.current) {
+            zoomWrapperRef.current.style.width = `${Math.round(baseW * clampedZoom)}px`;
+            zoomWrapperRef.current.style.height = `${Math.round(baseH * clampedZoom)}px`;
+          }
+          // 3. Direct synchronized scroll
           container.scrollLeft = newScrollLeft;
           container.scrollTop = newScrollTop;
+
+          // 4. Update overlay text without React re-render
+          const overlayText = document.getElementById('zoom-overlay-text');
+          if (overlayText) {
+            overlayText.innerText = `ZOOM: ${Math.round(clampedZoom * 100)}%`;
+          }
         });
       }
     };
@@ -474,14 +505,20 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         if (e.touches.length < 2) {
           pinchRef.current.isPinching = false;
           pinchRef.current.initialDist = 0;
-          setIsPinching(false);
-          if (canvasElementRef.current) {
-            canvasElementRef.current.style.transition = '';
-          }
           if (rafIdRef.current) {
             cancelAnimationFrame(rafIdRef.current);
             rafIdRef.current = null;
           }
+
+          // Commit final clean zoom to React state once
+          const finalZoom = Math.max(0.15, Math.min(3.0, Math.round(pinchRef.current.latestZoom * 100) / 100));
+          setZoom(finalZoom);
+          setIsPinching(false);
+
+          if (canvasElementRef.current) {
+            canvasElementRef.current.style.transition = '';
+          }
+
           showZoomOverlay();
           lastTouchActionTimeRef.current = Date.now();
           lastTapRef.current = { time: 0, x: 0, y: 0 };
@@ -1580,6 +1617,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         >
           {/* Zoom Wrapper to allow accurate container scrolling */}
           <div
+            ref={zoomWrapperRef}
             style={{
               width: `${Math.round((parseInt(dynamicCanvasSize.minWidth) || 2200) * zoom)}px`,
               height: `${Math.round((parseInt(dynamicCanvasSize.minHeight) || 1600) * zoom)}px`,
@@ -1672,7 +1710,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       {isZoomOverlayVisible && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none animate-fade-in select-none">
           <div className="bg-black/75 dark:bg-slate-900/90 backdrop-blur-md text-white px-8 py-3.5 rounded-2xl shadow-2xl border border-white/20 text-2xl sm:text-3xl font-mono font-black tracking-wider flex items-center justify-center">
-            <span>ZOOM: {Math.round(zoom * 100)}%</span>
+            <span id="zoom-overlay-text">ZOOM: {Math.round(zoom * 100)}%</span>
           </div>
         </div>
       )}
