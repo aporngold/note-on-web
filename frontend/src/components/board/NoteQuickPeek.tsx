@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Maximize2,
@@ -34,6 +35,8 @@ const KANBAN_LABELS: Record<string, { label: string; color: string }> = {
   done: { label: 'Done', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300' },
 };
 
+type Placement = 'right' | 'left' | 'top' | 'bottom';
+
 export default function NoteQuickPeek({
   note,
   anchorRect,
@@ -45,6 +48,11 @@ export default function NoteQuickPeek({
 }: NoteQuickPeekProps) {
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
@@ -91,39 +99,117 @@ export default function NoteQuickPeek({
     };
   }, [note, isVaultUnlocked]);
 
-  // Position calculation for Desktop & Tablet Popover (Auto-flip to stay completely on-screen)
-  const popoverStyle = useMemo<React.CSSProperties>(() => {
+  // Smart Magnetic Positioning for Desktop & Tablet Popover
+  // Automatically anchors tightly beside target note and adapts direction (right/left/top/bottom)
+  const { popoverStyle, placement, arrowStyle } = useMemo(() => {
     if (isMobile || !anchorRect || typeof window === 'undefined') {
-      return {};
+      return {
+        popoverStyle: {} as React.CSSProperties,
+        placement: 'right' as Placement,
+        arrowStyle: {} as React.CSSProperties,
+      };
     }
 
-    const cardWidth = 350;
-    const cardHeight = 360;
+    const cardWidth = 320;
+    const cardHeight = 330;
+    const gap = 12;
     const padding = 16;
     const { innerWidth, innerHeight } = window;
 
-    // Determine horizontal position (prefer right, flip to left if edge reached)
-    let left = anchorRect.right + 12;
-    if (left + cardWidth > innerWidth - padding) {
-      // Flip to left side
-      left = anchorRect.left - cardWidth - 12;
-    }
-    // Clamping within horizontal bounds
-    left = Math.max(padding, Math.min(innerWidth - cardWidth - padding, left));
+    const noteCenterX = anchorRect.left + anchorRect.width / 2;
+    const noteCenterY = anchorRect.top + anchorRect.height / 2;
 
-    // Determine vertical position (align with top of note, clamped to viewport)
-    let top = anchorRect.top - 10;
-    if (top + cardHeight > innerHeight - padding) {
-      top = innerHeight - cardHeight - padding;
+    const canFitRight = anchorRect.right + gap + cardWidth <= innerWidth - padding;
+    const canFitLeft = anchorRect.left - gap - cardWidth >= padding;
+    const canFitBottom = anchorRect.bottom + gap + cardHeight <= innerHeight - padding;
+    const canFitTop = anchorRect.top - gap - cardHeight >= padding;
+
+    let chosenPlacement: Placement = 'right';
+
+    if (canFitRight) {
+      chosenPlacement = 'right';
+    } else if (canFitLeft) {
+      chosenPlacement = 'left';
+    } else if (canFitBottom) {
+      chosenPlacement = 'bottom';
+    } else if (canFitTop) {
+      chosenPlacement = 'top';
+    } else {
+      // Horizontal fallback: choose whichever side has more room
+      const spaceRight = innerWidth - anchorRect.right;
+      const spaceLeft = anchorRect.left;
+      chosenPlacement = spaceRight >= spaceLeft ? 'right' : 'left';
     }
-    top = Math.max(padding, top);
+
+    let left = 0;
+    let top = 0;
+    let arrowCss: React.CSSProperties = {};
+
+    if (chosenPlacement === 'right') {
+      left = anchorRect.right + gap;
+      top = noteCenterY - cardHeight / 2;
+      top = Math.max(padding, Math.min(innerHeight - cardHeight - padding, top));
+      left = Math.max(padding, Math.min(innerWidth - cardWidth - padding, left));
+
+      const rawArrowY = noteCenterY - top;
+      const clampedArrowY = Math.max(26, Math.min(cardHeight - 26, rawArrowY));
+      arrowCss = {
+        top: `${Math.round(clampedArrowY)}px`,
+        left: '-7px',
+        transform: 'translateY(-50%) rotate(45deg)',
+      };
+    } else if (chosenPlacement === 'left') {
+      left = anchorRect.left - gap - cardWidth;
+      top = noteCenterY - cardHeight / 2;
+      top = Math.max(padding, Math.min(innerHeight - cardHeight - padding, top));
+      left = Math.max(padding, Math.min(innerWidth - cardWidth - padding, left));
+
+      const rawArrowY = noteCenterY - top;
+      const clampedArrowY = Math.max(26, Math.min(cardHeight - 26, rawArrowY));
+      arrowCss = {
+        top: `${Math.round(clampedArrowY)}px`,
+        right: '-7px',
+        transform: 'translateY(-50%) rotate(45deg)',
+      };
+    } else if (chosenPlacement === 'top') {
+      top = anchorRect.top - gap - cardHeight;
+      left = noteCenterX - cardWidth / 2;
+      left = Math.max(padding, Math.min(innerWidth - cardWidth - padding, left));
+      top = Math.max(padding, Math.min(innerHeight - cardHeight - padding, top));
+
+      const rawArrowX = noteCenterX - left;
+      const clampedArrowX = Math.max(26, Math.min(cardWidth - 26, rawArrowX));
+      arrowCss = {
+        left: `${Math.round(clampedArrowX)}px`,
+        bottom: '-7px',
+        transform: 'translateX(-50%) rotate(45deg)',
+      };
+    } else {
+      // bottom
+      top = anchorRect.bottom + gap;
+      left = noteCenterX - cardWidth / 2;
+      left = Math.max(padding, Math.min(innerWidth - cardWidth - padding, left));
+      top = Math.max(padding, Math.min(innerHeight - cardHeight - padding, top));
+
+      const rawArrowX = noteCenterX - left;
+      const clampedArrowX = Math.max(26, Math.min(cardWidth - 26, rawArrowX));
+      arrowCss = {
+        left: `${Math.round(clampedArrowX)}px`,
+        top: '-7px',
+        transform: 'translateX(-50%) rotate(45deg)',
+      };
+    }
 
     return {
-      position: 'fixed',
-      left: `${Math.round(left)}px`,
-      top: `${Math.round(top)}px`,
-      width: `${cardWidth}px`,
-      maxHeight: `${cardHeight}px`,
+      popoverStyle: {
+        position: 'fixed' as const,
+        left: `${Math.round(left)}px`,
+        top: `${Math.round(top)}px`,
+        width: `${cardWidth}px`,
+        maxHeight: `${cardHeight}px`,
+      },
+      placement: chosenPlacement,
+      arrowStyle: arrowCss,
     };
   }, [isMobile, anchorRect]);
 
@@ -159,12 +245,16 @@ export default function NoteQuickPeek({
   const kanbanInfo = KANBAN_LABELS[note.kanbanStatus || 'todo'] || KANBAN_LABELS.todo;
   const noteColor = note.color || '#FEF08A';
 
+  if (!mounted || typeof document === 'undefined') {
+    return null;
+  }
+
   // ─────────────────────────────────────────────────────────────
   // 1. Mobile Bottom Sheet View (< 768px)
   // ─────────────────────────────────────────────────────────────
   if (isMobile) {
-    return (
-      <div className="fixed inset-0 z-[99999] flex flex-col justify-end">
+    const mobileContent = (
+      <div className="fixed inset-0 z-[999999] flex flex-col justify-end">
         {/* Backdrop */}
         <div
           onClick={onClose}
@@ -268,21 +358,38 @@ export default function NoteQuickPeek({
         </div>
       </div>
     );
+    return createPortal(mobileContent, document.body);
   }
 
+  // Determine arrow border classes based on placement to create seamless triangle pointer
+  const arrowBorderClass =
+    placement === 'right'
+      ? 'border-l border-b'
+      : placement === 'left'
+      ? 'border-r border-t'
+      : placement === 'top'
+      ? 'border-r border-b'
+      : 'border-l border-t';
+
   // ─────────────────────────────────────────────────────────────
-  // 2. Desktop & Tablet/iPad Floating Popover View (>= 768px)
+  // 2. Desktop & Tablet/iPad Smart Magnetic Popover (>= 768px)
   // ─────────────────────────────────────────────────────────────
-  return (
+  const desktopPopover = (
     <div
       ref={cardRef}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={popoverStyle}
-      className="z-[99999] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-700/90 p-4 flex flex-col animate-in fade-in zoom-in-95 duration-150 select-none text-slate-800 dark:text-slate-100"
+      className="z-[999999] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200/90 dark:border-slate-700/90 p-4 flex flex-col animate-in fade-in zoom-in-95 duration-150 select-none text-slate-800 dark:text-slate-100 before:content-[''] before:absolute before:inset-[-12px] before:z-[-2] before:pointer-events-auto"
     >
+      {/* Magnetic Direction Pointer Arrow */}
+      <div
+        style={arrowStyle}
+        className={`absolute w-3.5 h-3.5 bg-white dark:bg-slate-900 ${arrowBorderClass} border-slate-200/90 dark:border-slate-700/90 shadow-2xs z-10 pointer-events-none`}
+      />
+
       {/* Top Header Row */}
-      <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-100 dark:border-slate-800 shrink-0">
+      <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-100 dark:border-slate-800 shrink-0 relative z-20">
         <div className="flex items-center gap-2 min-w-0">
           <span
             className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/15 shadow-2xs"
@@ -315,12 +422,12 @@ export default function NoteQuickPeek({
       </div>
 
       {/* Note Title */}
-      <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2 mb-1.5 shrink-0">
+      <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2 mb-1.5 shrink-0 relative z-20">
         {note.title || 'โน้ตไม่มีชื่อ'}
       </h4>
 
       {/* Body Preview */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 my-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap select-text">
+      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 my-1 text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap select-text relative z-20">
         {isSticker && stickerUrl ? (
           <div className="flex justify-center p-2">
             <img src={stickerUrl} alt="Sticker" className="w-24 h-24 object-contain" />
@@ -340,7 +447,7 @@ export default function NoteQuickPeek({
       </div>
 
       {/* Footer Quick Action Row */}
-      <div className="flex items-center justify-between gap-2 pt-2.5 mt-1 border-t border-slate-100 dark:border-slate-800 shrink-0">
+      <div className="flex items-center justify-between gap-2 pt-2.5 mt-1 border-t border-slate-100 dark:border-slate-800 shrink-0 relative z-20">
         <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 font-mono">
           <Clock size={11} />
           <span>Quick Peek 100%</span>
@@ -380,4 +487,6 @@ export default function NoteQuickPeek({
       </div>
     </div>
   );
+
+  return createPortal(desktopPopover, document.body);
 }
