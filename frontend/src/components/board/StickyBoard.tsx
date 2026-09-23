@@ -1112,7 +1112,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         offsetY: posY - targetNote.posY,
       });
     } else {
-      // ── Case 2: General Board Sticker (Place directly in Current View center) ──
+      // ── Case 2: General Board Sticker (Place directly in Current View center without scrolling or grid slots) ──
       const container = canvasContainerRef.current;
       if (container) {
         const viewW = container.clientWidth;
@@ -1123,22 +1123,19 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         const centerCanvasX = (container.scrollLeft + viewW / 2) / currentZ;
         const centerCanvasY = (container.scrollTop + viewH / 2) / currentZ;
 
-        // Add subtle random jitter (-20px to +20px) so consecutive stickers don't stack exactly pixel-for-pixel
-        const jitterX = Math.round((Math.random() - 0.5) * 40);
-        const jitterY = Math.round((Math.random() - 0.5) * 40);
+        // Add subtle random jitter (-15px to +15px) so consecutive stickers don't stack directly on top of each other
+        const jitterX = Math.round((Math.random() - 0.5) * 30);
+        const jitterY = Math.round((Math.random() - 0.5) * 30);
 
         posX = Math.round(centerCanvasX - stickerWidth / 2 + jitterX);
         posY = Math.round(centerCanvasY - stickerHeight / 2 + jitterY);
 
-        // Keep inside board boundaries
-        const maxCanvasW = (parseInt(dynamicCanvasSize.minWidth) || 2200) - stickerWidth - 16;
-        const maxCanvasH = (parseInt(dynamicCanvasSize.minHeight) || 1600) - stickerHeight - 16;
-        posX = Math.max(16, Math.min(maxCanvasW, posX));
-        posY = Math.max(16, Math.min(maxCanvasH, posY));
+        // Keep inside board boundaries (never negative coordinates)
+        posX = Math.max(16, posX);
+        posY = Math.max(16, posY);
       } else {
-        const slot = findNextAvailableSlot();
-        posX = slot.x;
-        posY = slot.y;
+        posX = 100;
+        posY = 100;
       }
     }
 
@@ -1163,10 +1160,20 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
 
     if (newNote?.id) {
-      bringToFront(newNote.id);
+      highestZRef.current += 10;
+      const newZ = highestZRef.current;
+      setNoteZIndices((prev) => ({ ...prev, [newNote.id]: newZ }));
+
       setFocusedNoteId(newNote.id);
       setHighlightedNoteId(newNote.id);
       setStickerTargetNoteId(null);
+
+      // Auto-clear highlight ring after 1.5 seconds
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => {
+        setHighlightedNoteId(null);
+      }, 1500);
+
       toast.success(
         targetNote
           ? `📌 ดูดติดสติกเกอร์กับโน้ต "${targetNote.title || 'ไม่มีชื่อ'}" แล้ว`
@@ -1651,7 +1658,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
             {/* Board Stickers Button */}
             <button
-              onClick={() => setIsStickerModalOpen(true)}
+              onClick={() => {
+                setStickerTargetNoteId(null);
+                setIsStickerModalOpen(true);
+              }}
               className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-amber-200 dark:border-amber-800/60 transition active:scale-95"
               title="แปะสติกเกอร์, ลูกศร, ไอเดีย และสัญลักษณ์ตกแต่งบนกระดาน"
             >
@@ -1740,6 +1750,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     onBringToFront={() => handleNoteFocus(note.id)}
                     customZIndex={noteZIndices[note.id]}
                     isFocused={focusedNoteId === note.id}
+                    isHighlighted={highlightedNoteId === note.id}
                     onZoomToSticker={handleZoomToSticker}
                   />
                 ) : (

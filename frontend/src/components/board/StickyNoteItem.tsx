@@ -281,12 +281,22 @@ export default function StickyNoteItem({
     x: note.posX ?? 80 + (index % 5) * 280,
     y: note.posY ?? 80 + Math.floor(index / 5) * 320,
   });
+  const posRef = useRef(pos);
 
   // Size state (customizable width & height, remembered in DB)
   const [size, setSize] = useState({
     width: note.width ?? 260,
     height: note.height ?? 260,
   });
+  const sizeRef = useRef(size);
+
+  useEffect(() => {
+    posRef.current = pos;
+  }, [pos]);
+
+  useEffect(() => {
+    sizeRef.current = size;
+  }, [size]);
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -457,8 +467,8 @@ export default function StickyNoteItem({
     const canvas = document.getElementById('sticky-board-canvas');
     const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
     setDragOffset({
-      x: (clientX - canvasRect.left) / zoom - pos.x,
-      y: (clientY - canvasRect.top) / zoom - pos.y,
+      x: (clientX - canvasRect.left) / zoom - posRef.current.x,
+      y: (clientY - canvasRect.top) / zoom - posRef.current.y,
     });
     return true;
   };
@@ -475,8 +485,23 @@ export default function StickyNoteItem({
   // Drag start handler - Mobile/Tablet Touch tracking
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return;
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('a') ||
+      target.closest('.no-drag')
+    ) {
+      return;
+    }
+    // Prevent touch event from bubbling to canvas pinch-zoom or canvas pan
+    e.stopPropagation();
     const touch = e.touches[0];
-    initDrag(touch.clientX, touch.clientY, e.target as HTMLElement);
+    const started = initDrag(touch.clientX, touch.clientY, target);
+    if (started && e.cancelable) {
+      e.preventDefault();
+    }
   };
 
   // Start multi-directional resize (Mouse)
@@ -487,10 +512,10 @@ export default function StickyNoteItem({
     setResizeStart({
       clientX: e.clientX,
       clientY: e.clientY,
-      posX: pos.x,
-      posY: pos.y,
-      w: size.width,
-      h: size.height,
+      posX: posRef.current.x,
+      posY: posRef.current.y,
+      w: sizeRef.current.width,
+      h: sizeRef.current.height,
     });
   };
 
@@ -498,15 +523,16 @@ export default function StickyNoteItem({
   const handleResizeTouchStart = (e: React.TouchEvent, dir: ResizeDirection) => {
     if (e.touches.length !== 1) return;
     e.stopPropagation();
+    if (e.cancelable) e.preventDefault();
     const touch = e.touches[0];
     setResizingDir(dir);
     setResizeStart({
       clientX: touch.clientX,
       clientY: touch.clientY,
-      posX: pos.x,
-      posY: pos.y,
-      w: size.width,
-      h: size.height,
+      posX: posRef.current.x,
+      posY: posRef.current.y,
+      w: sizeRef.current.width,
+      h: sizeRef.current.height,
     });
   };
 
@@ -529,7 +555,7 @@ export default function StickyNoteItem({
         const rawX = (clientX - canvasRect.left) / zoom - dragOffset.x;
         const rawY = (clientY - canvasRect.top) / zoom - dragOffset.y;
         
-        // Follow mouse smoothly and fluidly without any left resistance or wall
+        posRef.current = { x: rawX, y: rawY };
         setPos({ x: rawX, y: rawY });
       } else if (resizingDir) {
         const deltaX = (clientX - resizeStart.clientX) / zoom;
@@ -555,8 +581,12 @@ export default function StickyNoteItem({
           newH = Math.max(180, Math.min(900, resizeStart.h + deltaY));
         }
 
-        setSize({ width: Math.round(newW), height: Math.round(newH) });
-        if (newX !== pos.x) {
+        const roundedW = Math.round(newW);
+        const roundedH = Math.round(newH);
+        sizeRef.current = { width: roundedW, height: roundedH };
+        setSize({ width: roundedW, height: roundedH });
+        if (newX !== posRef.current.x) {
+          posRef.current.x = Math.round(newX);
           setPos((prev) => ({ ...prev, x: Math.round(newX) }));
         }
       }
@@ -600,10 +630,8 @@ export default function StickyNoteItem({
       }
       if (isDragging) {
         setIsDragging(false);
-        // Truly freeform positioning across the board, neatly bounded within 7 columns
-        const maxX = 2060 - size.width - 24;
-        const freeX = Math.max(0, Math.min(maxX, Math.round(pos.x)));
-        const freeY = Math.max(0, Math.round(pos.y));
+        const freeX = Math.max(0, Math.round(posRef.current.x));
+        const freeY = Math.max(0, Math.round(posRef.current.y));
 
         setPos({ x: freeX, y: freeY });
         lastSavedPosRef.current = { x: freeX, y: freeY };
@@ -612,10 +640,10 @@ export default function StickyNoteItem({
       if (resizingDir) {
         setResizingDir(null);
         updateNote(note.id, {
-          width: size.width,
-          height: size.height,
-          posX: pos.x,
-          posY: pos.y,
+          width: sizeRef.current.width,
+          height: sizeRef.current.height,
+          posX: posRef.current.x,
+          posY: posRef.current.y,
         });
       }
     };
@@ -638,7 +666,7 @@ export default function StickyNoteItem({
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [isDragging, resizingDir, isRotating, dragOffset, resizeStart, note.id, onDragEnd, pos, size, updateNote]);
+  }, [isDragging, resizingDir, isRotating, dragOffset, resizeStart, zoom, note.id, onDragEnd, updateNote]);
 
   // Save inline text changes on blur
   const handleBlur = () => {
@@ -840,11 +868,11 @@ export default function StickyNoteItem({
           <div
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
-            className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 cursor-grab active:cursor-grabbing group/tape transition-transform hover:scale-105 select-none"
+            className="absolute -top-4 left-1/2 -translate-x-1/2 z-30 cursor-grab active:cursor-grabbing group/tape transition-transform hover:scale-105 select-none p-1"
             style={{ touchAction: 'none' }}
             title="คลิกค้างแล้วลากเพื่อย้ายแผ่นโน้ต (หรือแตะลากบนมือถือ)"
           >
-            <div className="w-28 h-5 bg-white/40 dark:bg-white/20 backdrop-blur-md shadow-xs border border-white/40 -rotate-1 rounded-xs transition group-hover/tape:bg-white/60 dark:group-hover/tape:bg-white/30" />
+            <div className="w-28 sm:w-32 h-5 bg-white/40 dark:bg-white/20 backdrop-blur-md shadow-xs border border-white/40 -rotate-1 rounded-xs transition group-hover/tape:bg-white/60 dark:group-hover/tape:bg-white/30" />
           </div>
         )}
 
@@ -1640,19 +1668,21 @@ export default function StickyNoteItem({
           )}
         </div>
 
-        {/* ── Note Bottom Bar ── */}
+        {/* ── Note Bottom Bar (Dedicated Drag Bar with Grip) ── */}
         <div
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
           style={{ touchAction: 'none' }}
           className="flex items-center justify-between pt-1.5 mt-1 border-t border-black/10 text-[10px] opacity-70 shrink-0 relative cursor-grab active:cursor-grabbing select-none"
         >
-          <div className="flex items-center gap-1 truncate max-w-[140px]">
+          <div className="flex items-center gap-1 truncate max-w-[140px] pointer-events-none">
             {note.notebook && <span>📁 {note.notebook.name}</span>}
             {note.labels && note.labels.length > 0 && (
               <span className="truncate">#{note.labels[0].name}</span>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pointer-events-none">
             <div className="flex items-center text-black/40 hover:text-black/80 transition" title="คลิกหรือแตะลากแผ่นโน้ตเพื่อย้ายตำแหน่ง">
               <GripHorizontal size={14} />
             </div>

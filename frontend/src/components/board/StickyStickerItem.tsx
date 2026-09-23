@@ -18,6 +18,7 @@ interface StickyStickerItemProps {
   onBringToFront?: () => void;
   customZIndex?: number;
   isFocused?: boolean;
+  isHighlighted?: boolean;
   onZoomToSticker?: (note: Note) => void;
 }
 
@@ -30,6 +31,7 @@ export default function StickyStickerItem({
   onBringToFront,
   customZIndex,
   isFocused = false,
+  isHighlighted = false,
   onZoomToSticker,
 }: StickyStickerItemProps) {
   const { updateNote, deleteNote, createNote } = useNoteStore();
@@ -52,12 +54,22 @@ export default function StickyStickerItem({
     x: note.posX ?? 100,
     y: note.posY ?? 100,
   });
+  const posRef = useRef(pos);
 
   // Size state
   const [size, setSize] = useState({
     width: note.width ?? 140,
     height: note.height ?? 140,
   });
+  const sizeRef = useRef(size);
+
+  useEffect(() => {
+    posRef.current = pos;
+  }, [pos]);
+
+  useEffect(() => {
+    sizeRef.current = size;
+  }, [size]);
 
   // Rotation state
   const [rotation, setRotation] = useState<number>(note.rotation ?? 0);
@@ -157,8 +169,8 @@ export default function StickyStickerItem({
     const canvas = document.getElementById('sticky-board-canvas');
     const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
     setDragOffset({
-      x: (clientX - canvasRect.left) / zoom - pos.x,
-      y: (clientY - canvasRect.top) / zoom - pos.y,
+      x: (clientX - canvasRect.left) / zoom - posRef.current.x,
+      y: (clientY - canvasRect.top) / zoom - posRef.current.y,
     });
     return true;
   };
@@ -173,23 +185,40 @@ export default function StickyStickerItem({
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length !== 1) return;
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('.no-drag') ||
+      target.closest('.resize-handle') ||
+      target.closest('.rotate-handle')
+    ) {
+      return;
+    }
+    // Prevent touch from bubbling up to canvas pinch-zoom or canvas panning
+    e.stopPropagation();
     const touch = e.touches[0];
-    initDrag(touch.clientX, touch.clientY, e.target as HTMLElement);
+    const started = initDrag(touch.clientX, touch.clientY, target);
+    if (started && e.cancelable) {
+      e.preventDefault();
+    }
   };
 
   // ── Resizing logic ──
   const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, dir: ResizeDirection) => {
     e.stopPropagation();
+    if ('cancelable' in e && e.cancelable) {
+      e.preventDefault();
+    }
     setResizingDir(dir);
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     setResizeStart({
       clientX,
       clientY,
-      posX: pos.x,
-      posY: pos.y,
-      w: size.width,
-      h: size.height,
+      posX: posRef.current.x,
+      posY: posRef.current.y,
+      w: sizeRef.current.width,
+      h: sizeRef.current.height,
     });
   };
 
@@ -201,6 +230,7 @@ export default function StickyStickerItem({
         const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
         const newX = Math.round((e.clientX - canvasRect.left) / zoom - dragOffset.x);
         const newY = Math.round((e.clientY - canvasRect.top) / zoom - dragOffset.y);
+        posRef.current = { x: newX, y: newY };
         setPos({ x: newX, y: newY });
       } else if (resizingDir) {
         const dx = (e.clientX - resizeStart.clientX) / zoom;
@@ -219,6 +249,7 @@ export default function StickyStickerItem({
           newH = Math.max(50, Math.round(resizeStart.h - dy));
         }
 
+        sizeRef.current = { width: newW, height: newH };
         setSize({ width: newW, height: newH });
       } else if (isRotating) {
         const dy = e.clientY - rotateStartRef.current.startY;
@@ -231,13 +262,18 @@ export default function StickyStickerItem({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging && !resizingDir && !isRotating) return;
       if (e.touches.length !== 1) return;
+      if (e.cancelable) {
+        e.preventDefault();
+      }
       const touch = e.touches[0];
       if (isDragging) {
         const canvas = document.getElementById('sticky-board-canvas');
         const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
         const newX = Math.round((touch.clientX - canvasRect.left) / zoom - dragOffset.x);
         const newY = Math.round((touch.clientY - canvasRect.top) / zoom - dragOffset.y);
+        posRef.current = { x: newX, y: newY };
         setPos({ x: newX, y: newY });
       } else if (resizingDir) {
         const dx = (touch.clientX - resizeStart.clientX) / zoom;
@@ -248,18 +284,30 @@ export default function StickyStickerItem({
           newW = Math.max(50, Math.round(resizeStart.w + dx));
           newH = Math.max(50, Math.round(resizeStart.h + dy));
         }
+        sizeRef.current = { width: newW, height: newH };
         setSize({ width: newW, height: newH });
+      } else if (isRotating) {
+        const dy = touch.clientY - rotateStartRef.current.startY;
+        let nextAngle = Math.round((rotateStartRef.current.startRotation + dy * 0.8) % 360);
+        if (nextAngle > 180) nextAngle -= 360;
+        if (nextAngle < -180) nextAngle += 360;
+        currentRotationRef.current = nextAngle;
+        setRotation(nextAngle);
       }
     };
 
     const handleEnd = () => {
       if (isDragging) {
         setIsDragging(false);
-        onDragEnd(note.id, pos.x, pos.y);
+        const finalX = posRef.current.x;
+        const finalY = posRef.current.y;
+        const currentW = sizeRef.current.width;
+        const currentH = sizeRef.current.height;
+        onDragEnd(note.id, finalX, finalY);
 
         // ── Sticky Magnet / Grouping Snap Check ──
-        const stickerCenterX = pos.x + size.width / 2;
-        const stickerCenterY = pos.y + size.height / 2;
+        const stickerCenterX = finalX + currentW / 2;
+        const stickerCenterY = finalY + currentH / 2;
 
         let bestNote: Note | null = null;
         let minDistance = Infinity;
@@ -286,8 +334,8 @@ export default function StickyStickerItem({
         }
 
         if (bestNote && bestNote.posX != null && bestNote.posY != null) {
-          const offsetX = pos.x - bestNote.posX;
-          const offsetY = pos.y - bestNote.posY;
+          const offsetX = finalX - bestNote.posX;
+          const offsetY = finalY - bestNote.posY;
           updateNote(note.id, {
             content: encodeStickerContent(stickerUrl, {
               attachedToNoteId: bestNote.id,
@@ -314,7 +362,7 @@ export default function StickyStickerItem({
       }
       if (resizingDir) {
         setResizingDir(null);
-        updateNote(note.id, { width: size.width, height: size.height });
+        updateNote(note.id, { width: sizeRef.current.width, height: sizeRef.current.height });
       }
       if (isRotating) {
         setIsRotating(false);
@@ -327,6 +375,7 @@ export default function StickyStickerItem({
       window.addEventListener('mouseup', handleEnd);
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
+      window.addEventListener('touchcancel', handleEnd);
     }
 
     return () => {
@@ -334,15 +383,14 @@ export default function StickyStickerItem({
       window.removeEventListener('mouseup', handleEnd);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener('touchcancel', handleEnd);
     };
   }, [
     isDragging,
     resizingDir,
     isRotating,
     dragOffset,
-    pos,
     resizeStart,
-    size,
     zoom,
     note.id,
     onDragEnd,
@@ -445,6 +493,7 @@ export default function StickyStickerItem({
           top: `${pos.y}px`,
           width: `${size.width}px`,
           height: `${size.height}px`,
+          touchAction: 'none',
           transform: isDragging
             ? `scale(1.05) rotate(${rotation}deg)`
             : `rotate(${rotation}deg)`,
@@ -453,6 +502,8 @@ export default function StickyStickerItem({
               ? 9999
               : customZIndex !== undefined
               ? customZIndex
+              : isHighlighted
+              ? 999
               : 25,
           transition: isDragging || resizingDir || isRotating ? 'none' : 'transform 0.15s ease-out',
         }}
@@ -544,20 +595,30 @@ export default function StickyStickerItem({
         </div>
 
         {/* ── Sticker Image Content (Transparent, High Res, Drop-Shadow) ── */}
-        <div className="w-full h-full flex items-center justify-center relative pointer-events-auto">
+        <div
+          className="w-full h-full flex items-center justify-center relative pointer-events-auto select-none"
+          style={{ touchAction: 'none' }}
+        >
+          {/* Active hit surface covering transparent SVG gaps for reliable finger and mouse dragging */}
+          <div
+            className="absolute inset-0 bg-transparent cursor-grab active:cursor-grabbing pointer-events-auto"
+            style={{ touchAction: 'none' }}
+          />
           <img
             src={stickerUrl}
             alt={note.title || 'Sticker'}
             draggable={false}
-            className="w-full h-full object-contain drop-shadow-md group-hover/sticker:drop-shadow-xl transition-all duration-150 pointer-events-none"
+            className="w-full h-full object-contain drop-shadow-md group-hover/sticker:drop-shadow-xl transition-all duration-150 pointer-events-none select-none"
           />
 
-          {/* Selection / Focus Border */}
+          {/* Selection / Focus Border / Highlight Spawn Ring */}
           <div
-            className={`absolute inset-0 rounded-xl pointer-events-none transition-opacity ${
-              isFocused
-                ? 'ring-2 ring-indigo-500/60 ring-offset-2'
-                : 'group-hover/sticker:ring-1 group-hover/sticker:ring-indigo-400/40'
+            className={`absolute inset-0 rounded-2xl pointer-events-none transition-all duration-300 ${
+              isHighlighted
+                ? 'ring-4 ring-amber-400 dark:ring-amber-300 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-2xl opacity-100 animate-pulse'
+                : isFocused
+                ? 'ring-2 ring-indigo-500/60 ring-offset-2 opacity-100'
+                : 'group-hover/sticker:ring-1 group-hover/sticker:ring-indigo-400/40 opacity-0 group-hover/sticker:opacity-100'
             }`}
           />
         </div>
@@ -567,12 +628,12 @@ export default function StickyStickerItem({
           onMouseDown={(e) => handleResizeStart(e, 'bottom-right')}
           onTouchStart={(e) => handleResizeStart(e, 'bottom-right')}
           style={{ touchAction: 'none' }}
-          className={`resize-handle no-drag absolute -bottom-2 -right-2 w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-md cursor-se-resize flex items-center justify-center transition-transform hover:scale-125 z-30 ${
+          className={`resize-handle no-drag absolute -bottom-3 -right-3 w-7 h-7 rounded-full bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-md cursor-se-resize flex items-center justify-center transition-transform hover:scale-125 z-30 ${
             isFocused ? 'opacity-100' : 'opacity-0 group-hover/sticker:opacity-100'
           }`}
           title="คลิกลากเพื่อย่อ-ขยายขนาดสติกเกอร์"
         >
-          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+          <div className="w-2 h-2 rounded-full bg-indigo-500" />
         </div>
 
         {/* ── Top-Right Free Rotation Handle ── */}
@@ -586,13 +647,23 @@ export default function StickyStickerItem({
               startRotation: currentRotationRef.current,
             };
           }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+            if (e.cancelable) e.preventDefault();
+            if (e.touches.length !== 1) return;
+            setIsRotating(true);
+            rotateStartRef.current = {
+              startY: e.touches[0].clientY,
+              startRotation: currentRotationRef.current,
+            };
+          }}
           style={{ touchAction: 'none' }}
-          className={`rotate-handle no-drag absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white dark:bg-slate-800 border-2 border-amber-500 shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center transition-transform hover:scale-125 z-30 ${
+          className={`rotate-handle no-drag absolute -top-3 -right-3 w-7 h-7 rounded-full bg-white dark:bg-slate-800 border-2 border-amber-500 shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center transition-transform hover:scale-125 z-30 ${
             isFocused ? 'opacity-100' : 'opacity-0 group-hover/sticker:opacity-100'
           }`}
           title="คลิกค้างแล้วลากเมาส์ขึ้น-ลงเพื่อหมุนองศาแบบละเอียด"
         >
-          <RotateCw size={10} className="text-amber-600 dark:text-amber-400" />
+          <RotateCw size={13} className="text-amber-600 dark:text-amber-400" />
         </div>
       </div>
 
