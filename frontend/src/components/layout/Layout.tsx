@@ -4,6 +4,7 @@ import { Menu, Search, Plus, Grid, List, Columns, ShieldAlert, PanelLeft, PanelL
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import BackupModal from '../modals/BackupModal';
+import NotificationCenter from '../notifications/NotificationCenter';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
 import toast from 'react-hot-toast';
@@ -299,6 +300,9 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               <Database size={15} className="text-indigo-600 dark:text-indigo-400" />
               <span className="hidden sm:inline">สำรองข้อมูล</span>
             </button>
+
+            {/* Notification Center */}
+            <NotificationCenter />
 
             {/* Quick New Note - Desktop only (Mobile has bottom-right FAB) */}
             {!(router.pathname === '/board' || viewMode === 'board') && (

@@ -8,6 +8,7 @@ import '@/styles/globals.css';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { stopGlobalSpeechToText } from '@/components/notes/SpeechToTextButton';
+import { registerServiceWorker } from '@/utils/webPush';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,6 +21,10 @@ const queryClient = new QueryClient({
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   useEffect(() => {
     const handleRouteChange = () => {

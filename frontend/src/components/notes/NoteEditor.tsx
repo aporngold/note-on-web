@@ -35,6 +35,7 @@ import {
   LayoutGrid,
   MoreHorizontal,
   Search,
+  Bell,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -70,6 +71,8 @@ import AIAssistantModal from './AIAssistantModal';
 import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
 import SpeechToTextButton, { stopGlobalSpeechToText } from './SpeechToTextButton';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
+import NoteReminderModal from './NoteReminderModal';
+import { useReminderStore } from '@/store/reminderStore';
 
 export const PASTEL_NOTE_COLORS = [
   '#FEF08A', // Yellow (Classic)
@@ -138,6 +141,9 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
   const tagDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  const { currentNoteReminder, fetchReminderByNote, remindersByNote } = useReminderStore();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -353,10 +359,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     };
   }, [initialNoteId, isVaultUnlocked, router, editor]);
 
-  // Ensure notes are fetched so slot calculation accurately avoids any collision
   useEffect(() => {
     fetchNotes({ isArchived: false });
   }, [fetchNotes]);
+
+  useEffect(() => {
+    const targetId = initialNoteId || noteIdRef.current;
+    if (targetId) {
+      fetchReminderByNote(targetId);
+    }
+  }, [initialNoteId, fetchReminderByNote]);
 
   // Clean up any active speech recognition when leaving or unmounting the note editor
   useEffect(() => {
@@ -1016,6 +1028,36 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             <Search size={18} />
           </button>
 
+          {/* Quick Reminder button */}
+          <button
+            type="button"
+            onClick={async () => {
+              const targetId = initialNoteId || noteIdRef.current;
+              if (!targetId) {
+                await handleSave(false);
+              }
+              const activeId = initialNoteId || noteIdRef.current;
+              if (activeId) {
+                await fetchReminderByNote(activeId);
+                setIsReminderModalOpen(true);
+              } else {
+                toast.error('กรุณาบันทึกโน้ตก่อนตั้งเวลาแจ้งเตือน');
+              }
+            }}
+            className={`p-2 rounded-xl transition relative ${
+              (initialNoteId || noteIdRef.current) && remindersByNote[initialNoteId || noteIdRef.current || '']
+                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+            title="ตั้งเวลาแจ้งเตือน (Reminder)"
+            aria-label="ตั้งเวลาแจ้งเตือน"
+          >
+            <Bell size={18} className={(initialNoteId || noteIdRef.current) && remindersByNote[initialNoteId || noteIdRef.current || ''] ? 'fill-current animate-pulse' : ''} />
+            {(initialNoteId || noteIdRef.current) && remindersByNote[initialNoteId || noteIdRef.current || ''] && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
+            )}
+          </button>
+
           {/* Quick Save (Icon-only) */}
           <button
             type="button"
@@ -1324,6 +1366,20 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
             onShare={initialNoteId ? () => setIsShareModalOpen(true) : undefined}
             onDelete={initialNoteId ? handleDelete : undefined}
             onOpenFullscreen={handleOpenFullscreen}
+            onOpenReminder={async () => {
+              const targetId = initialNoteId || noteIdRef.current;
+              if (!targetId) {
+                await handleSave(false);
+              }
+              const activeId = initialNoteId || noteIdRef.current;
+              if (activeId) {
+                await fetchReminderByNote(activeId);
+                setIsReminderModalOpen(true);
+              } else {
+                toast.error('กรุณาบันทึกโน้ตก่อนตั้งเวลาแจ้งเตือน');
+              }
+            }}
+            hasReminder={Boolean((initialNoteId || noteIdRef.current) && remindersByNote[initialNoteId || noteIdRef.current || ''])}
             hideTopSaveCancel={true}
             onCopyNote={() => {
               const fullText = `${title}\n\n${editor ? editor.getText() : stripHtmlTags(content)}`;
@@ -1633,6 +1689,16 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         }}
       />
 
+      {/* Note Reminder Modal */}
+      {(initialNoteId || noteIdRef.current) && (
+        <NoteReminderModal
+          isOpen={isReminderModalOpen}
+          onClose={() => setIsReminderModalOpen(false)}
+          noteId={initialNoteId || noteIdRef.current || ''}
+          noteTitle={title}
+        />
+      )}
+
       {/* Mobile More Options Bottom Sheet (GEMINI.md STEP 3) */}
       <BottomSheet
         isOpen={isMobileMoreOpen}
@@ -1830,6 +1896,36 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 <span>ปักหมุดไว้บนสุด (Pin)</span>
               </div>
               {isPinned && <Check size={18} className="text-indigo-600" />}
+            </button>
+
+            {/* Reminder Setting */}
+            <button
+              type="button"
+              onClick={async () => {
+                setIsMobileMoreOpen(false);
+                const targetId = initialNoteId || noteIdRef.current;
+                if (!targetId) {
+                  await handleSave(false);
+                }
+                const activeId = initialNoteId || noteIdRef.current;
+                if (activeId) {
+                  await fetchReminderByNote(activeId);
+                  setIsReminderModalOpen(true);
+                } else {
+                  toast.error('กรุณาบันทึกโน้ตก่อนตั้งเวลาแจ้งเตือน');
+                }
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-semibold transition"
+            >
+              <div className="flex items-center gap-3">
+                <Bell size={18} className={(initialNoteId || noteIdRef.current) && remindersByNote[initialNoteId || noteIdRef.current || ''] ? 'text-amber-500 fill-amber-500' : 'text-slate-400'} />
+                <span>ตั้งเวลาแจ้งเตือน (Reminder)</span>
+              </div>
+              {(initialNoteId || noteIdRef.current) && remindersByNote[initialNoteId || noteIdRef.current || ''] && (
+                <span className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full">
+                  มีเตือน
+                </span>
+              )}
             </button>
 
             {/* Favorite */}

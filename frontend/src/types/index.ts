@@ -169,3 +169,43 @@ export type SortOption =
   | 'created_asc'
   | 'title_asc'
   | 'title_desc';
+
+export interface Reminder {
+  id: string;
+  userId: string;
+  noteId: string;
+  title?: string | null;
+  reminderDateTime: string;
+  timezone: string;
+  repeatRule: 'none' | 'daily' | 'weekly' | 'monthly';
+  status: 'scheduled' | 'processing' | 'sent' | 'cancelled' | 'failed';
+  sentAt?: string | null;
+  cancelledAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  note?: {
+    id: string;
+    title: string | null;
+    color: string;
+    isArchived: boolean;
+    isLocked: boolean;
+  };
+}
+
+export interface InAppNotification {
+  id: string;
+  userId: string;
+  noteId?: string | null;
+  reminderId?: string | null;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  note?: {
+    id: string;
+    title: string | null;
+    color: string;
+    isArchived: boolean;
+    isLocked: boolean;
+  };
+}

@@ -32,6 +32,9 @@ model User {
   sharesReceived SharedNote[]
   passkeys      Passkey[]
   auditLogs     AuditLog[]
+  reminders     Reminder[]
+  notifications Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Note {
@@ -72,6 +75,8 @@ model Note {
   versions      NoteVersion[]
   outgoingLinks NoteConnection[] @relation("SourceNote")
   incomingLinks NoteConnection[] @relation("TargetNote")
+  reminders     Reminder[]
+  notifications Notification[]
 }
 
 model Board {
@@ -232,5 +237,58 @@ model BackupRecord {
   triggerBy String   @default("SYSTEM")
   note      String?
   createdAt DateTime @default(now())
+}
+
+model Reminder {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noteId           String
+  note             Note         @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  title            String?
+  reminderDateTime DateTime
+  timezone         String       @default("Asia/Bangkok")
+  repeatRule       String       @default("none") // 'none' | 'daily' | 'weekly' | 'monthly'
+  status           String       @default("scheduled") // 'scheduled' | 'processing' | 'sent' | 'cancelled' | 'failed'
+  sentAt           DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  notifications    Notification[]
+
+  @@index([userId, status, reminderDateTime])
+  @@index([noteId])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  noteId      String?
+  note        Note?     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  reminderId  String?
+  reminder    Reminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  title       String
+  message     String
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, isRead])
+}
+
+model PushSubscription {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint    String    @unique
+  p256dh      String
+  auth        String
+  userAgent   String?
+  deviceType  String?
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+
+  @@index([userId])
 }
 

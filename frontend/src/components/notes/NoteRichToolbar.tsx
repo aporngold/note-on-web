@@ -59,6 +59,7 @@ import {
   Eye,
   Save,
   Smile,
+  Bell,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
@@ -152,6 +153,8 @@ interface NoteRichToolbarProps {
   onFontFamilyChange?: (fontId: string) => void;
   fontSize?: string;
   onFontSizeChange?: (size: string) => void;
+  onOpenReminder?: () => void;
+  hasReminder?: boolean;
 }
 
 export default function NoteRichToolbar({
@@ -203,6 +206,8 @@ export default function NoteRichToolbar({
   onOpenFullscreen,
   extraRightActions,
   hideTopSaveCancel = false,
+  onOpenReminder,
+  hasReminder = false,
 }: NoteRichToolbarProps) {
   // Dropdown states
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -1020,6 +1025,26 @@ export default function NoteRichToolbar({
               aria-label="รายการโปรด"
             >
               <Star size={16} className={isFavorite ? 'fill-current' : ''} />
+            </button>
+          )}
+
+          {/* Reminder / ตั้งเวลาแจ้งเตือน */}
+          {onOpenReminder && (
+            <button
+              type="button"
+              onClick={onOpenReminder}
+              className={`p-1.5 rounded-lg transition relative ${
+                hasReminder
+                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 ring-1 ring-amber-500/20'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={hasReminder ? 'มีการตั้งเตือนความจำไว้ (คลิกเพื่อแก้ไข/ลบ)' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}
+              aria-label="ตั้งเวลาแจ้งเตือน"
+            >
+              <Bell size={16} className={hasReminder ? 'fill-current animate-pulse' : ''} />
+              {hasReminder && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
+              )}
             </button>
           )}
 
@@ -2844,6 +2869,21 @@ export default function NoteRichToolbar({
               >
                 <ScanText size={13} />
                 <span>สแกน OCR จากภาพ</span>
+              </button>
+            )}
+            {onOpenReminder && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenReminder();
+                  setIsMoreMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 ${
+                  hasReminder ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''
+                }`}
+              >
+                <Bell size={13} className={hasReminder ? 'fill-current' : ''} />
+                <span>{hasReminder ? 'แก้ไขการแจ้งเตือน' : 'ตั้งเวลาแจ้งเตือน'}</span>
               </button>
             )}
             <button

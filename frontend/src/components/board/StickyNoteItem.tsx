@@ -24,6 +24,7 @@ import {
   Volume2,
   Share2,
   Sparkles,
+  Bell,
 } from 'lucide-react';
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
@@ -34,6 +35,8 @@ import ViewportPopover from '../ui/ViewportPopover';
 import ViewportContextMenu from '../ui/ViewportContextMenu';
 import ShareNoteModal from '../notes/ShareNoteModal';
 import { FONT_PRESETS } from '../notes/editorExtensions';
+import NoteReminderModal from '../notes/NoteReminderModal';
+import { useReminderStore } from '@/store/reminderStore';
 
 interface StickyNoteItemProps {
   note: Note;
@@ -270,6 +273,9 @@ export default function StickyNoteItem({
   const fontFamilyBtnRef = useRef<HTMLButtonElement>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
   const kanbanBtnRef = useRef<HTMLButtonElement>(null);
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
+  const hasReminder = Boolean(remindersByNote[note.id]);
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
     isOpen: false,
     x: 0,
@@ -990,6 +996,27 @@ export default function StickyNoteItem({
               title={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
             >
               <Star size={12} className={note.isFavorite ? 'fill-current' : ''} />
+            </button>
+
+            {/* Reminder toggle */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReminderOpen(true);
+              }}
+              className={`p-1 rounded hover:bg-black/10 transition cursor-pointer relative flex items-center justify-center ${
+                hasReminder
+                  ? 'text-amber-600 bg-amber-500/20 ring-1 ring-amber-500/40 font-bold'
+                  : 'hover:text-amber-600'
+              }`}
+              style={{ color: hasReminder ? undefined : textColor }}
+              title={hasReminder ? 'มีการตั้งเตือนความจำไว้ (คลิกเพื่อแก้ไข/ลบ)' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}
+            >
+              <Bell size={12} className={hasReminder ? 'fill-current animate-pulse' : ''} />
+              {hasReminder && (
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-amber-500" />
+              )}
             </button>
 
             {/* Connect Note button */}
@@ -1812,6 +1839,17 @@ export default function StickyNoteItem({
             <Star size={13} className={note.isFavorite ? 'fill-current text-amber-500' : 'text-slate-400'} />
             <span>{note.isFavorite ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด'}</span>
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setContextMenu({ isOpen: false, x: 0, y: 0 });
+              setIsReminderOpen(true);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition"
+          >
+            <Bell size={13} className={hasReminder ? 'fill-current text-amber-500' : 'text-slate-400'} />
+            <span>{hasReminder ? 'แก้ไขการแจ้งเตือน' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}</span>
+          </button>
           {onOpenStickerModal && (
             <button
               type="button"
@@ -1889,6 +1927,14 @@ export default function StickyNoteItem({
         noteId={note.id}
         noteTitle={note.title || title}
         isLocked={note.isLocked}
+      />
+
+      {/* Note Reminder Modal */}
+      <NoteReminderModal
+        isOpen={isReminderOpen}
+        onClose={() => setIsReminderOpen(false)}
+        noteId={note.id}
+        noteTitle={note.title || title}
       />
     </>
   );

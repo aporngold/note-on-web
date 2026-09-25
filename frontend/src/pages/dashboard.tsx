@@ -15,10 +15,12 @@ import { useAuthStore } from '@/store/authStore';
 import { Note } from '@/types';
 import { sortNotes } from '@/utils/sortHelper';
 import { isStickerNote } from '@/components/board/stickerData';
+import { useReminderStore } from '@/store/reminderStore';
 
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { fetchReminders } = useReminderStore();
   const {
     notes,
     boards,
@@ -56,8 +58,9 @@ export default function Dashboard() {
     if (user) {
       fetchNotes({ isArchived: false });
       fetchBoards();
+      fetchReminders();
     }
-  }, [user, selectedNotebook, selectedLabel, selectedColor, fetchNotes, fetchBoards]);
+  }, [user, selectedNotebook, selectedLabel, selectedColor, fetchNotes, fetchBoards, fetchReminders]);
 
   // Client-side search, tab filtering, and auto-sorting
   const filteredNotes = React.useMemo(() => {

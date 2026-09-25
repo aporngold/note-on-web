@@ -55,6 +55,8 @@ import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
 import ViewportPortal from '../ui/ViewportPortal';
 import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
 import { stopGlobalSpeechToText } from './SpeechToTextButton';
+import NoteReminderModal from './NoteReminderModal';
+import { useReminderStore } from '@/store/reminderStore';
 
 interface FullscreenNoteModalProps {
   note: Note | null;
@@ -118,6 +120,15 @@ export default function FullscreenNoteModal({
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isVersionDrawerOpen, setIsVersionDrawerOpen] = useState(false);
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
+  const fetchReminderByNote = useReminderStore((state) => state.fetchReminderByNote);
+
+  useEffect(() => {
+    if (isOpen && note?.id) {
+      fetchReminderByNote(note.id);
+    }
+  }, [isOpen, note?.id, fetchReminderByNote]);
   const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -591,6 +602,8 @@ export default function FullscreenNoteModal({
               onZoomChange={(z) => setZoomLevel(z)}
               onRecordAudio={() => setIsAudioModalOpen(true)}
               onAttachFile={() => fileInputRef.current?.click()}
+              onOpenReminder={() => setIsReminderOpen(true)}
+              hasReminder={Boolean(note?.id && remindersByNote[note.id])}
               attachmentsCount={attachments.length}
               onCopyNote={handleCopyNote}
               onDownloadTxt={handleDownloadTxt}
@@ -947,6 +960,16 @@ export default function FullscreenNoteModal({
           }
         }}
       />
+
+      {/* Note Reminder Modal */}
+      {note && (
+        <NoteReminderModal
+          isOpen={isReminderOpen}
+          onClose={() => setIsReminderOpen(false)}
+          noteId={note.id}
+          noteTitle={note.title || title}
+        />
+      )}
       </div>
     </ViewportPortal>
   );

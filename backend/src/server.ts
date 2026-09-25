@@ -17,6 +17,9 @@ import versionRoutes from './routes/versionRoutes';
 import shareRoutes from './routes/shareRoutes';
 import aiRoutes from './routes/aiRoutes';
 import adminRoutes from './routes/adminRoutes';
+import reminderRoutes from './routes/reminderRoutes';
+import notificationRoutes from './routes/notificationRoutes';
+import { initReminderScheduler, setSchedulerSocketIO } from './services/reminderScheduler';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -132,6 +135,8 @@ app.use('/api/boards', boardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reminders', reminderRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
 const notePresenceMap = new Map<string, Map<string, { userId: string; username: string; color?: string }>>();
@@ -142,6 +147,12 @@ const PRESENCE_COLORS = [
 
 // Socket.io for real-time collaboration / live notes sync
 io.on('connection', (socket) => {
+  socket.on('join-user', (userId: string) => {
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
+  });
+
   socket.on('join-note', (data: string | { noteId: string; userId?: string; username?: string }) => {
     const noteId = typeof data === 'string' ? data : data.noteId;
     const userId = typeof data === 'object' ? data.userId : undefined;
@@ -229,6 +240,10 @@ const protocol = isHttpsEnabled ? 'https' : 'http';
 serverInstance.listen(PORT, () => {
   console.log(`🚀 SecureNote API Server running on ${protocol}://localhost:${PORT}`);
   console.log(`📡 Health check: ${protocol}://localhost:${PORT}/health`);
+
+  // Initialize reminder scheduler with socket.io
+  setSchedulerSocketIO(io);
+  initReminderScheduler();
 });
 
 export { app, serverInstance, serverInstance as httpServer, io };
