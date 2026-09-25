@@ -16,6 +16,7 @@ router.get('/stats', AdminController.getStats);
 router.get('/users', AdminController.getUsers);
 router.get('/users/:id', AdminController.getUserDetail);
 router.put('/users/:id/role', requireSuperAdmin, AdminController.updateUserRole);
+router.delete('/users/:id', requireSuperAdmin, AdminController.deleteUser);
 
 // 3. สถิติโน้ตและกระดาน (Notes & Boards Stats)
 router.get('/notes/stats', AdminController.getNotesStats);

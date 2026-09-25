@@ -156,6 +156,12 @@ export const adminService = {
     return res.data;
   },
 
+  // 3.1 ลบบัญชีผู้ใช้ถาวร (เฉพาะ SUPER_ADMIN)
+  async deleteUser(userId: string): Promise<{ success: boolean; message: string }> {
+    const res = await api.delete(`/admin/users/${userId}`);
+    return res.data;
+  },
+
   // 4. สถิติโน้ต
   async getNotesStats(): Promise<{
     totalNotes: number;

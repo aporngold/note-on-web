@@ -771,4 +771,64 @@ export class AdminController {
       return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการกู้คืนฐานข้อมูล' });
     }
   }
+
+  /**
+   * 13. DELETE /api/admin/users/:id
+   * ลบบัญชีผู้ใช้ถาวร (เฉพาะ SUPER_ADMIN เท่านั้น พร้อมมาตรการความปลอดภัยและ Cascade Delete)
+   */
+  static async deleteUser(req: AuthRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      if (req.user?.id === id) {
+        return res.status(400).json({
+          error: 'ไม่สามารถลบบัญชีตนเองได้ เพื่อความปลอดภัยของระบบ',
+        });
+      }
+
+      const targetUser = await prisma.user.findUnique({
+        where: { id },
+        select: { id: true, email: true, username: true, role: true },
+      });
+
+      if (!targetUser) {
+        return res.status(404).json({ error: 'ไม่พบบัญชีผู้ใช้ที่ต้องการลบ' });
+      }
+
+      // ตรวจสอบหากเป้าหมายเป็น SUPER_ADMIN ต้องมี SUPER_ADMIN คนอื่นเหลืออยู่อย่างน้อย 1 คน
+      if (targetUser.role === 'SUPER_ADMIN') {
+        const superAdminCount = await prisma.user.count({
+          where: { role: 'SUPER_ADMIN' },
+        });
+        if (superAdminCount <= 1) {
+          return res.status(400).json({
+            error: 'ไม่สามารถลบได้ เนื่องจากต้องมี Super Admin ในระบบอย่างน้อย 1 คน',
+          });
+        }
+      }
+
+      // ลบผู้ใช้ (Prisma จะทำการ Cascade ลบ Note, Board, Session, Passkey อัตโนมัติ)
+      await prisma.user.delete({ where: { id } });
+
+      // บันทึกประวัติลง AuditLog
+      await prisma.auditLog.create({
+        data: {
+          adminId: req.user!.id,
+          action: 'DELETE_USER',
+          target: targetUser.email,
+          details: `ลบบัญชีผู้ใช้ ${targetUser.username} (${targetUser.email}) สิทธิ์เดิม: ${targetUser.role}`,
+          ipAddress: (req.ip || req.socket.remoteAddress || 'unknown').slice(0, 45),
+          result: 'SUCCESS',
+        },
+      });
+
+      return res.json({
+        success: true,
+        message: `ลบบัญชีผู้ใช้ ${targetUser.username} (${targetUser.email}) สำเร็จเรียบร้อย`,
+      });
+    } catch (error: any) {
+      console.error('Admin deleteUser error:', error);
+      return res.status(500).json({ error: 'ไม่สามารถลบบัญชีผู้ใช้ได้' });
+    }
+  }
 }
