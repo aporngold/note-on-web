@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Loader2, ShieldCheck, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { useAuthStore } from '@/store/authStore';
 
@@ -51,7 +51,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!router.isReady) return;
-    if (router.query.error === 'google_oauth_not_configured') {
+    if (router.query.error === 'not_gmail') {
+      toast.error('NoteAll รองรับการสมัครด้วย Gmail เท่านั้น');
+    } else if (router.query.error === 'google_not_verified') {
+      toast.error('ไม่สามารถยืนยันบัญชี Google ได้ กรุณาลองใหม่อีกครั้ง');
+    } else if (router.query.error === 'account_already_exists') {
+      toast.error('อีเมลนี้มีบัญชี NoteAll อยู่แล้ว กรุณาเข้าสู่ระบบ');
+    } else if (router.query.error === 'google_oauth_not_configured') {
       toast.error('ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID และ GOOGLE_CLIENT_SECRET ในระบบ');
     } else if (router.query.error === 'authorization_denied') {
       toast('ยกเลิกการเข้าสู่ระบบด้วย Google แล้ว', { icon: 'ℹ️' });
@@ -86,11 +92,15 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-white/70 backdrop-blur-2xl border border-white/50 rounded-3xl shadow-2xl shadow-slate-950/20 space-y-7 animate-fade-in">
         {/* Header Branding */}
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-teal-500 to-sky-500 text-white shadow-xl shadow-teal-500/20 mb-1">
-            <ShieldCheck size={34} />
+          <div className="inline-flex items-center justify-center mb-1">
+            <img
+              src="/NoteAll-icon.png"
+              alt="NoteAll"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md rounded-2xl hover:scale-105 transition-transform"
+            />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-            เข้าสู่ระบบ SecureNote
+            เข้าสู่ระบบ NoteAll
           </h1>
           <p className="text-xs text-slate-500 font-normal">
             ระบบจดบันทึกความปลอดภัยสูง ป้องกันข้อมูลลับของคุณ

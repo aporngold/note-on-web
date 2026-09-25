@@ -11,7 +11,7 @@ interface AuthState {
   hasMasterPassword: boolean;
   masterPasswordSalt: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<void>;
+  register: (data: { registrationToken: string; username: string; password?: string; turnstileToken: string }) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   setupMasterPassword: (password: string) => Promise<{ success: boolean; recoveryKey: string }>;
@@ -42,8 +42,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  register: async (email, username, password) => {
-    const response = await api.post('/auth/register', { email, username, password });
+  register: async (registrationData) => {
+    const response = await api.post('/auth/register', registrationData);
     const { token, user } = response.data;
     localStorage.setItem('secure_note_token', token);
     localStorage.setItem('secure_note_user', JSON.stringify(user));

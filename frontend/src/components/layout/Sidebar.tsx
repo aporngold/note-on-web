@@ -13,7 +13,6 @@ import {
   Sun,
   LogOut,
   ChevronDown,
-  ShieldCheck,
   KeyRound,
   X,
   ChevronLeft,
@@ -97,9 +96,9 @@ export default function Sidebar({
       <aside className="w-16 h-screen flex flex-col justify-between items-center bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 py-4 select-none z-30 transition-all duration-300">
         <div className="flex flex-col items-center gap-4 w-full">
           {/* App Icon / Logo */}
-          <Link href="/dashboard" className="p-1 group" title="SecureNote Dashboard">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition">
-              <ShieldCheck size={20} />
+          <Link href="/dashboard" className="p-1 group" title="NoteAll Dashboard">
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900">
+              <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover" />
             </div>
           </Link>
 
@@ -208,12 +207,12 @@ export default function Sidebar({
         {/* Logo, Collapse Button & Close on mobile */}
         <div className="flex items-center justify-between pt-1 px-3.5">
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition">
-              <ShieldCheck size={22} />
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900">
+              <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight leading-none">
-                SecureNote
+                NoteAll
               </h1>
               <span className="text-[11px] text-slate-400 font-medium">End-to-End Vault</span>
             </div>

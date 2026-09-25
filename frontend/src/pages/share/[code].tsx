@@ -182,11 +182,11 @@ export default function SharedNotePage() {
       {/* Brand Header */}
       <header className="w-full max-w-4xl flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center font-bold text-base shadow-md">
-            🔒
+          <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-md bg-slate-900">
+            <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="font-extrabold text-sm tracking-tight text-slate-800 dark:text-slate-100">SecureNote</h1>
+            <h1 className="font-extrabold text-sm tracking-tight text-slate-800 dark:text-slate-100">NoteAll</h1>
             <p className="text-[10px] text-slate-400">
               {boardData ? 'Shared Board Viewer' : 'Shared Note Reader'}
             </p>
@@ -211,7 +211,7 @@ export default function SharedNotePage() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs transition-all"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">เข้าสู่ระบบ SecureNote</span>
+            <span className="hidden sm:inline">เข้าสู่ระบบ NoteAll</span>
             <span className="sm:hidden">เข้าสู่ระบบ</span>
           </a>
         </div>
@@ -522,7 +522,7 @@ export default function SharedNotePage() {
 
       {/* Footer */}
       <footer className="mt-12 text-center text-[11px] text-slate-400">
-        สร้างและแบ่งปันอย่างปลอดภัยด้วย SecureNote • End-to-End Encrypted Web Notes
+        สร้างและแบ่งปันอย่างปลอดภัยด้วย NoteAll • End-to-End Encrypted Web Notes
       </footer>
     </div>
   );
