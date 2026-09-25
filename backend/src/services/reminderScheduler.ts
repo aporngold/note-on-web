@@ -12,18 +12,27 @@ export function setSchedulerSocketIO(io: SocketIOServer) {
 
 /**
  * Calculate the next reminder time based on the repeat rule
+ * Uses a loop to ensure next occurrence is strictly in the future (safeguard against downtime)
  */
 function calculateNextOccurrence(currentDate: Date, repeatRule: string): Date {
   const next = new Date(currentDate);
+  const now = new Date();
+
   switch (repeatRule) {
     case 'daily':
-      next.setDate(next.getDate() + 1);
+      do {
+        next.setDate(next.getDate() + 1);
+      } while (next <= now);
       break;
     case 'weekly':
-      next.setDate(next.getDate() + 7);
+      do {
+        next.setDate(next.getDate() + 7);
+      } while (next <= now);
       break;
     case 'monthly':
-      next.setMonth(next.getMonth() + 1);
+      do {
+        next.setMonth(next.getMonth() + 1);
+      } while (next <= now);
       break;
     default:
       break;
@@ -121,16 +130,25 @@ export async function processDueReminders() {
         },
       });
 
-      // 5. Emit real-time socket event to active sessions of this user
+      // 5. Action-Based: Pin the note to top when triggered until user attends to it
+      if (reminder.noteId) {
+        await prisma.note.update({
+          where: { id: reminder.noteId },
+          data: { isPinned: true },
+        }).catch((err) => console.error('Error auto-pinning note on reminder trigger:', err));
+      }
+
+      // 6. Emit real-time socket event to active sessions of this user
       if (ioInstance) {
         ioInstance.to(`user:${reminder.userId}`).emit('notification:new', notification);
-        // Also broadcast to global note room if note is being edited
+        // Broadcast note updated (pinned to top) so dashboard updates immediately
         if (reminder.noteId) {
           ioInstance.to(`note:${reminder.noteId}`).emit('notification:new', notification);
+          ioInstance.to(`user:${reminder.userId}`).emit('note:updated', { id: reminder.noteId, isPinned: true });
         }
       }
 
-      // 6. Dispatch Web Push to all devices of the user
+      // 7. Dispatch Web Push to all devices of the user
       await WebPushService.sendPushToUser(reminder.userId, {
         title: notificationTitle,
         body: notificationBody,
