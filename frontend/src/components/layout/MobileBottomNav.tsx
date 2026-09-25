@@ -19,6 +19,7 @@ import {
   LogOut,
   X,
   Check,
+  ShieldCheck,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useNoteStore } from '@/store/noteStore';
@@ -452,6 +453,24 @@ export default function MobileBottomNav() {
               <Database size={18} className="text-indigo-500" />
               <span>สำรองและกู้คืนข้อมูล (Backup)</span>
             </button>
+
+            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+              <button
+                onClick={() => {
+                  setActiveSheet(null);
+                  router.push('/admin');
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-sm font-semibold transition border border-indigo-200/60 dark:border-indigo-800/60"
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck size={18} className="text-indigo-500" />
+                  <span>แผงควบคุมระบบ (Admin)</span>
+                </div>
+                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500">
+                  {user.role}
+                </span>
+              </button>
+            )}
 
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

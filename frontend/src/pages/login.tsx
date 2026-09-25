@@ -6,9 +6,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, Mail, Fingerprint } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
+import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { useAuthStore } from '@/store/authStore';
+import api from '@/utils/api';
 
 const GridBloom = dynamic(() => import('@/components/ui/grid-bloom'), {
   ssr: false,
@@ -25,12 +27,14 @@ export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
   const login = useAuthStore((state) => state.login);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -71,6 +75,47 @@ export default function LoginPage() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     window.location.href = `${apiUrl}/auth/google?origin=${encodeURIComponent(origin)}`;
+  };
+
+  const handlePasskeySignIn = async () => {
+    if (!browserSupportsWebAuthn()) {
+      toast.error('เบราว์เซอร์หรืออุปกรณ์นี้ไม่รองรับระบบ Passkey');
+      return;
+    }
+
+    try {
+      setIsPasskeyLoading(true);
+      const currentEmail = watch('email');
+      
+      // 1. Get options from server
+      const optionsRes = await api.post('/auth/passkey/login-options', {
+        emailOrUsername: currentEmail?.trim() || undefined,
+      });
+
+      // 2. Trigger browser passkey authentication prompt
+      const authResponse = await startAuthentication(optionsRes.data);
+
+      // 3. Send response to server for verification
+      const verifyRes = await api.post('/auth/passkey/login-verify', {
+        response: authResponse,
+      });
+
+      localStorage.setItem('secure_note_token', verifyRes.data.token);
+      localStorage.setItem('secure_note_user', JSON.stringify(verifyRes.data.user));
+      await useAuthStore.getState().checkAuth();
+
+      toast.success(verifyRes.data.message || 'เข้าสู่ระบบด้วย Passkey สำเร็จ!');
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Passkey sign-in error:', err);
+      if (err.name === 'NotAllowedError') {
+        toast('ยกเลิกการสแกน Passkey แล้ว', { icon: 'ℹ️' });
+      } else {
+        toast.error(err.response?.data?.error || err.message || 'การเข้าสู่ระบบด้วย Passkey ไม่สำเร็จ');
+      }
+    } finally {
+      setIsPasskeyLoading(false);
+    }
   };
 
   return (
@@ -188,6 +233,26 @@ export default function LoginPage() {
         >
           <FcGoogle size={20} />
           <span>เข้าสู่ระบบด้วย Google</span>
+        </button>
+
+        {/* Passkey Sign In Button */}
+        <button
+          type="button"
+          onClick={handlePasskeySignIn}
+          disabled={isPasskeyLoading}
+          className="w-full py-2.5 px-4 bg-gradient-to-r from-teal-500/10 to-sky-500/10 hover:from-teal-500/20 hover:to-sky-500/20 text-slate-800 border border-teal-500/30 hover:border-teal-500/50 rounded-xl font-semibold text-sm shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-50"
+        >
+          {isPasskeyLoading ? (
+            <>
+              <Loader2 size={18} className="animate-spin text-teal-600" />
+              <span className="text-teal-700">กำลังตรวจสอบอุปกรณ์ Passkey...</span>
+            </>
+          ) : (
+            <>
+              <Fingerprint size={19} className="text-teal-600" />
+              <span>เข้าสู่ระบบด้วย Passkey (สแกนนิ้ว / Face ID)</span>
+            </>
+          )}
         </button>
 
         {/* Footer info */}

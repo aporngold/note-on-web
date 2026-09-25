@@ -4,6 +4,7 @@ export interface User {
   username: string;
   hasMasterPassword?: boolean;
   masterPasswordSalt?: string | null;
+  role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
   createdAt: string;
 }
 

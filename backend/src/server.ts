@@ -16,6 +16,7 @@ import boardRoutes from './routes/boardRoutes';
 import versionRoutes from './routes/versionRoutes';
 import shareRoutes from './routes/shareRoutes';
 import aiRoutes from './routes/aiRoutes';
+import adminRoutes from './routes/adminRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -130,6 +131,7 @@ app.use('/api/labels', labelRoutes);
 app.use('/api/boards', boardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/connections', connectionRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
 const notePresenceMap = new Map<string, Map<string, { userId: string; username: string; color?: string }>>();

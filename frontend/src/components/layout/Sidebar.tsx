@@ -19,12 +19,15 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  Fingerprint,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
 import NotebookModal from '../modals/NotebookModal';
 import LabelModal from '../modals/LabelModal';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
+import PasskeyModal from '../modals/PasskeyModal';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -59,6 +62,7 @@ export default function Sidebar({
   const [isNotebookModalOpen, setIsNotebookModalOpen] = useState(false);
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -165,6 +169,20 @@ export default function Sidebar({
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
               )}
             </button>
+
+            {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+              <button
+                onClick={() => handleNavClick('/admin')}
+                className={`p-2.5 rounded-xl transition ${
+                  currentPath === '/admin'
+                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="แผงควบคุมระบบ (Admin Dashboard)"
+              >
+                <ShieldCheck size={18} className="text-indigo-500" />
+              </button>
+            )}
           </nav>
         </div>
 
@@ -177,6 +195,15 @@ export default function Sidebar({
             title="สลับโหมดมืด/สว่าง"
           >
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+
+          {/* Passkey Management */}
+          <button
+            onClick={() => setIsPasskeyModalOpen(true)}
+            className="p-2 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-950/30 transition"
+            title="จัดการ Passkey (สแกนนิ้ว/ใบหน้า)"
+          >
+            <Fingerprint size={18} />
           </button>
 
           {/* User Avatar */}
@@ -307,6 +334,29 @@ export default function Sidebar({
               )}
             </div>
           </button>
+
+          {(user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') && (
+            <button
+              onClick={() => handleNavClick('/admin')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                currentPath === '/admin'
+                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold border border-indigo-200 dark:border-indigo-800/60'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <ShieldCheck size={18} className="text-indigo-500 dark:text-indigo-400" />
+                <span>แผงควบคุมระบบ</span>
+              </div>
+              <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
+                user.role === 'SUPER_ADMIN'
+                  ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                  : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'
+              }`}>
+                {user.role === 'SUPER_ADMIN' ? 'SUPER' : 'ADMIN'}
+              </span>
+            </button>
+          )}
         </nav>
 
         {/* Notebooks Section */}
@@ -459,6 +509,15 @@ export default function Sidebar({
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Passkeys Management */}
+            <button
+              onClick={() => setIsPasskeyModalOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 transition"
+              title="จัดการ Passkey (สแกนนิ้ว/ใบหน้า)"
+            >
+              <Fingerprint size={16} />
+            </button>
+
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -492,6 +551,10 @@ export default function Sidebar({
       <MasterPasswordModal
         isOpen={isVaultModalOpen}
         onClose={() => setIsVaultModalOpen(false)}
+      />
+      <PasskeyModal
+        isOpen={isPasskeyModalOpen}
+        onClose={() => setIsPasskeyModalOpen(false)}
       />
     </aside>
   );

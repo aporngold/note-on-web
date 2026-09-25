@@ -285,7 +285,7 @@ export class AuthController {
       return res.status(201).json({
         message: 'สร้างบัญชีสำเร็จ ยินดีต้อนรับสู่ NoteAll!',
         token,
-        user: { id: user.id, email: user.email, username: user.username },
+        user: { id: user.id, email: user.email, username: user.username, role: user.role },
       });
     } catch (error) {
       console.error('Register error:', error);
@@ -345,6 +345,7 @@ export class AuthController {
           id: user.id,
           email: user.email,
           username: user.username,
+          role: user.role,
           hasMasterPassword: user.hasMasterPassword,
           masterPasswordSalt: user.masterPasswordSalt,
         },
@@ -379,6 +380,7 @@ export class AuthController {
           username: true,
           hasMasterPassword: true,
           masterPasswordSalt: true,
+          role: true,
           createdAt: true,
         },
       });
@@ -584,7 +586,7 @@ export class AuthController {
           },
         });
 
-        const userJson = encodeURIComponent(JSON.stringify({ id: user.id, email: user.email, username: user.username }));
+        const userJson = encodeURIComponent(JSON.stringify({ id: user.id, email: user.email, username: user.username, role: user.role }));
         return res.redirect(`${frontendUrl}/auth/callback?token=${token}&user=${userJson}`);
       }
 

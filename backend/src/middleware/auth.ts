@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     username: string;
+    role: string;
   };
 }
 
@@ -35,7 +36,7 @@ export const authenticate = async (
       },
       include: {
         user: {
-          select: { id: true, email: true, username: true }
+          select: { id: true, email: true, username: true, role: true }
         }
       }
     });

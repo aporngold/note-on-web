@@ -13,6 +13,7 @@ model User {
   email         String       @unique
   username      String       @unique
   passwordHash  String?
+  role          String       @default("USER")
   authProvider  String       @default("local")
   googleId      String?      @unique
   publicKey     String?
@@ -29,6 +30,8 @@ model User {
   labels        Label[]
   sessions      Session[]
   sharesReceived SharedNote[]
+  passkeys      Passkey[]
+  auditLogs     AuditLog[]
 }
 
 model Note {
@@ -185,3 +188,49 @@ model NoteVersion {
   userId    String
   createdAt DateTime @default(now())
 }
+
+model Passkey {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
+  publicKey    String    // Base64URL string of public key
+  counter      BigInt    @default(0)
+  deviceType   String?   // 'singleDevice' | 'multiDevice'
+  backedUp     Boolean   @default(false)
+  transports   String?   // JSON string of transports
+  name         String?   // Device nickname e.g. "My Phone", "Windows PC"
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+}
+
+model WebAuthnChallenge {
+  id         String   @id @default(cuid())
+  challenge  String   @unique
+  userId     String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String?
+  admin     User?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  action    String
+  target    String?
+  details   String?
+  ipAddress String?
+  result    String   @default("SUCCESS")
+  createdAt DateTime @default(now())
+}
+
+model BackupRecord {
+  id        String   @id @default(cuid())
+  filename  String   @unique
+  size      Int
+  status    String   @default("SUCCESS")
+  triggerBy String   @default("SYSTEM")
+  note      String?
+  createdAt DateTime @default(now())
+}
+
