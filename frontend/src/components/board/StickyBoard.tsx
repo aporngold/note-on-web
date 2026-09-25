@@ -693,7 +693,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   );
 
   const handleNoteFocus = useCallback(
-    (noteId: string) => {
+    (noteId: string, shouldScroll = false) => {
       bringToFront(noteId);
       setFocusedNoteId(noteId);
       setLastActiveNoteId(noteId);
@@ -705,9 +705,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         setFocusedNoteId(null);
       }, 500);
 
-      const targetNote = notes.find((n) => n.id === noteId);
-      if (targetNote) {
-        ensureNoteInView(targetNote);
+      if (shouldScroll) {
+        const targetNote = notes.find((n) => n.id === noteId);
+        if (targetNote) {
+          ensureNoteInView(targetNote);
+        }
       }
     },
     [bringToFront, notes, ensureNoteInView]

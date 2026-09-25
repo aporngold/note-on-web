@@ -109,6 +109,7 @@ export default function StickyStickerItem({
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
   const [resizingDir, setResizingDir] = useState<ResizeDirection | null>(null);
   const [resizeStart, setResizeStart] = useState({
     clientX: 0,
@@ -168,10 +169,12 @@ export default function StickyStickerItem({
     setIsDragging(true);
     const canvas = document.getElementById('sticky-board-canvas');
     const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-    setDragOffset({
+    const offset = {
       x: (clientX - canvasRect.left) / zoom - posRef.current.x,
       y: (clientY - canvasRect.top) / zoom - posRef.current.y,
-    });
+    };
+    dragOffsetRef.current = offset;
+    setDragOffset(offset);
     return true;
   };
 
@@ -228,8 +231,8 @@ export default function StickyStickerItem({
       if (isDragging) {
         const canvas = document.getElementById('sticky-board-canvas');
         const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-        const newX = Math.round((e.clientX - canvasRect.left) / zoom - dragOffset.x);
-        const newY = Math.round((e.clientY - canvasRect.top) / zoom - dragOffset.y);
+        const newX = Math.round((e.clientX - canvasRect.left) / zoom - dragOffsetRef.current.x);
+        const newY = Math.round((e.clientY - canvasRect.top) / zoom - dragOffsetRef.current.y);
         posRef.current = { x: newX, y: newY };
         setPos({ x: newX, y: newY });
       } else if (resizingDir) {
@@ -271,8 +274,8 @@ export default function StickyStickerItem({
       if (isDragging) {
         const canvas = document.getElementById('sticky-board-canvas');
         const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-        const newX = Math.round((touch.clientX - canvasRect.left) / zoom - dragOffset.x);
-        const newY = Math.round((touch.clientY - canvasRect.top) / zoom - dragOffset.y);
+        const newX = Math.round((touch.clientX - canvasRect.left) / zoom - dragOffsetRef.current.x);
+        const newY = Math.round((touch.clientY - canvasRect.top) / zoom - dragOffsetRef.current.y);
         posRef.current = { x: newX, y: newY };
         setPos({ x: newX, y: newY });
       } else if (resizingDir) {

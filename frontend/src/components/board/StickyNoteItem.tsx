@@ -300,6 +300,7 @@ export default function StickyNoteItem({
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   const [resizingDir, setResizingDir] = useState<ResizeDirection | null>(null);
   const [resizeStart, setResizeStart] = useState({
@@ -359,7 +360,7 @@ export default function StickyNoteItem({
   // Optimistic position tracker: prevents note from bouncing when dragging finishes
   const lastSavedPosRef = useRef<{ x: number; y: number }>({
     x: note.posX ?? 80 + (index % 5) * 280,
-    y: note.posY ?? 125 + Math.floor(index / 5) * 320,
+    y: note.posY ?? 80 + Math.floor(index / 5) * 320,
   });
 
   useEffect(() => {
@@ -466,10 +467,12 @@ export default function StickyNoteItem({
     setIsDragging(true);
     const canvas = document.getElementById('sticky-board-canvas');
     const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-    setDragOffset({
+    const offset = {
       x: (clientX - canvasRect.left) / zoom - posRef.current.x,
       y: (clientY - canvasRect.top) / zoom - posRef.current.y,
-    });
+    };
+    dragOffsetRef.current = offset;
+    setDragOffset(offset);
     return true;
   };
 
@@ -552,8 +555,8 @@ export default function StickyNoteItem({
       } else if (isDragging) {
         const canvas = document.getElementById('sticky-board-canvas');
         const canvasRect = canvas ? canvas.getBoundingClientRect() : { left: 0, top: 0 };
-        const rawX = (clientX - canvasRect.left) / zoom - dragOffset.x;
-        const rawY = (clientY - canvasRect.top) / zoom - dragOffset.y;
+        const rawX = (clientX - canvasRect.left) / zoom - dragOffsetRef.current.x;
+        const rawY = (clientY - canvasRect.top) / zoom - dragOffsetRef.current.y;
         
         posRef.current = { x: rawX, y: rawY };
         setPos({ x: rawX, y: rawY });
@@ -815,7 +818,7 @@ export default function StickyNoteItem({
             : 'box-shadow 0.25s ease-out, transform 0.2s ease-out, opacity 0.25s ease-out',
         }}
         data-note-card="true"
-        className={`sticky-note-item absolute rounded-sm p-3.5 sm:p-4 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 transition-all duration-200 ${
+        className={`sticky-note-item absolute rounded-sm p-3.5 sm:p-4 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 ${
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${
           isHighlighted
