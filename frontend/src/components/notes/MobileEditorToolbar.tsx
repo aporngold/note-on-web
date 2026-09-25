@@ -35,6 +35,7 @@ import {
   ZoomIn,
   ZoomOut,
   Smile,
+  Bell,
 } from 'lucide-react';
 import BottomSheet from '../ui/BottomSheet';
 import toast from 'react-hot-toast';
@@ -73,6 +74,8 @@ interface MobileEditorToolbarProps {
   onFontFamilyChange?: (fontId: string) => void;
   fontSize?: string;
   onFontSizeChange?: (size: string) => void;
+  onOpenReminder?: () => void;
+  hasReminder?: boolean;
 }
 
 export default function MobileEditorToolbar({
@@ -88,6 +91,8 @@ export default function MobileEditorToolbar({
   onFontFamilyChange,
   fontSize = '16px',
   onFontSizeChange,
+  onOpenReminder,
+  hasReminder = false,
 }: MobileEditorToolbarProps) {
   const [activeSheet, setActiveSheet] = useState<'add' | 'textColor' | 'highlight' | 'font' | 'fontSize' | 'emoji' | null>(null);
   const [customSizeInput, setCustomSizeInput] = useState(fontSize ? fontSize.replace('px', '') : '16');
@@ -720,6 +725,25 @@ export default function MobileEditorToolbar({
                 >
                   <Paperclip size={18} className="text-slate-500" />
                   <span>แนบไฟล์เอกสาร</span>
+                </button>
+              )}
+
+              {/* Note Reminder Button */}
+              {onOpenReminder && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSheet(null);
+                    onOpenReminder();
+                  }}
+                  className={`p-3 rounded-2xl border flex items-center gap-2.5 text-xs font-bold transition ${
+                    hasReminder
+                      ? 'border-amber-400 bg-amber-50/70 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Bell size={18} className={hasReminder ? 'fill-current text-amber-500 animate-pulse' : 'text-amber-500'} />
+                  <span>{hasReminder ? 'แก้ไขเตือนความจำ' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}</span>
                 </button>
               )}
             </div>

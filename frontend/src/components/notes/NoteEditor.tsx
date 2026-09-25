@@ -1432,6 +1432,20 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           onOpenOcr={() => setIsOcrModalOpen(true)}
           onOpenAiAssistant={() => setIsAiModalOpen(true)}
           onOpenVersionHistory={() => setIsVersionDrawerOpen(true)}
+          onOpenReminder={async () => {
+            const targetId = initialNoteId || noteIdRef.current;
+            if (!targetId) {
+              await handleSave(false);
+            }
+            const activeId = initialNoteId || noteIdRef.current;
+            if (activeId) {
+              await fetchReminderByNote(activeId);
+              setIsReminderModalOpen(true);
+            } else {
+              toast.error('กรุณาบันทึกโน้ตก่อนตั้งเวลาแจ้งเตือน');
+            }
+          }}
+          hasReminder={Boolean((initialNoteId || noteIdRef.current) && remindersByNote[initialNoteId || noteIdRef.current || ''])}
         />
 
         {/* Content Area (TipTap Editor / Preview) */}
