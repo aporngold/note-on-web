@@ -2,20 +2,25 @@ import webpush from 'web-push';
 import { prisma } from '../utils/database';
 
 // Initialize VAPID details if configured
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:support@noteonweb.com';
+let isVapidConfigured = false;
+function configureVapidIfNeeded() {
+  const pub = process.env.VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  const sub = process.env.VAPID_SUBJECT || 'mailto:support@noteonweb.com';
 
-if (vapidPublicKey && vapidPrivateKey) {
-  try {
-    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
-    console.log('🔔 Web Push VAPID configuration initialized successfully');
-  } catch (err) {
-    console.error('Failed to configure Web Push VAPID details:', err);
+  if (pub && priv && !isVapidConfigured) {
+    try {
+      webpush.setVapidDetails(sub, pub, priv);
+      isVapidConfigured = true;
+      console.log('🔔 Web Push VAPID configuration initialized successfully');
+    } catch (err) {
+      console.error('Failed to configure Web Push VAPID details:', err);
+    }
   }
-} else {
-  console.warn('⚠️ Web Push VAPID keys missing in environment variables');
+  return { pub, priv };
 }
+
+configureVapidIfNeeded();
 
 export interface PushNotificationPayload {
   title: string;
@@ -93,6 +98,7 @@ export class WebPushService {
    * Get public VAPID key
    */
   static getPublicKey(): string {
-    return vapidPublicKey || '';
+    configureVapidIfNeeded();
+    return process.env.VAPID_PUBLIC_KEY || '';
   }
 }
