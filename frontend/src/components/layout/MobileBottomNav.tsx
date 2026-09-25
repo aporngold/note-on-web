@@ -20,10 +20,12 @@ import {
   X,
   Check,
   ShieldCheck,
+  Bell,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
+import { useReminderStore } from '@/store/reminderStore';
 import BottomSheet from '../ui/BottomSheet';
 import NotebookModal from '../modals/NotebookModal';
 import LabelModal from '../modals/LabelModal';
@@ -48,6 +50,8 @@ export default function MobileBottomNav() {
     setViewMode,
     activeBoardId,
   } = useNoteStore();
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
+  const reminderCount = Object.keys(remindersByNote).length;
 
   const [activeSheet, setActiveSheet] = useState<'notebooks' | 'labels' | 'search' | 'more' | null>(null);
   const [isNotebookModalOpen, setIsNotebookModalOpen] = useState(false);
@@ -421,6 +425,24 @@ export default function MobileBottomNav() {
 
           {/* Quick Links */}
           <div className="space-y-1">
+            <button
+              onClick={() => {
+                setActiveSheet(null);
+                router.push('/dashboard?tab=reminders');
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold transition"
+            >
+              <div className="flex items-center gap-3">
+                <Bell size={18} className="text-amber-500 fill-amber-500" />
+                <span>เตือนความจำ (Reminders)</span>
+              </div>
+              {reminderCount > 0 && (
+                <span className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-full">
+                  {reminderCount}
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => {
                 setActiveSheet(null);

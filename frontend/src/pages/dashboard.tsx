@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star } from 'lucide-react';
+import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star, Bell } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteList from '@/components/notes/NoteList';
@@ -44,8 +44,16 @@ export default function Dashboard() {
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites' | 'reminders'>('all');
   const [isAiSearchOpen, setIsAiSearchOpen] = useState(false);
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
+  const reminderNotesCount = notes.filter((n) => Boolean(remindersByNote[n.id])).length;
+
+  useEffect(() => {
+    if (router.query.tab === 'reminders') {
+      setActiveTab('reminders');
+    }
+  }, [router.query.tab]);
 
   const handleOpenFullscreen = (n: Note) => {
     if (typeof document !== 'undefined' && !document.fullscreenElement) {
@@ -71,6 +79,7 @@ export default function Dashboard() {
       if (viewMode === 'board' && isStickerNote(n)) return true;
       if (activeTab === 'pinned' && !n.isPinned) return false;
       if (activeTab === 'favorites' && !n.isFavorite) return false;
+      if (activeTab === 'reminders' && !remindersByNote[n.id]) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
       const titleMatch = n.title?.toLowerCase().includes(q);
@@ -78,8 +87,16 @@ export default function Dashboard() {
       return titleMatch || contentMatch;
     });
 
+    if (activeTab === 'reminders') {
+      return matched.sort((a, b) => {
+        const timeA = new Date(remindersByNote[a.id]?.reminderDateTime || 0).getTime();
+        const timeB = new Date(remindersByNote[b.id]?.reminderDateTime || 0).getTime();
+        return timeA - timeB;
+      });
+    }
+
     return sortNotes(matched, sortBy);
-  }, [notes, activeTab, searchQuery, sortBy, viewMode]);
+  }, [notes, activeTab, searchQuery, sortBy, viewMode, remindersByNote]);
 
   const defaultBoard = boards.find((b) => b.isDefault) || boards[0];
   const isViewingDefaultBoard = !activeBoardId || activeBoardId === defaultBoard?.id;
@@ -161,6 +178,17 @@ export default function Dashboard() {
                 >
                   <Star size={13} className="fill-current" />
                   <span>รายการโปรด ({notes.filter((n) => n.isFavorite).length})</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('reminders')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
+                    activeTab === 'reminders'
+                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-bold shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Bell size={13} className={activeTab === 'reminders' ? 'fill-current animate-pulse' : ''} />
+                  <span>เตือนความจำ ({reminderNotesCount})</span>
                 </button>
 
                 {/* AI Search Trigger Button */}
@@ -253,10 +281,16 @@ export default function Dashboard() {
             </div>
             <div className="max-w-md mx-auto space-y-1">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {hasActiveFilter ? 'ไม่พบโน้ตที่ตรงกับตัวกรอง' : 'ยังไม่มีโน้ตในระบบ'}
+                {activeTab === 'reminders'
+                  ? 'ยังไม่มีโน้ตที่ตั้งเตือนความจำไว้'
+                  : hasActiveFilter
+                  ? 'ไม่พบโน้ตที่ตรงกับตัวกรอง'
+                  : 'ยังไม่มีโน้ตในระบบ'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {hasActiveFilter
+                {activeTab === 'reminders'
+                  ? 'คุณสามารถคลิกปุ่มกระดิ่ง 🔔 บนโน้ตหรือการ์ดใด ๆ เพื่อกำหนดวันและเวลาแจ้งเตือนล่วงหน้า'
+                  : hasActiveFilter
                   ? 'ลองเปลี่ยนคำค้นหา หรือล้างตัวกรองที่เลือกไว้'
                   : 'เริ่มต้นสร้างบันทึกแรกของคุณ พร้อมการปกป้องด้วยความปลอดภัยระดับสูง'}
               </p>

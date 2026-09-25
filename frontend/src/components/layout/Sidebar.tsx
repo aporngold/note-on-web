@@ -21,9 +21,11 @@ import {
   PanelLeft,
   Fingerprint,
   ShieldCheck,
+  Bell,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
+import { useReminderStore } from '@/store/reminderStore';
 import NotebookModal from '../modals/NotebookModal';
 import LabelModal from '../modals/LabelModal';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
@@ -63,6 +65,8 @@ export default function Sidebar({
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
+  const reminderCount = Object.keys(remindersByNote).length;
 
   useEffect(() => {
     if (user) {
@@ -129,13 +133,33 @@ export default function Sidebar({
                 handleNavClick('/dashboard');
               }}
               className={`p-2.5 rounded-xl transition ${
-                currentPath === '/dashboard' && !selectedNotebook && !selectedLabel && !selectedColor
+                currentPath === '/dashboard' && !selectedNotebook && !selectedLabel && !selectedColor && router.query.tab !== 'reminders'
                   ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
               title="โน้ตทั้งหมด"
             >
               <FileText size={18} />
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedNotebook(null);
+                setSelectedLabel(null);
+                setSelectedColor(null);
+                handleNavClick('/dashboard?tab=reminders');
+              }}
+              className={`p-2.5 rounded-xl transition relative ${
+                currentPath === '/dashboard' && router.query.tab === 'reminders'
+                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-semibold'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+              title={`เตือนความจำ (${reminderCount} รายการ)`}
+            >
+              <Bell size={18} className={reminderCount > 0 ? 'fill-current text-amber-500' : ''} />
+              {reminderCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
+              )}
             </button>
 
             <button
@@ -279,13 +303,37 @@ export default function Sidebar({
               handleNavClick('/dashboard');
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
-              currentPath === '/dashboard' && !selectedNotebook && !selectedLabel && !selectedColor
+              currentPath === '/dashboard' && !selectedNotebook && !selectedLabel && !selectedColor && router.query.tab !== 'reminders'
                 ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <FileText size={18} />
             <span>โน้ตทั้งหมด</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setSelectedNotebook(null);
+              setSelectedLabel(null);
+              setSelectedColor(null);
+              handleNavClick('/dashboard?tab=reminders');
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+              currentPath === '/dashboard' && router.query.tab === 'reminders'
+                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Bell size={18} className={reminderCount > 0 ? 'text-amber-500 fill-amber-500' : ''} />
+              <span>เตือนความจำ</span>
+            </div>
+            {reminderCount > 0 && (
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+                {reminderCount}
+              </span>
+            )}
           </button>
 
           <button

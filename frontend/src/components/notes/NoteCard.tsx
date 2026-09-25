@@ -2,10 +2,12 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { Pin, Trash2, Copy, Lock, Unlock, Book, Tag, Star, Paperclip, Music, Maximize2, Share2, MoreVertical, Edit3 } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Unlock, Book, Tag, Star, Paperclip, Music, Maximize2, Share2, MoreVertical, Edit3, Bell } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
+import { useReminderStore } from '@/store/reminderStore';
+import NoteReminderModal from './NoteReminderModal';
 import { EncryptionService } from '@/utils/encryption';
 import { stripHtmlTags } from '@/utils/editorHelper';
 import { FONT_PRESETS } from './editorExtensions';
@@ -64,7 +66,28 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
   });
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
+
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
+  const reminder = remindersByNote[note.id];
+
+  const formatReminderDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const now = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isTomorrow = d.toDateString() === tomorrow.toDateString();
+      const time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      if (isToday) return `วันนี้ ${time}`;
+      if (isTomorrow) return `พรุ่งนี้ ${time}`;
+      return `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${time}`;
+    } catch {
+      return '';
+    }
+  };
 
   const handleClick = () => {
     if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {
@@ -155,6 +178,20 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               )}
               <span>{note.isLocked ? (isVaultUnlocked ? 'ปลดล็อกแล้ว' : 'เข้ารหัส E2EE') : 'ล็อคโน้ต'}</span>
             </button>
+
+            {reminder && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsReminderModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20 hover:scale-105 transition cursor-pointer"
+                title="คลิกเพื่อแก้ไขหรือลบการเตือนความจำ"
+              >
+                <Bell size={11} className="fill-current animate-pulse text-amber-500" />
+                <span>{formatReminderDate(reminder.reminderDateTime)}</span>
+              </span>
+            )}
 
             {note.notebook && (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
@@ -417,6 +454,18 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   <Share2 size={13} className="text-indigo-500" />
                   <span>แชร์โน้ตนี้</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMoreOpen(false);
+                    setIsReminderModalOpen(true);
+                  }}
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                >
+                  <Bell size={13} className={reminder ? 'fill-amber-500 text-amber-500' : 'text-slate-400'} />
+                  <span>{reminder ? 'แก้ไขการแจ้งเตือน' : 'ตั้งเวลาแจ้งเตือน'}</span>
+                </button>
               </div>
               <div className="py-1">
                 <button
@@ -484,6 +533,11 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
             label="แชร์โน้ตนี้"
             onClick={() => setIsShareModalOpen(true)}
           />
+          <ViewportMenuItem
+            icon={<Bell size={14} className={reminder ? 'fill-amber-500 text-amber-500' : 'text-slate-400'} />}
+            label={reminder ? 'แก้ไขการแจ้งเตือน' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}
+            onClick={() => setIsReminderModalOpen(true)}
+          />
         </div>
         <div className="py-1 border-t border-slate-100 dark:border-slate-800">
           <ViewportMenuItem
@@ -502,6 +556,14 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
         noteId={note.id}
         noteTitle={note.title}
         isLocked={note.isLocked}
+      />
+
+      {/* Note Reminder Modal */}
+      <NoteReminderModal
+        isOpen={isReminderModalOpen}
+        onClose={() => setIsReminderModalOpen(false)}
+        noteId={note.id}
+        noteTitle={note.title}
       />
     </div>
   );

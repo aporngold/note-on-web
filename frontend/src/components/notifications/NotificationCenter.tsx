@@ -1,9 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X } from 'lucide-react';
+import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, VolumeX, Settings } from 'lucide-react';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useAuthStore } from '@/store/authStore';
 import io, { Socket } from 'socket.io-client';
+import {
+  playNotificationSound,
+  triggerVibration,
+  getNotificationSoundSetting,
+  saveNotificationSoundSetting,
+  SoundTone,
+} from '@/utils/soundEffects';
+import toast from 'react-hot-toast';
 
 export default function NotificationCenter() {
   const router = useRouter();
@@ -24,6 +32,16 @@ export default function NotificationCenter() {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundTone, setSoundTone] = useState<SoundTone>('chime');
+  const [showSoundMenu, setShowSoundMenu] = useState(false);
+
+  useEffect(() => {
+    const s = getNotificationSoundSetting();
+    setSoundEnabled(s.soundEnabled);
+    setSoundTone(s.tone);
+  }, [isOpen]);
 
   // Fetch notifications when user is authenticated
   useEffect(() => {
@@ -49,6 +67,8 @@ export default function NotificationCenter() {
 
     socket.on('notification:new', (notif: any) => {
       addRealtimeNotification(notif);
+      playNotificationSound();
+      triggerVibration();
     });
 
     return () => {
@@ -149,6 +169,46 @@ export default function NotificationCenter() {
             </div>
 
             <div className="flex items-center gap-1 text-xs">
+              {/* Sound Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const nextVal = !soundEnabled;
+                  setSoundEnabled(nextVal);
+                  saveNotificationSoundSetting({ soundEnabled: nextVal });
+                  if (nextVal) {
+                    playNotificationSound(soundTone);
+                    toast.success(`เปิดเสียงเตือนแล้ว (${soundTone})`, { icon: '🔊' });
+                  } else {
+                    toast('ปิดเสียงเตือนแล้ว', { icon: '🔇' });
+                  }
+                }}
+                className={`p-1.5 rounded-lg transition ${
+                  soundEnabled
+                    ? 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50'
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title={soundEnabled ? 'เสียงเตือน: เปิดอยู่ (คลิกเพื่อปิด)' : 'เสียงเตือน: ปิดอยู่ (คลิกเพื่อเปิด)'}
+                aria-label="สลับเสียงแจ้งเตือน"
+              >
+                {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+              </button>
+
+              {/* Sound Tone Settings Button */}
+              <button
+                type="button"
+                onClick={() => setShowSoundMenu(!showSoundMenu)}
+                className={`p-1.5 rounded-lg transition ${
+                  showSoundMenu
+                    ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50'
+                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title="เลือกเสียงแจ้งเตือน"
+                aria-label="เลือกเสียงแจ้งเตือน"
+              >
+                <Settings size={14} />
+              </button>
+
               {unreadCount > 0 && (
                 <button
                   type="button"
@@ -179,6 +239,34 @@ export default function NotificationCenter() {
               </button>
             </div>
           </div>
+
+          {/* Sound Tone Picker Sub-bar */}
+          {showSoundMenu && (
+            <div className="px-3.5 py-2 bg-slate-50/90 dark:bg-slate-800/90 border-b border-slate-200/80 dark:border-slate-800 text-xs flex items-center justify-between gap-2 shrink-0 animate-fade-in">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">เสียงเตือน:</span>
+              <div className="flex items-center gap-1">
+                {(['chime', 'ding', 'digital', 'bell'] as SoundTone[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      setSoundTone(t);
+                      saveNotificationSoundSetting({ tone: t, soundEnabled: true });
+                      setSoundEnabled(true);
+                      playNotificationSound(t);
+                    }}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-semibold capitalize transition ${
+                      soundTone === t
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200/60'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* List of Notifications */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
