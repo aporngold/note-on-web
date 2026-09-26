@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star, Bell } from 'lucide-react';
+import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star, Bell, CalendarDays, Download, AlertCircle, Clock, Calendar } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteList from '@/components/notes/NoteList';
@@ -16,6 +16,8 @@ import { Note } from '@/types';
 import { sortNotes } from '@/utils/sortHelper';
 import { isStickerNote } from '@/components/board/stickerData';
 import { useReminderStore } from '@/store/reminderStore';
+import { exportNotesToIcs } from '@/utils/calendarExport';
+import toast from 'react-hot-toast';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -112,6 +114,39 @@ export default function Dashboard() {
   const pinnedNotes = filteredNotes.filter((n) => n.isPinned);
   const regularNotes = filteredNotes.filter((n) => !n.isPinned);
 
+  // Segment reminder notes into timeline buckets when activeTab === 'reminders'
+  const reminderTimelineGroups = React.useMemo(() => {
+    if (activeTab !== 'reminders') return null;
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const tomorrowStart = todayStart + 24 * 60 * 60 * 1000;
+    const dayAfterTomorrowStart = tomorrowStart + 24 * 60 * 60 * 1000;
+
+    const overdue: Note[] = [];
+    const today: Note[] = [];
+    const tomorrow: Note[] = [];
+    const upcoming: Note[] = [];
+
+    filteredNotes.forEach((n) => {
+      const rem = remindersByNote[n.id];
+      if (!rem || !rem.reminderDateTime) return;
+      const t = new Date(rem.reminderDateTime).getTime();
+
+      if (t < now.getTime()) {
+        overdue.push(n);
+      } else if (t < tomorrowStart) {
+        today.push(n);
+      } else if (t < dayAfterTomorrowStart) {
+        tomorrow.push(n);
+      } else {
+        upcoming.push(n);
+      }
+    });
+
+    return { overdue, today, tomorrow, upcoming };
+  }, [activeTab, filteredNotes, remindersByNote]);
+
   const activeNotebook = notebooks.find((nb) => nb.id === selectedNotebook);
   const activeLabel = labels.find((lbl) => lbl.id === selectedLabel);
 
@@ -190,6 +225,25 @@ export default function Dashboard() {
                   <Bell size={13} className={activeTab === 'reminders' ? 'fill-current animate-pulse' : ''} />
                   <span>เตือนความจำ ({reminderNotesCount})</span>
                 </button>
+
+                {/* Calendar Export Button for Reminders Tab */}
+                {activeTab === 'reminders' && reminderNotesCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const success = exportNotesToIcs(notes, remindersByNote);
+                      if (success) {
+                        toast.success('ดาวน์โหลดไฟล์ปฏิทิน .ics เรียบร้อยแล้ว', { icon: '📅' });
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-xs transition text-xs active:scale-95"
+                    title="ดาวน์โหลดไฟล์ .ics เพื่อนำเข้าปฏิทิน Google / Apple Calendar / Outlook"
+                  >
+                    <Download size={13} />
+                    <span className="hidden sm:inline">ส่งออกปฏิทิน (.ics)</span>
+                    <span className="sm:hidden">.ics</span>
+                  </button>
+                )}
 
                 {/* AI Search Trigger Button */}
                 <button
@@ -313,45 +367,132 @@ export default function Dashboard() {
           </div>
         ) : viewMode === 'grid' ? (
           <div className="space-y-8">
-            {/* Pinned Notes */}
-            {pinnedNotes.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                  <Pin size={14} className="fill-current" />
-                  <span>โน้ตที่ปักหมุด ({pinnedNotes.length})</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {pinnedNotes.map((note) => (
-                    <NoteCard
-                      key={note.id}
-                      note={note}
-                      onUnlockRequest={() => setIsVaultModalOpen(true)}
-                      onOpenFullscreen={handleOpenFullscreen}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Regular Notes */}
-            {regularNotes.length > 0 && (
-              <div className="space-y-3">
-                {pinnedNotes.length > 0 && (
-                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    โน้ตอื่นๆ ({regularNotes.length})
+            {/* Reminders Timeline Grouping View (Overdue, Today, Tomorrow, Upcoming) */}
+            {activeTab === 'reminders' && reminderTimelineGroups ? (
+              <div className="space-y-8">
+                {/* 1. Overdue */}
+                {reminderTimelineGroups.overdue.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                      <AlertCircle size={15} className="animate-pulse" />
+                      <span>เลยกำหนดแล้ว ({reminderTimelineGroups.overdue.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {reminderTimelineGroups.overdue.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onUnlockRequest={() => setIsVaultModalOpen(true)}
+                          onOpenFullscreen={handleOpenFullscreen}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {regularNotes.map((note) => (
-                    <NoteCard
-                      key={note.id}
-                      note={note}
-                      onUnlockRequest={() => setIsVaultModalOpen(true)}
-                      onOpenFullscreen={handleOpenFullscreen}
-                    />
-                  ))}
-                </div>
+
+                {/* 2. Today */}
+                {reminderTimelineGroups.today.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                      <Clock size={15} />
+                      <span>วันนี้ ({reminderTimelineGroups.today.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {reminderTimelineGroups.today.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onUnlockRequest={() => setIsVaultModalOpen(true)}
+                          onOpenFullscreen={handleOpenFullscreen}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Tomorrow */}
+                {reminderTimelineGroups.tomorrow.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      <Calendar size={15} />
+                      <span>พรุ่งนี้ ({reminderTimelineGroups.tomorrow.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {reminderTimelineGroups.tomorrow.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onUnlockRequest={() => setIsVaultModalOpen(true)}
+                          onOpenFullscreen={handleOpenFullscreen}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Upcoming */}
+                {reminderTimelineGroups.upcoming.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      <CalendarDays size={15} />
+                      <span>เร็วๆ นี้ / กำหนดการถัดไป ({reminderTimelineGroups.upcoming.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {reminderTimelineGroups.upcoming.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onUnlockRequest={() => setIsVaultModalOpen(true)}
+                          onOpenFullscreen={handleOpenFullscreen}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+            ) : (
+              <>
+                {/* Standard Pinned Notes */}
+                {pinnedNotes.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      <Pin size={14} className="fill-current" />
+                      <span>โน้ตที่ปักหมุด ({pinnedNotes.length})</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {pinnedNotes.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onUnlockRequest={() => setIsVaultModalOpen(true)}
+                          onOpenFullscreen={handleOpenFullscreen}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Standard Regular Notes */}
+                {regularNotes.length > 0 && (
+                  <div className="space-y-3">
+                    {pinnedNotes.length > 0 && (
+                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        โน้ตอื่นๆ ({regularNotes.length})
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {regularNotes.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onUnlockRequest={() => setIsVaultModalOpen(true)}
+                          onOpenFullscreen={handleOpenFullscreen}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         ) : (
