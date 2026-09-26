@@ -1056,7 +1056,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           const input = el.querySelector('input[type="text"]') as HTMLInputElement | null;
           if (input) {
             input.focus({ preventScroll: true });
-            input.select();
+            const valLen = input.value.length;
+            input.setSelectionRange(valLen, valLen);
           } else {
             const editable = el.querySelector('[contenteditable="true"]') as HTMLElement | null;
             editable?.focus({ preventScroll: true });
