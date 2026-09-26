@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
 import { formatDistanceToNow } from 'date-fns';
-import { Pin, Trash2, Copy, Lock, Unlock, Book, Tag, Maximize2, Share2 } from 'lucide-react';
+import { Pin, Trash2, Copy, Lock, Unlock, Book, Tag, Maximize2, Share2, Bell } from 'lucide-react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
+import { useReminderStore } from '@/store/reminderStore';
 import ShareNoteModal from './ShareNoteModal';
+import NoteReminderModal from './NoteReminderModal';
 import { FONT_PRESETS } from './editorExtensions';
 
 interface NoteListProps {
@@ -18,12 +20,32 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin, toggleNoteLock } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const [shareNote, setShareNote] = useState<Note | null>(null);
+  const [selectedReminderNote, setSelectedReminderNote] = useState<Note | null>(null);
+
+  const formatReminderDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const now = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isTomorrow = d.toDateString() === tomorrow.toDateString();
+      const time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      if (isToday) return `วันนี้ ${time}`;
+      if (isTomorrow) return `พรุ่งนี้ ${time}`;
+      return `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${time}`;
+    } catch {
+      return '';
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
       <div className="divide-y divide-slate-100 dark:divide-slate-700/60">
         {notes.map((note) => {
+          const reminder = remindersByNote[note.id];
           const fontPreset = FONT_PRESETS.find(
             (f) =>
               f.id === note.fontFamily ||
@@ -105,6 +127,20 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
                       <Book size={11} /> {note.notebook.name}
                     </span>
                   )}
+                  {reminder && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedReminderNote(note);
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20 hover:scale-105 transition cursor-pointer select-none"
+                      title="คลิกเพื่อแก้ไขการเตือนความจำ"
+                    >
+                      <Bell size={10} className="fill-current animate-pulse text-amber-500" />
+                      <span>{formatReminderDate(reminder.reminderDateTime)}</span>
+                    </button>
+                  )}
                   {note.labels && note.labels.map((lbl) => (
                     <span
                       key={lbl.id}
@@ -158,6 +194,28 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
               >
                 {note.isLocked ? (isVaultUnlocked ? <Unlock size={15} /> : <Lock size={15} />) : <Unlock size={15} />}
               </button>
+
+              {/* Reminder Bell Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedReminderNote(note);
+                }}
+                className={`p-1.5 rounded-lg transition hover:bg-slate-200 dark:hover:bg-slate-600 ${
+                  reminder
+                    ? 'text-amber-500 hover:text-amber-600'
+                    : 'text-slate-400 hover:text-amber-500'
+                }`}
+                title={
+                  reminder
+                    ? `เตือนความจำ: ${formatReminderDate(reminder.reminderDateTime)} (คลิกเพื่อแก้ไข)`
+                    : 'ตั้งเวลาแจ้งเตือน (เตือนความจำ)'
+                }
+              >
+                <Bell size={15} className={reminder ? 'fill-current' : ''} />
+              </button>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -212,6 +270,16 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
           noteId={shareNote.id}
           noteTitle={shareNote.title}
           isLocked={shareNote.isLocked}
+        />
+      )}
+
+      {/* Reminder Modal */}
+      {selectedReminderNote && (
+        <NoteReminderModal
+          isOpen={Boolean(selectedReminderNote)}
+          onClose={() => setSelectedReminderNote(null)}
+          noteId={selectedReminderNote.id}
+          noteTitle={selectedReminderNote.title}
         />
       )}
     </div>

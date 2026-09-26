@@ -327,6 +327,27 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Reminder Bell Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsReminderModalOpen(true);
+              }}
+              className={`p-1.5 rounded-lg transition ${
+                reminder
+                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50'
+                  : 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+              title={
+                reminder
+                  ? `เตือนความจำ: ${formatReminderDate(reminder.reminderDateTime)} (คลิกเพื่อแก้ไข)`
+                  : 'ตั้งเวลาแจ้งเตือน (เตือนความจำ)'
+              }
+            >
+              <Bell size={15} className={reminder ? 'fill-current text-amber-500' : ''} />
+            </button>
+
             {/* Favorite Button */}
             <button
               type="button"
