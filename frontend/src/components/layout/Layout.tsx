@@ -290,7 +290,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               >
                 <Star size={14} className={viewMode === defaultViewMode ? 'fill-amber-400' : ''} />
                 <span className="text-[10px] font-bold hidden xl:inline">
-                  {viewMode === defaultViewMode ? 'หน้าหลัก' : 'ตั้งเป็นหน้าหลัก'}
+                  หน้าหลัก
                 </span>
               </button>
             </div>
@@ -309,7 +309,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
             <NotificationCenter />
 
             {/* Quick New Note - Desktop only (Mobile has bottom-right FAB) */}
-            {!(router.pathname === '/board' || viewMode === 'board' || router.query.tab === 'reminders') && (
+            {router.query.tab !== 'reminders' && (
               <button
                 onClick={() => {
                   const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';

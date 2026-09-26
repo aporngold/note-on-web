@@ -1607,25 +1607,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               <Sparkles size={15} className="text-indigo-600" />
             </button>
 
-            {/* + โน้ตใหม่ - Desktop only (Mobile has bottom-right FAB) */}
-            <button
-              onClick={() => {
-                const targetBoard = activeBoard || boards.find((b) => b.isDefault) || boards[0];
-                const currentCount = targetBoard ? getBoardNoteCount(targetBoard) : notes.filter((n) => !n.isArchived).length;
-                if (currentCount >= MAX_NOTES_PER_BOARD) {
-                  toast.error('Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
-                  return;
-                }
-                const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
-                router.push(url);
-              }}
-              className="hidden md:flex px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-full text-xs items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all duration-200 active:scale-95 shrink-0"
-              title="สร้างโน้ตใหม่"
-            >
-              <Plus size={15} className="stroke-[2.5]" />
-              <span>โน้ตใหม่</span>
-            </button>
-
             {/* Board Full Banner Warning */}
             {(activeBoard ? getBoardNoteCount(activeBoard) : notes.filter((n) => !n.isArchived).length) >= MAX_NOTES_PER_BOARD && (
               <span className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 shrink-0 animate-pulse">
