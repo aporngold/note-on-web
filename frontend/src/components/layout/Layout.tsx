@@ -241,6 +241,10 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 onClick={() => {
                   setViewMode('board');
                   setBoardViewMode('freeform');
+                  if (router.query.tab) {
+                    const { tab, ...rest } = router.query;
+                    router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                  }
                   if (router.pathname !== '/board' && router.pathname !== '/dashboard') {
                     router.push('/board');
                   }

@@ -406,6 +406,10 @@ export default function MobileBottomNav() {
               <button
                 onClick={() => {
                   setViewMode('board');
+                  if (router.query.tab) {
+                    const { tab, ...rest } = router.query;
+                    router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                  }
                   if (currentPath !== '/board') router.push('/board');
                   setActiveSheet(null);
                 }}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star, Bell, CalendarDays, Download, AlertCircle, Clock, Calendar } from 'lucide-react';
+import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star, Bell, CalendarDays, Download, AlertCircle, Clock, Calendar, FileText } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteList from '@/components/notes/NoteList';
@@ -54,13 +54,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (router.query.tab === 'reminders') {
       setActiveTab('reminders');
-      if (viewMode === 'board') {
-        useNoteStore.getState().setViewMode('grid');
-      }
-    } else if (!router.query.tab && activeTab === 'reminders') {
+    } else if (!router.query.tab) {
       setActiveTab('all');
     }
-  }, [router.query.tab, viewMode, activeTab]);
+  }, [router.query.tab]);
 
   const handleOpenFullscreen = (n: Note) => {
     if (typeof document !== 'undefined' && !document.fullscreenElement) {
@@ -172,6 +169,10 @@ export default function Dashboard() {
     setSelectedLabel(null);
     setSelectedColor(null);
     setActiveTab('all');
+    if (router.query.tab) {
+      const { tab, ...rest } = router.query;
+      router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+    }
   };
 
   return (
@@ -183,14 +184,31 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  {activeNotebook ? activeNotebook.name : activeLabel ? `#${activeLabel.name}` : 'โน้ตทั้งหมด'}
+                  {activeNotebook
+                    ? activeNotebook.name
+                    : activeLabel
+                    ? `#${activeLabel.name}`
+                    : activeTab === 'reminders'
+                    ? 'เตือนความจำ'
+                    : activeTab === 'pinned'
+                    ? 'โน้ตที่ปักหมุด'
+                    : activeTab === 'favorites'
+                    ? 'รายการโปรด'
+                    : 'โน้ตทั้งหมด'}
                 </h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
                   {filteredNotes.length}
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-                {activeNotebook?.description || 'บันทึกความคิด ไอเดีย และข้อมูลสำคัญของคุณ'}
+                {activeNotebook?.description ||
+                  (activeTab === 'reminders'
+                    ? 'โน้ตที่มีการกำหนดวันและเวลาแจ้งเตือนล่วงหน้า'
+                    : activeTab === 'pinned'
+                    ? 'โน้ตสำคัญที่คุณปักหมุดไว้ด้านบน'
+                    : activeTab === 'favorites'
+                    ? 'โน้ตที่คุณทำเครื่องหมายเป็นรายการโปรด'
+                    : 'บันทึกความคิด ไอเดีย และข้อมูลสำคัญของคุณ')}
               </p>
             </div>
 
@@ -410,11 +428,15 @@ export default function Dashboard() {
           </div>
         ) : filteredNotes.length === 0 && !isLoading ? (
           /* Empty State for Grid & List modes */
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-12 text-center space-y-4 shadow-sm my-8">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 mx-auto flex items-center justify-center shadow-inner">
-              <BookOpen size={32} />
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-10 sm:p-12 text-center space-y-4 shadow-sm my-6 max-w-xl mx-auto">
+            <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-inner ${
+              activeTab === 'reminders'
+                ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-500'
+                : 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500'
+            }`}>
+              {activeTab === 'reminders' ? <Bell size={32} className="fill-amber-500/20" /> : <BookOpen size={32} />}
             </div>
-            <div className="max-w-md mx-auto space-y-1">
+            <div className="space-y-1.5 max-w-md mx-auto">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {activeTab === 'reminders'
                   ? 'ยังไม่มีโน้ตที่ตั้งเตือนความจำไว้'
@@ -422,7 +444,7 @@ export default function Dashboard() {
                   ? 'ไม่พบโน้ตที่ตรงกับตัวกรอง'
                   : 'ยังไม่มีโน้ตในระบบ'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                 {activeTab === 'reminders'
                   ? 'คุณสามารถคลิกปุ่มกระดิ่ง 🔔 บนโน้ตหรือการ์ดใด ๆ เพื่อกำหนดวันและเวลาแจ้งเตือนล่วงหน้า'
                   : hasActiveFilter
@@ -430,7 +452,24 @@ export default function Dashboard() {
                   : 'เริ่มต้นสร้างบันทึกแรกของคุณ พร้อมการปกป้องด้วยความปลอดภัยระดับสูง'}
               </p>
             </div>
-            {hasActiveFilter ? (
+            {activeTab === 'reminders' ? (
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('all');
+                    if (router.query.tab) {
+                      const { tab, ...rest } = router.query;
+                      router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                    }
+                  }}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 active:scale-95"
+                >
+                  <FileText size={14} />
+                  <span>ดูโน้ตทั้งหมด ({notes.length} รายการ)</span>
+                </button>
+              </div>
+            ) : hasActiveFilter ? (
               <button
                 onClick={clearAllFilters}
                 className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-200 transition"
