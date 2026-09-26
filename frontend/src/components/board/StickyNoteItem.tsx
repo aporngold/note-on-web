@@ -760,7 +760,8 @@ export default function StickyNoteItem({
   };
 
   const isCompact = size.width < 340;
-  const isNarrow = size.width < 270;
+  const isNarrow = size.width < 290;
+  const isVeryNarrow = size.width < 235;
 
   const currentKanbanObj = KANBAN_STATUSES.find((k) => k.value === kanbanStatus) || KANBAN_STATUSES[0];
   const attachments = note.attachments || [];
@@ -901,9 +902,9 @@ export default function StickyNoteItem({
 
         {/* ── Top Header Controls (Adaptive to Note Width) ── */}
         <div
-          className="no-drag flex items-center justify-between gap-1 mb-1.5 shrink-0 w-full cursor-default select-none relative z-20"
+          className="no-drag flex items-center justify-between gap-0.5 mb-1.5 shrink-0 w-full cursor-default select-none relative z-20 min-w-0 max-w-full overflow-hidden"
         >
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0 min-w-0">
             {/* Rotate Button (ตรงมุมซ้ายบน - ลากขึ้นหมุนขวา ลากลงหมุนซ้าย) */}
             <button
               type="button"
@@ -932,35 +933,37 @@ export default function StickyNoteItem({
               )}
             </button>
 
-            {/* Lock / E2EE toggle button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleNoteLock(note, onUnlockRequest);
-              }}
-              className={`p-1 rounded transition cursor-pointer flex items-center justify-center ${
-                note.isLocked
-                  ? isVaultUnlocked
-                    ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
-                    : 'text-amber-700 dark:text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 animate-pulse'
-                  : 'opacity-40 hover:opacity-100 hover:text-amber-600'
-              }`}
-              style={{ color: note.isLocked ? undefined : textColor }}
-              title={
-                note.isLocked
-                  ? isVaultUnlocked
-                    ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
-                    : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
-                  : 'คลิกเพื่อล็อกและเข้ารหัสโน้ตนี้ (E2EE)'
-              }
-            >
-              {note.isLocked ? (
-                isVaultUnlocked ? <Unlock size={12} /> : <Lock size={12} />
-              ) : (
-                <Unlock size={12} />
-              )}
-            </button>
+            {/* Lock / E2EE toggle button (always if locked, otherwise if !isVeryNarrow) */}
+            {(!isVeryNarrow || note.isLocked) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNoteLock(note, onUnlockRequest);
+                }}
+                className={`p-1 rounded transition cursor-pointer flex items-center justify-center ${
+                  note.isLocked
+                    ? isVaultUnlocked
+                      ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 ring-1 ring-emerald-500/30'
+                      : 'text-amber-700 dark:text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 animate-pulse'
+                    : 'opacity-40 hover:opacity-100 hover:text-amber-600'
+                }`}
+                style={{ color: note.isLocked ? undefined : textColor }}
+                title={
+                  note.isLocked
+                    ? isVaultUnlocked
+                      ? 'โน้ตนี้ปลดล็อกแล้ว (คลิกเพื่อยกเลิกการเข้ารหัส/ล็อก)'
+                      : 'โน้ตถูกล็อกและเข้ารหัสลับ E2EE (คลิกเพื่อปลดล็อกด้วยรหัสผ่าน)'
+                    : 'คลิกเพื่อล็อกและเข้ารหัสโน้ตนี้ (E2EE)'
+                }
+              >
+                {note.isLocked ? (
+                  isVaultUnlocked ? <Unlock size={12} /> : <Lock size={12} />
+                ) : (
+                  <Unlock size={12} />
+                )}
+              </button>
+            )}
 
             {/* Pin toggle */}
             <button
@@ -980,23 +983,25 @@ export default function StickyNoteItem({
               <Pin size={12} className={note.isPinned ? 'fill-current' : ''} />
             </button>
 
-            {/* Favorite toggle */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(note.id);
-              }}
-              className={`p-1 rounded hover:bg-black/10 transition cursor-pointer flex items-center justify-center ${
-                note.isFavorite
-                  ? 'text-amber-500 bg-amber-500/15 ring-1 ring-amber-500/30 font-bold'
-                  : 'hover:text-amber-500'
-              }`}
-              style={{ color: note.isFavorite ? undefined : textColor }}
-              title={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
-            >
-              <Star size={12} className={note.isFavorite ? 'fill-current' : ''} />
-            </button>
+            {/* Favorite toggle (show if !isVeryNarrow or if favorite) */}
+            {(!isVeryNarrow || note.isFavorite) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(note.id);
+                }}
+                className={`p-1 rounded hover:bg-black/10 transition cursor-pointer flex items-center justify-center ${
+                  note.isFavorite
+                    ? 'text-amber-500 bg-amber-500/15 ring-1 ring-amber-500/30 font-bold'
+                    : 'hover:text-amber-500'
+                }`}
+                style={{ color: note.isFavorite ? undefined : textColor }}
+                title={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
+              >
+                <Star size={12} className={note.isFavorite ? 'fill-current' : ''} />
+              </button>
+            )}
 
             {/* Reminder toggle */}
             <button
@@ -1021,21 +1026,23 @@ export default function StickyNoteItem({
               )}
             </button>
 
-            {/* Connect Note button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onStartConnect && onStartConnect(note.id);
-              }}
-              className={`p-1 rounded hover:bg-black/10 transition cursor-pointer ${
-                isConnectingSource ? 'bg-indigo-600 text-white shadow-xs' : ''
-              }`}
-              style={{ color: isConnectingSource ? '#FFFFFF' : textColor }}
-              title="เชื่อมโยงโน้ตนี้กับโน้ตอื่นด้วยเส้นลูกศร"
-            >
-              <Link2 size={12} />
-            </button>
+            {/* Connect Note button (show if !isNarrow or if active source) */}
+            {(!isNarrow || isConnectingSource) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartConnect && onStartConnect(note.id);
+                }}
+                className={`p-1 rounded hover:bg-black/10 transition cursor-pointer ${
+                  isConnectingSource ? 'bg-indigo-600 text-white shadow-xs' : ''
+                }`}
+                style={{ color: isConnectingSource ? '#FFFFFF' : textColor }}
+                title="เชื่อมโยงโน้ตนี้กับโน้ตอื่นด้วยเส้นลูกศร"
+              >
+                <Link2 size={12} />
+              </button>
+            )}
           </div>
 
           {/* Styling controls (Adaptive based on width) */}
@@ -1401,6 +1408,96 @@ export default function StickyNoteItem({
                     </div>
                   )}
 
+                  {/* Narrow Mode: Share Note */}
+                  {isNarrow && (
+                    <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsShareModalOpen(true);
+                          setIsMoveBoardOpen(false);
+                        }}
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left cursor-pointer text-indigo-600 dark:text-indigo-400"
+                      >
+                        <Share2 size={13} />
+                        <span>แชร์โน้ตนี้</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Very Narrow Mode: Fullscreen Focus */}
+                  {isVeryNarrow && (
+                    <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onOpenFullscreen) onOpenFullscreen(note);
+                          setIsMoveBoardOpen(false);
+                        }}
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left cursor-pointer"
+                      >
+                        <Maximize2 size={13} />
+                        <span>ขยายขนาดโน้ต (เต็มจอ)</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Narrow Mode: Connect Arrow */}
+                  {isNarrow && onStartConnect && (
+                    <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartConnect(note.id);
+                          setIsMoveBoardOpen(false);
+                        }}
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left cursor-pointer"
+                      >
+                        <Link2 size={13} />
+                        <span>เชื่อมโยงเส้นลูกศร</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Very Narrow Mode: Favorite */}
+                  {isVeryNarrow && !note.isFavorite && (
+                    <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(note.id);
+                          setIsMoveBoardOpen(false);
+                        }}
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left cursor-pointer text-amber-600"
+                      >
+                        <Star size={13} />
+                        <span>เพิ่มในรายการโปรด</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Very Narrow Mode: Lock */}
+                  {isVeryNarrow && !note.isLocked && (
+                    <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleNoteLock(note, onUnlockRequest);
+                          setIsMoveBoardOpen(false);
+                        }}
+                        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition text-left cursor-pointer"
+                      >
+                        <Lock size={13} className="text-amber-500" />
+                        <span>ล็อกและเข้ารหัสโน้ต (E2EE)</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Attach Sticker to Note Corner */}
                   {onOpenStickerModal && (
                     <div className="border-b border-slate-100 dark:border-slate-700 pb-1">
@@ -1484,33 +1581,37 @@ export default function StickyNoteItem({
               )}
             </div>
 
-            {/* Share Note Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsShareModalOpen(true);
-              }}
-              className="p-1 rounded hover:bg-black/10 transition cursor-pointer"
-              style={{ color: textColor }}
-              title="แชร์โน้ตนี้"
-            >
-              <Share2 size={12} className={note.shareCode ? 'text-indigo-600' : ''} />
-            </button>
+            {/* Share Note Button (hidden on narrow, available in More menu) */}
+            {!isNarrow && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsShareModalOpen(true);
+                }}
+                className="p-1 rounded hover:bg-black/10 transition cursor-pointer"
+                style={{ color: textColor }}
+                title="แชร์โน้ตนี้"
+              >
+                <Share2 size={12} className={note.shareCode ? 'text-indigo-600' : ''} />
+              </button>
+            )}
 
-            {/* Open note in Fullscreen focus mode */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onOpenFullscreen) onOpenFullscreen(note);
-              }}
-              className="p-1 rounded hover:bg-black/10 transition flex items-center justify-center cursor-pointer"
-              style={{ color: textColor }}
-              title="ขยายขนาดโน้ต"
-            >
-              <Maximize2 size={12} />
-            </button>
+            {/* Open note in Fullscreen focus mode (hidden on very narrow, available in More menu) */}
+            {!isVeryNarrow && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onOpenFullscreen) onOpenFullscreen(note);
+                }}
+                className="p-1 rounded hover:bg-black/10 transition flex items-center justify-center cursor-pointer"
+                style={{ color: textColor }}
+                title="ขยายขนาดโน้ต"
+              >
+                <Maximize2 size={12} />
+              </button>
+            )}
 
             {/* Delete to trash */}
             <button
