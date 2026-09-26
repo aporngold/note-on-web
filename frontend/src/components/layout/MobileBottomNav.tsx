@@ -82,7 +82,11 @@ export default function MobileBottomNav() {
   return (
     <>
       {/* Floating Action Button (FAB) for New Note on Mobile */}
-      {router.query.tab !== 'reminders' && (
+      {!(
+        router.query.tab === 'reminders' ||
+        currentPath === '/trash' ||
+        currentPath.startsWith('/admin')
+      ) && (
         <div className="fixed right-4 bottom-20 z-40 lg:hidden">
           <button
             onClick={() => {
