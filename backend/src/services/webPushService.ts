@@ -39,7 +39,8 @@ export class WebPushService {
     userId: string,
     payload: PushNotificationPayload
   ): Promise<{ sent: number; failed: number }> {
-    if (!vapidPublicKey || !vapidPrivateKey) {
+    const { pub, priv } = configureVapidIfNeeded();
+    if (!pub || !priv || !isVapidConfigured) {
       console.warn('Skipping Web Push: VAPID keys not configured');
       return { sent: 0, failed: 0 };
     }

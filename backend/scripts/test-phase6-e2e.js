@@ -175,7 +175,92 @@ async function runPhase6E2E() {
     `Audit logs system active (Total entries: ${auditRes.pagination.total})`
   );
 
-  // 5. Clean up test sessions
+  console.log('\n--- 5. NOTE REMINDERS & NOTIFICATIONS (DESKTOP & MOBILE INTEGRATION) ---');
+
+  // Test 5.1: VAPID Key available
+  const vapidRes = await fetch(`${API_URL}/reminders/vapid-key`).then(r => r.json());
+  assert(
+    Boolean(vapidRes.publicKey),
+    `Web Push VAPID Public Key active: "${vapidRes.publicKey ? vapidRes.publicKey.substring(0, 15) + '...' : 'none'}"`
+  );
+
+  // Test 5.2: Create Reminder with repeatRule
+  const testRemNote = await prisma.note.create({
+    data: {
+      userId: regular.user.id,
+      title: 'Phase 6 Reminder Test Note',
+      content: '<p>Testing Reminder lifecycle in Phase 6 E2E</p>',
+    },
+  });
+
+  const createRemRes = await fetch(`${API_URL}/reminders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${regular.token}`,
+    },
+    body: JSON.stringify({
+      noteId: testRemNote.id,
+      title: testRemNote.title,
+      reminderDateTime: new Date(Date.now() + 7200 * 1000).toISOString(),
+      repeatRule: 'daily',
+    }),
+  }).then(r => r.json());
+
+  assert(
+    createRemRes.success === true && createRemRes.reminder?.repeatRule === 'daily',
+    `Created Note Reminder with repeatRule "daily" for Note ID: ${testRemNote.id}`
+  );
+
+  // Test 5.3: Fetch Reminder by noteId
+  const getRemByNoteRes = await fetch(`${API_URL}/reminders/note/${testRemNote.id}`, {
+    headers: { Authorization: `Bearer ${regular.token}` },
+  }).then(r => r.json());
+
+  assert(
+    getRemByNoteRes.success === true && getRemByNoteRes.reminder?.id === createRemRes.reminder?.id,
+    `Successfully queried Reminder by noteId: ${testRemNote.id}`
+  );
+
+  // Test 5.4: In-App Notification Center
+  const notif = await prisma.notification.create({
+    data: {
+      userId: regular.user.id,
+      noteId: testRemNote.id,
+      title: '⏰ Phase 6 Notification Test',
+      message: 'Integration test notification center verification',
+    },
+  });
+
+  const notifListRes = await fetch(`${API_URL}/notifications`, {
+    headers: { Authorization: `Bearer ${regular.token}` },
+  }).then(r => r.json());
+
+  assert(
+    notifListRes.success === true && notifListRes.notifications.some(n => n.id === notif.id),
+    `In-App Notification Center retrieved active notifications (Unread: ${notifListRes.unreadCount})`
+  );
+
+  // Test 5.5: Mark notification as read
+  const markReadRes = await fetch(`${API_URL}/notifications/${notif.id}/read`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${regular.token}` },
+  }).then(r => r.json());
+
+  assert(
+    markReadRes.success === true && markReadRes.notification?.isRead === true,
+    `Successfully marked notification ID: ${notif.id} as read`
+  );
+
+  // Cleanup Reminder & Notification & Test Note
+  await prisma.notification.deleteMany({ where: { id: notif.id } });
+  if (createRemRes.reminder?.id) {
+    await prisma.reminder.deleteMany({ where: { id: createRemRes.reminder.id } });
+  }
+  await prisma.note.deleteMany({ where: { id: testRemNote.id } });
+  console.log('🧹 Cleaned up temporary test reminder & notification data');
+
+  // 6. Clean up test sessions
   await prisma.session.deleteMany({
     where: { token: { in: [regular.token, superAdmin.token] } },
   });
