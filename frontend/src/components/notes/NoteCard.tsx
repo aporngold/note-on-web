@@ -68,36 +68,10 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
-  const [isQuickSnoozeOpen, setIsQuickSnoozeOpen] = useState(false);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
-  const reminderBadgeBtnRef = useRef<HTMLButtonElement>(null);
 
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
-  const { saveReminder, deleteReminder } = useReminderStore();
   const reminder = remindersByNote[note.id];
-
-  const handleCardSnooze = async (minutes: number | 'tomorrow') => {
-    try {
-      let targetTime: Date;
-      if (minutes === 'tomorrow') {
-        targetTime = new Date();
-        targetTime.setDate(targetTime.getDate() + 1);
-        targetTime.setHours(9, 0, 0, 0);
-      } else {
-        targetTime = new Date(Date.now() + minutes * 60 * 1000);
-      }
-      await saveReminder({
-        noteId: note.id,
-        title: note.title || 'โน้ตเตือนความจำ',
-        reminderDateTime: targetTime.toISOString(),
-      });
-      setIsQuickSnoozeOpen(false);
-      const formatted = targetTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-      toast.success(`เลื่อนการแจ้งเตือนไปที่ ${minutes === 'tomorrow' ? 'พรุ่งนี้ 09:00' : formatted}`, { icon: '⏰' });
-    } catch {
-      toast.error('ไม่สามารถเลื่อนเวลาแจ้งเตือนได้');
-    }
-  };
 
   const formatReminderDate = (dateStr: string) => {
     try {
@@ -207,90 +181,18 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
             </button>
 
             {reminder && (
-              <>
-                <button
-                  ref={reminderBadgeBtnRef}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsQuickSnoozeOpen(!isQuickSnoozeOpen);
-                  }}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20 hover:scale-105 transition cursor-pointer select-none"
-                  title="คลิกเพื่อเลื่อนเวลาหรือแก้ไขการเตือนความจำ"
-                >
-                  <Bell size={11} className="fill-current animate-pulse text-amber-500" />
-                  <span>{formatReminderDate(reminder.reminderDateTime)}</span>
-                </button>
-
-                <ViewportPopover
-                  isOpen={isQuickSnoozeOpen}
-                  onClose={() => setIsQuickSnoozeOpen(false)}
-                  triggerRef={reminderBadgeBtnRef}
-                  placement="bottom-start"
-                  className="w-44 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 p-1.5 z-50 animate-fade-in text-xs"
-                >
-                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                    จัดการเตือนความจำ
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsQuickSnoozeOpen(false);
-                      setIsReminderModalOpen(true);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium"
-                  >
-                    แก้ไขเวลาละเอียด...
-                  </button>
-                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-0.5" />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCardSnooze(10);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-between"
-                  >
-                    <span>เลื่อน 10 นาที</span>
-                    <span className="text-[10px] text-slate-400">+10m</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCardSnooze(60);
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-between"
-                  >
-                    <span>เลื่อน 1 ชั่วโมง</span>
-                    <span className="text-[10px] text-slate-400">+1h</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCardSnooze('tomorrow');
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-amber-600 dark:text-amber-400 font-semibold"
-                  >
-                    <span>พรุ่งนี้ 09:00</span>
-                  </button>
-                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-0.5" />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteReminder(reminder.id, note.id);
-                      setIsQuickSnoozeOpen(false);
-                      toast.success('ลบการเตือนความจำแล้ว');
-                    }}
-                    className="w-full text-left px-2.5 py-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 text-[11px] font-medium"
-                  >
-                    ลบการแจ้งเตือน
-                  </button>
-                </ViewportPopover>
-              </>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsReminderModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/20 hover:scale-105 transition cursor-pointer select-none"
+                title="คลิกเพื่อแก้ไขการเตือนความจำ"
+              >
+                <Bell size={11} className="fill-current animate-pulse text-amber-500" />
+                <span>{formatReminderDate(reminder.reminderDateTime)}</span>
+              </button>
             )}
 
             {note.notebook && (
