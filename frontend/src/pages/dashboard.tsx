@@ -302,10 +302,10 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setIsAiSearchOpen(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-sm transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100/80 dark:bg-violet-950/40 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 border border-violet-200/80 dark:border-violet-800/60 font-semibold shadow-xs transition-all duration-200 active:scale-95"
                   title="ค้นหาโน้ตตามความหมายด้วย AI (ฟรี 100%)"
                 >
-                  <Sparkles size={13} />
+                  <Sparkles size={13} className="text-violet-600 dark:text-violet-400" />
                   <span>ค้นหา AI</span>
                 </button>
               </div>
