@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, VolumeX, Settings } from 'lucide-react';
+import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, VolumeX, Settings, AlarmClock } from 'lucide-react';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useReminderStore } from '@/store/reminderStore';
 import { useAuthStore } from '@/store/authStore';
 import io, { Socket } from 'socket.io-client';
 import {
@@ -16,6 +17,7 @@ import toast from 'react-hot-toast';
 export default function NotificationCenter() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { saveReminder } = useReminderStore();
   const {
     notifications,
     unreadCount,
@@ -36,6 +38,31 @@ export default function NotificationCenter() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundTone, setSoundTone] = useState<SoundTone>('chime');
   const [showSoundMenu, setShowSoundMenu] = useState(false);
+  const [snoozeMenuNotifId, setSnoozeMenuNotifId] = useState<string | null>(null);
+
+  const handleSnooze = async (notif: any, minutes: number | 'tomorrow') => {
+    try {
+      let targetTime: Date;
+      if (minutes === 'tomorrow') {
+        targetTime = new Date();
+        targetTime.setDate(targetTime.getDate() + 1);
+        targetTime.setHours(9, 0, 0, 0);
+      } else {
+        targetTime = new Date(Date.now() + minutes * 60 * 1000);
+      }
+      await saveReminder({
+        noteId: notif.noteId,
+        title: notif.title.replace(/^⏰\s*(แจ้งเตือน:\s*)?/, ''),
+        reminderDateTime: targetTime.toISOString(),
+      });
+      await markAsRead(notif.id);
+      setSnoozeMenuNotifId(null);
+      const formatted = targetTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      toast.success(`เลื่อนการแจ้งเตือนไปที่ ${minutes === 'tomorrow' ? 'พรุ่งนี้ 09:00' : formatted}`, { icon: '⏰' });
+    } catch (e) {
+      toast.error('ไม่สามารถเลื่อนเวลาแจ้งเตือนได้');
+    }
+  };
 
   useEffect(() => {
     const s = getNotificationSoundSetting();
@@ -335,8 +362,62 @@ export default function NotificationCenter() {
                       </div>
                     </div>
 
-                    {/* Item Action Buttons (Mark as read & Delete) */}
+                    {/* Item Action Buttons (Snooze, Mark as read & Delete) */}
                     <div className="flex items-center gap-1 shrink-0">
+                      {/* Snooze Action Button */}
+                      {notif.noteId && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSnoozeMenuNotifId(snoozeMenuNotifId === notif.id ? null : notif.id);
+                            }}
+                            className={`p-1.5 sm:p-1 rounded-lg transition ${
+                              snoozeMenuNotifId === notif.id
+                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600'
+                                : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                            }`}
+                            title="เลื่อนเวลาแจ้งเตือน (Snooze)"
+                            aria-label="เลื่อนเวลาแจ้งเตือน"
+                          >
+                            <AlarmClock size={14} />
+                          </button>
+
+                          {snoozeMenuNotifId === notif.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1 z-30 animate-fade-in text-[11px]"
+                            >
+                              <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
+                                เลื่อนเตือน
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleSnooze(notif, 10)}
+                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                              >
+                                +10 นาที
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSnooze(notif, 60)}
+                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                              >
+                                +1 ชั่วโมง
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSnooze(notif, 'tomorrow')}
+                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 font-medium"
+                              >
+                                พรุ่งนี้ 09:00
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {!notif.isRead && (
                         <button
                           type="button"

@@ -14,9 +14,12 @@ import {
   Pin,
   Lock,
   Unlock,
+  Bell,
 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
+import NoteReminderModal from '../notes/NoteReminderModal';
+import { useReminderStore } from '@/store/reminderStore';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
@@ -63,6 +66,25 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [activeMobileCol, setActiveMobileCol] = useState<string>('todo');
+  const remindersByNote = useReminderStore((state) => state.remindersByNote);
+  const [reminderModalNote, setReminderModalNote] = useState<Note | null>(null);
+
+  const formatReminderDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const now = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const isTomorrow = d.toDateString() === tomorrow.toDateString();
+      const time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      if (isToday) return `วันนี้ ${time}`;
+      if (isTomorrow) return `พรุ่งนี้ ${time}`;
+      return `${d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${time}`;
+    } catch {
+      return '';
+    }
+  };
 
   const handleOpenFullscreen = (n: Note) => {
     if (n.isLocked && !isVaultUnlocked && onUnlockRequest) {
@@ -230,6 +252,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                         f.name.toLowerCase().includes(String(note.fontFamily).toLowerCase())
                     );
                     const attachedStickers = getNoteStickers(note.id, notes);
+                    const reminder = remindersByNote[note.id];
 
                     return (
                       <div
@@ -325,6 +348,20 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                setReminderModalNote(note);
+                              }}
+                              className={`p-1 rounded hover:bg-black/10 transition ${
+                                reminder ? 'text-amber-600 font-bold' : 'text-black/60'
+                              }`}
+                              title={reminder ? 'แก้ไขการแจ้งเตือน (Reminder)' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}
+                              aria-label="ตั้งเวลาแจ้งเตือน"
+                            >
+                              <Bell size={12} className={reminder ? 'fill-current animate-pulse text-amber-500' : ''} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleOpenFullscreen(note);
                               }}
                               className="p-1 rounded hover:bg-black/10 text-black/60"
@@ -345,6 +382,21 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                             </button>
                           </div>
                         </div>
+
+                        {/* Reminder Badge Pill if active */}
+                        {reminder && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReminderModalNote(note);
+                            }}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100/90 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 hover:scale-105 transition cursor-pointer mb-2 shrink-0 select-none shadow-xs"
+                            title="คลิกเพื่อแก้ไขหรือลบการเตือนความจำ"
+                          >
+                            <Bell size={10} className="fill-current animate-pulse text-amber-600 dark:text-amber-400" />
+                            <span>{formatReminderDate(reminder.reminderDateTime)}</span>
+                          </div>
+                        )}
 
                         {cleanPreview && (
                           <p
@@ -419,6 +471,16 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
             }
             setFullscreenNote(null);
           }}
+        />
+      )}
+
+      {/* Note Reminder Modal for Kanban View */}
+      {reminderModalNote && (
+        <NoteReminderModal
+          isOpen={!!reminderModalNote}
+          onClose={() => setReminderModalNote(null)}
+          noteId={reminderModalNote.id}
+          noteTitle={reminderModalNote.title}
         />
       )}
     </div>
