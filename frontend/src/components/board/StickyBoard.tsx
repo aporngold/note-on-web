@@ -32,6 +32,7 @@ import { Note, Board, BoardViewMode, SortOption } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
+import NoteReminderModal from '../notes/NoteReminderModal';
 import { getRandomNoteColor } from '../notes/NoteEditor';
 import { sortNotes, SORT_OPTIONS } from '@/utils/sortHelper';
 import toast from 'react-hot-toast';
@@ -106,6 +107,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
+  const [reminderModalNote, setReminderModalNote] = useState<Note | null>(null);
   const [isArranging, setIsArranging] = useState(false);
 
   const handleOpenFullscreen = (n: Note) => {
@@ -1757,6 +1759,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                     onQuickPeekClose={handleScheduleCloseQuickPeek}
                     onOpenStickerModal={() => handleOpenStickerForNote(note.id)}
                     onZoomToNote={handleZoomToNote}
+                    onOpenReminder={(n) => setReminderModalNote(n)}
                   />
                 )
               )}
@@ -2076,6 +2079,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             setFullscreenNote(null);
             fetchNotes({ isArchived: false });
           }}
+        />
+      )}
+
+      {/* Note Reminder Modal for Sticky Board */}
+      {reminderModalNote && (
+        <NoteReminderModal
+          isOpen={!!reminderModalNote}
+          onClose={() => setReminderModalNote(null)}
+          noteId={reminderModalNote.id}
+          noteTitle={reminderModalNote.title}
         />
       )}
     </div>

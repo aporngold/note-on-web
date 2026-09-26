@@ -35,7 +35,6 @@ import ViewportPopover from '../ui/ViewportPopover';
 import ViewportContextMenu from '../ui/ViewportContextMenu';
 import ShareNoteModal from '../notes/ShareNoteModal';
 import { FONT_PRESETS } from '../notes/editorExtensions';
-import NoteReminderModal from '../notes/NoteReminderModal';
 import { useReminderStore } from '@/store/reminderStore';
 
 interface StickyNoteItemProps {
@@ -57,6 +56,7 @@ interface StickyNoteItemProps {
   onQuickPeekClose?: () => void;
   onOpenStickerModal?: () => void;
   onZoomToNote?: (note: Note) => void;
+  onOpenReminder?: (note: Note) => void;
 }
 
 const PAPER_COLORS = [
@@ -202,6 +202,7 @@ export default function StickyNoteItem({
   onQuickPeekClose,
   onOpenStickerModal,
   onZoomToNote,
+  onOpenReminder,
 }: StickyNoteItemProps) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -273,7 +274,6 @@ export default function StickyNoteItem({
   const fontFamilyBtnRef = useRef<HTMLButtonElement>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
   const kanbanBtnRef = useRef<HTMLButtonElement>(null);
-  const [isReminderOpen, setIsReminderOpen] = useState(false);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const hasReminder = Boolean(remindersByNote[note.id]);
   const [contextMenu, setContextMenu] = useState<{ isOpen: boolean; x: number; y: number }>({
@@ -1003,7 +1003,9 @@ export default function StickyNoteItem({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setIsReminderOpen(true);
+                if (onOpenReminder) {
+                  onOpenReminder(note);
+                }
               }}
               className={`p-1 rounded hover:bg-black/10 transition cursor-pointer relative flex items-center justify-center ${
                 hasReminder
@@ -1843,7 +1845,9 @@ export default function StickyNoteItem({
             type="button"
             onClick={() => {
               setContextMenu({ isOpen: false, x: 0, y: 0 });
-              setIsReminderOpen(true);
+              if (onOpenReminder) {
+                onOpenReminder(note);
+              }
             }}
             className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-left font-medium text-xs transition"
           >
@@ -1927,14 +1931,6 @@ export default function StickyNoteItem({
         noteId={note.id}
         noteTitle={note.title || title}
         isLocked={note.isLocked}
-      />
-
-      {/* Note Reminder Modal */}
-      <NoteReminderModal
-        isOpen={isReminderOpen}
-        onClose={() => setIsReminderOpen(false)}
-        noteId={note.id}
-        noteTitle={note.title || title}
       />
     </>
   );
