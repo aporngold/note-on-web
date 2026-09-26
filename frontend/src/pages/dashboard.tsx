@@ -40,6 +40,7 @@ export default function Dashboard() {
     setSelectedNotebook,
     setSelectedLabel,
     setSelectedColor,
+    setSearchQuery,
     sortBy,
     setSortBy,
   } = useNoteStore();
@@ -162,17 +163,13 @@ export default function Dashboard() {
   const activeNotebook = notebooks.find((nb) => nb.id === selectedNotebook);
   const activeLabel = labels.find((lbl) => lbl.id === selectedLabel);
 
-  const hasActiveFilter = selectedNotebook || selectedLabel || selectedColor || searchQuery || activeTab !== 'all';
+  const hasActiveFilter = Boolean(selectedNotebook || selectedLabel || selectedColor || searchQuery.trim());
 
   const clearAllFilters = () => {
     setSelectedNotebook(null);
     setSelectedLabel(null);
     setSelectedColor(null);
-    setActiveTab('all');
-    if (router.query.tab) {
-      const { tab, ...rest } = router.query;
-      router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
-    }
+    setSearchQuery('');
   };
 
   return (
@@ -398,6 +395,9 @@ export default function Dashboard() {
             {searchQuery && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                 คำค้น: "{searchQuery}"
+                <button onClick={() => setSearchQuery('')} className="hover:opacity-75">
+                  <X size={12} />
+                </button>
               </span>
             )}
 
