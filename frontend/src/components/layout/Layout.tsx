@@ -309,7 +309,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
             <NotificationCenter />
 
             {/* Quick New Note - Desktop only (Mobile has bottom-right FAB) */}
-            {!(router.pathname === '/board' || viewMode === 'board') && (
+            {!(router.pathname === '/board' || viewMode === 'board' || router.query.tab === 'reminders') && (
               <button
                 onClick={() => {
                   const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';

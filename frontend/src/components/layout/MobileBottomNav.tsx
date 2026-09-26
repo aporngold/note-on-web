@@ -82,19 +82,21 @@ export default function MobileBottomNav() {
   return (
     <>
       {/* Floating Action Button (FAB) for New Note on Mobile */}
-      <div className="fixed right-4 bottom-20 z-40 lg:hidden">
-        <button
-          onClick={() => {
-            const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
-            router.push(url);
-          }}
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/30 flex items-center justify-center transition-transform active:scale-95"
-          title="สร้างโน้ตใหม่"
-          aria-label="สร้างโน้ตใหม่"
-        >
-          <Plus size={26} />
-        </button>
-      </div>
+      {router.query.tab !== 'reminders' && (
+        <div className="fixed right-4 bottom-20 z-40 lg:hidden">
+          <button
+            onClick={() => {
+              const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
+              router.push(url);
+            }}
+            className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/30 flex items-center justify-center transition-transform active:scale-95"
+            title="สร้างโน้ตใหม่"
+            aria-label="สร้างโน้ตใหม่"
+          >
+            <Plus size={26} />
+          </button>
+        </div>
+      )}
 
       {/* Bottom Navigation Bar */}
       <nav

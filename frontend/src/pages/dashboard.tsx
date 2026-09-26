@@ -354,15 +354,6 @@ export default function Dashboard() {
                 <span>เร็วๆ นี้ {reminderTimelineGroups.upcoming.length}</span>
               </span>
             </div>
-
-            <button
-              type="button"
-              onClick={() => router.push('/notes/new')}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5 shrink-0 self-start sm:self-auto"
-            >
-              <Plus size={14} />
-              <span>สร้างโน้ตใหม่</span>
-            </button>
           </div>
         )}
 

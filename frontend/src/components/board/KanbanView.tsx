@@ -222,13 +222,15 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                   </span>
                 </div>
 
-                <button
-                  onClick={() => handleAddNoteToColumn(col.id)}
-                  className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
-                  title="เพิ่มการ์ดในคอลัมน์นี้"
-                >
-                  <Plus size={16} />
-                </button>
+                {router.query.tab !== 'reminders' && (
+                  <button
+                    onClick={() => handleAddNoteToColumn(col.id)}
+                    className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition"
+                    title="เพิ่มการ์ดในคอลัมน์นี้"
+                  >
+                    <Plus size={16} />
+                  </button>
+                )}
               </div>
 
               {/* Cards Container */}
@@ -236,12 +238,14 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                 {colNotes.length === 0 ? (
                   <div className="h-40 border-2 border-dashed border-slate-300 dark:border-slate-700/60 rounded-xl flex flex-col items-center justify-center text-slate-400 text-xs p-4 text-center">
                     <span>ยังไม่มีการ์ดในคอลัมน์นี้</span>
-                    <button
-                      onClick={() => handleAddNoteToColumn(col.id)}
-                      className="mt-2 text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
-                    >
-                      + เพิ่มโน้ตใหม่
-                    </button>
+                    {router.query.tab !== 'reminders' && (
+                      <button
+                        onClick={() => handleAddNoteToColumn(col.id)}
+                        className="mt-2 text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                      >
+                        + เพิ่มโน้ตใหม่
+                      </button>
+                    )}
                   </div>
                 ) : (
                   colNotes.map((note) => {
