@@ -80,6 +80,10 @@ export default function Sidebar({
     if (path === '/board') {
       useNoteStore.getState().setViewMode('board');
       useNoteStore.getState().setBoardViewMode('freeform');
+    } else if (path.includes('tab=reminders')) {
+      if (useNoteStore.getState().viewMode === 'board') {
+        useNoteStore.getState().setViewMode('grid');
+      }
     }
     router.push(path);
     if (onCloseMobile) onCloseMobile();

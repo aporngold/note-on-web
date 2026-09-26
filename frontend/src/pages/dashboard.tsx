@@ -54,8 +54,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (router.query.tab === 'reminders') {
       setActiveTab('reminders');
+      if (viewMode === 'board') {
+        useNoteStore.getState().setViewMode('grid');
+      }
+    } else if (!router.query.tab && activeTab === 'reminders') {
+      setActiveTab('all');
     }
-  }, [router.query.tab]);
+  }, [router.query.tab, viewMode, activeTab]);
 
   const handleOpenFullscreen = (n: Note) => {
     if (typeof document !== 'undefined' && !document.fullscreenElement) {
@@ -64,13 +69,14 @@ export default function Dashboard() {
     setFullscreenNote(n);
   };
 
+  const userId = user?.id;
   useEffect(() => {
-    if (user) {
+    if (userId) {
       fetchNotes({ isArchived: false });
       fetchBoards();
       fetchReminders();
     }
-  }, [user, selectedNotebook, selectedLabel, selectedColor, fetchNotes, fetchBoards, fetchReminders]);
+  }, [userId, selectedNotebook, selectedLabel, selectedColor, fetchNotes, fetchBoards, fetchReminders]);
 
   // Client-side search, tab filtering, and auto-sorting
   const filteredNotes = React.useMemo(() => {
@@ -104,12 +110,21 @@ export default function Dashboard() {
   const isViewingDefaultBoard = !activeBoardId || activeBoardId === defaultBoard?.id;
 
   // In board mode, show notes belonging to active board (or unassigned notes if on default board)
-  const boardNotes = filteredNotes.filter((n) => {
-    if (isViewingDefaultBoard) {
-      return !n.boardId || n.boardId === defaultBoard?.id;
-    }
-    return n.boardId === activeBoardId;
-  });
+  // Board notes should NOT be filtered out by activeTab (reminders/pinned/favorites),
+  // but should obey search query if user searches on board.
+  const boardNotes = React.useMemo(() => {
+    return notes.filter((n) => {
+      if (n.isArchived) return false;
+      if (isViewingDefaultBoard) {
+        if (n.boardId && n.boardId !== defaultBoard?.id) return false;
+      } else {
+        if (n.boardId !== activeBoardId) return false;
+      }
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return n.title?.toLowerCase().includes(q) || n.content?.toLowerCase().includes(q);
+    });
+  }, [notes, isViewingDefaultBoard, defaultBoard?.id, activeBoardId, searchQuery]);
 
   const pinnedNotes = filteredNotes.filter((n) => n.isPinned);
   const regularNotes = filteredNotes.filter((n) => !n.isPinned);
@@ -180,10 +195,16 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-              {/* Quick Filter Tabs (All, Pinned, Favorites) */}
+              {/* Quick Filter Tabs (All, Pinned, Favorites, Reminders) */}
               <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold shadow-xs">
                 <button
-                  onClick={() => setActiveTab('all')}
+                  onClick={() => {
+                    setActiveTab('all');
+                    if (router.query.tab) {
+                      const { tab, ...rest } = router.query;
+                      router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                    }
+                  }}
                   className={`px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'all'
                       ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
@@ -193,7 +214,13 @@ export default function Dashboard() {
                   ทั้งหมด ({notes.length})
                 </button>
                 <button
-                  onClick={() => setActiveTab('pinned')}
+                  onClick={() => {
+                    setActiveTab('pinned');
+                    if (router.query.tab) {
+                      const { tab, ...rest } = router.query;
+                      router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                    }
+                  }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'pinned'
                       ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
@@ -204,7 +231,13 @@ export default function Dashboard() {
                   <span>ปักหมุด ({notes.filter((n) => n.isPinned).length})</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab('favorites')}
+                  onClick={() => {
+                    setActiveTab('favorites');
+                    if (router.query.tab) {
+                      const { tab, ...rest } = router.query;
+                      router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+                    }
+                  }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'favorites'
                       ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
@@ -215,7 +248,12 @@ export default function Dashboard() {
                   <span>รายการโปรด ({notes.filter((n) => n.isFavorite).length})</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab('reminders')}
+                  onClick={() => {
+                    setActiveTab('reminders');
+                    if (router.query.tab !== 'reminders') {
+                      router.push({ pathname: router.pathname, query: { ...router.query, tab: 'reminders' } }, undefined, { shallow: true });
+                    }
+                  }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'reminders'
                       ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-bold shadow-sm'

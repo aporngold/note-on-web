@@ -146,6 +146,26 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
 
   return (
     <div className="flex-1 w-full h-full overflow-x-hidden md:overflow-x-auto p-2.5 sm:p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col">
+      {/* Reminder Active Filter Banner in Kanban */}
+      {router.query.tab === 'reminders' && (
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2 mb-3 bg-amber-50/90 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-800/80 rounded-2xl text-xs text-amber-800 dark:text-amber-300 shadow-xs shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Bell size={14} className="fill-amber-500 text-amber-500 shrink-0" />
+            <span className="truncate font-medium">กำลังแสดงเฉพาะโน้ตที่มีการเตือนความจำใน Kanban ({notes.length} รายการ)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const { tab, ...rest } = router.query;
+              router.push({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+            }}
+            className="px-2.5 py-1 bg-amber-200/80 hover:bg-amber-300 dark:bg-amber-800/60 dark:hover:bg-amber-700/60 text-amber-900 dark:text-amber-200 font-bold rounded-xl transition text-[11px] shrink-0"
+          >
+            แสดงโน้ตทั้งหมด
+          </button>
+        </div>
+      )}
+
       {/* Mobile Column Switcher Tabs */}
       <div className="flex md:hidden items-center gap-1.5 p-1 bg-slate-200/70 dark:bg-slate-800/70 rounded-2xl mb-2.5 shrink-0 border border-slate-200/80 dark:border-slate-700/80">
         {COLUMNS.map((col) => {
