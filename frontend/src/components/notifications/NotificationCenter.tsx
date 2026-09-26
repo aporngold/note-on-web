@@ -96,6 +96,67 @@ export default function NotificationCenter() {
       addRealtimeNotification(notif);
       playNotificationSound();
       triggerVibration();
+
+      // Interactive Actionable Alert Toast (Floating Banner)
+      toast.custom(
+        (t) => (
+          <div
+            className={`${
+              t.visible ? 'animate-fade-in' : 'opacity-0 scale-95 transition-all'
+            } max-w-md w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-2xl rounded-2xl pointer-events-auto border border-amber-400/80 dark:border-amber-500/50 p-4 ring-2 ring-amber-500/20`}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs">
+                <Bell size={20} className="fill-current animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                  {notif.title || '⏰ ถึงเวลาเตือนความจำ'}
+                </p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                  {notif.message || 'ถึงเวลาที่คุณตั้งเตือนความจำไว้แล้ว'}
+                </p>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  {notif.noteId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        handleNotificationClick(notif);
+                      }}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1 active:scale-95"
+                    >
+                      <ExternalLink size={12} />
+                      <span>เปิดดูโน้ต</span>
+                    </button>
+                  )}
+                  {notif.noteId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toast.dismiss(t.id);
+                        handleSnooze(notif, 10);
+                      }}
+                      className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-semibold transition border border-amber-200 dark:border-amber-800 flex items-center gap-1 active:scale-95"
+                    >
+                      <AlarmClock size={12} />
+                      <span>เลื่อน 10 นาที</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => toast.dismiss(t.id)}
+                    className="px-2.5 py-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-medium ml-auto"
+                  >
+                    ปิด
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ),
+        { duration: 10000, position: 'top-right' }
+      );
     });
 
     return () => {

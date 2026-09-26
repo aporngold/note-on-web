@@ -267,6 +267,49 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Reminders Tab Header Strip */}
+        {activeTab === 'reminders' && reminderTimelineGroups && (
+          <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-xs">
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 mr-1">
+                <Bell size={16} className="text-amber-500" />
+                <span>สถานะการแจ้งเตือน:</span>
+              </span>
+
+              {reminderTimelineGroups.overdue.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 font-bold border border-rose-300/60 dark:border-rose-800">
+                  <AlertCircle size={12} className="animate-pulse" />
+                  <span>เลยกำหนด {reminderTimelineGroups.overdue.length}</span>
+                </span>
+              )}
+
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300/60 dark:border-amber-800">
+                <Clock size={12} />
+                <span>วันนี้ {reminderTimelineGroups.today.length}</span>
+              </span>
+
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 font-semibold border border-emerald-300/60 dark:border-emerald-800">
+                <Calendar size={12} />
+                <span>พรุ่งนี้ {reminderTimelineGroups.tomorrow.length}</span>
+              </span>
+
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 font-semibold border border-indigo-300/60 dark:border-indigo-800">
+                <CalendarDays size={12} />
+                <span>เร็วๆ นี้ {reminderTimelineGroups.upcoming.length}</span>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push('/notes/new')}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-xs transition active:scale-95 flex items-center justify-center gap-1.5 shrink-0 self-start sm:self-auto"
+            >
+              <Plus size={14} />
+              <span>สร้างโน้ตใหม่</span>
+            </button>
+          </div>
+        )}
+
         {/* Active Filters Bar */}
         {hasActiveFilter && (
           <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs">
