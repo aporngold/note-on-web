@@ -21,7 +21,7 @@ const authenticate = async (req, res, next) => {
             },
             include: {
                 user: {
-                    select: { id: true, email: true, username: true }
+                    select: { id: true, email: true, username: true, role: true }
                 }
             }
         });

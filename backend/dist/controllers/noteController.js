@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NoteController = void 0;
+exports.NoteController = exports.MAX_NOTES_PER_BOARD = void 0;
 const database_1 = require("../utils/database");
 const zod_1 = require("zod");
 const createNoteSchema = zod_1.z.object({
@@ -25,6 +25,7 @@ const createNoteSchema = zod_1.z.object({
     iv: zod_1.z.string().optional().nullable(),
     salt: zod_1.z.string().optional().nullable(),
 });
+exports.MAX_NOTES_PER_BOARD = 56;
 const updateNoteSchema = zod_1.z.object({
     title: zod_1.z.string().optional(),
     content: zod_1.z.string().optional(),
@@ -196,11 +197,33 @@ class NoteController {
                     return res.status(400).json({ error: 'Notebook not found or not owned by user' });
                 }
             }
+            // Determine target boardId (if null/undefined, check if user has a default board)
+            let resolvedBoardId = boardId || null;
+            if (!resolvedBoardId) {
+                const defaultBoard = await database_1.prisma.board.findFirst({
+                    where: { userId, isDefault: true },
+                    select: { id: true },
+                });
+                if (defaultBoard) {
+                    resolvedBoardId = defaultBoard.id;
+                }
+            }
+            // Enforce maximum 56 notes per board limit
+            if (resolvedBoardId) {
+                const activeBoardNoteCount = await database_1.prisma.note.count({
+                    where: { userId, boardId: resolvedBoardId, isArchived: false },
+                });
+                if (activeBoardNoteCount >= exports.MAX_NOTES_PER_BOARD) {
+                    return res.status(400).json({
+                        error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+                    });
+                }
+            }
             let resolvedPosX = posX;
             let resolvedPosY = posY;
             // Query existing active notes on this board to verify coordinates and prevent overlapping notes
             const existingNotes = await database_1.prisma.note.findMany({
-                where: { userId, boardId: boardId || null, isArchived: false },
+                where: { userId, boardId: resolvedBoardId, isArchived: false },
                 select: { posX: true, posY: true, width: true, height: true },
             });
             const isSlotColliding = (candX, candY, candW = 260, candH = 260) => {
@@ -263,7 +286,7 @@ class NoteController {
                     salt: salt || null,
                     userId,
                     notebookId: notebookId || null,
-                    boardId: boardId || null,
+                    boardId: resolvedBoardId,
                     labels: {
                         create: labelIds.map((lid) => ({
                             label: {
@@ -308,6 +331,31 @@ class NoteController {
                 return res.status(404).json({ error: 'Note not found' });
             }
             const { title, content, color, textColor, fontSize, fontFamily, kanbanStatus, rotation, posX, posY, width, height, isLocked, isPinned, isFavorite, isArchived, notebookId, boardId, labelIds, iv, salt, } = parsed.data;
+            // Check if moving note to a different board
+            if (boardId !== undefined && boardId !== null && boardId !== note.boardId) {
+                const destCount = await database_1.prisma.note.count({
+                    where: { userId, boardId, isArchived: false },
+                });
+                if (destCount >= exports.MAX_NOTES_PER_BOARD) {
+                    return res.status(400).json({
+                        error: 'Board นี้มีครบ 56 Notes แล้ว',
+                    });
+                }
+            }
+            // Check if unarchiving note on its current or target board
+            if (isArchived === false && note.isArchived) {
+                const targetBoardId = boardId !== undefined ? boardId : note.boardId;
+                if (targetBoardId) {
+                    const destCount = await database_1.prisma.note.count({
+                        where: { userId, boardId: targetBoardId, isArchived: false },
+                    });
+                    if (destCount >= exports.MAX_NOTES_PER_BOARD) {
+                        return res.status(400).json({
+                            error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+                        });
+                    }
+                }
+            }
             // Handle label relations update if provided
             if (labelIds !== undefined) {
                 await database_1.prisma.labelNote.deleteMany({
@@ -422,6 +470,16 @@ class NoteController {
             if (!note) {
                 return res.status(404).json({ error: 'Note not found' });
             }
+            if (note.boardId) {
+                const boardCount = await database_1.prisma.note.count({
+                    where: { userId, boardId: note.boardId, isArchived: false },
+                });
+                if (boardCount >= exports.MAX_NOTES_PER_BOARD) {
+                    return res.status(400).json({
+                        error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+                    });
+                }
+            }
             const restored = await database_1.prisma.note.update({
                 where: { id },
                 data: { isArchived: false },
@@ -461,6 +519,16 @@ class NoteController {
             if (!original) {
                 return res.status(404).json({ error: 'Note not found' });
             }
+            if (original.boardId) {
+                const boardCount = await database_1.prisma.note.count({
+                    where: { userId, boardId: original.boardId, isArchived: false },
+                });
+                if (boardCount >= exports.MAX_NOTES_PER_BOARD) {
+                    return res.status(400).json({
+                        error: 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note',
+                    });
+                }
+            }
             const duplicated = await database_1.prisma.note.create({
                 data: {
                     title: original.title ? `[คัดลอก] ${original.title}` : '[คัดลอก] ไม่มีชื่อ',
@@ -473,6 +541,7 @@ class NoteController {
                     salt: original.salt,
                     userId,
                     notebookId: original.notebookId,
+                    boardId: original.boardId || null,
                     labels: {
                         create: original.labels.map((l) => ({
                             labelId: l.labelId,

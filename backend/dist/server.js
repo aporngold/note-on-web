@@ -22,6 +22,10 @@ const boardRoutes_1 = __importDefault(require("./routes/boardRoutes"));
 const versionRoutes_1 = __importDefault(require("./routes/versionRoutes"));
 const shareRoutes_1 = __importDefault(require("./routes/shareRoutes"));
 const aiRoutes_1 = __importDefault(require("./routes/aiRoutes"));
+const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
+const reminderRoutes_1 = __importDefault(require("./routes/reminderRoutes"));
+const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
+const reminderScheduler_1 = require("./services/reminderScheduler");
 const errorHandler_1 = require("./middleware/errorHandler");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -121,6 +125,9 @@ app.use('/api/labels', labelRoutes_1.default);
 app.use('/api/boards', boardRoutes_1.default);
 app.use('/api/upload', uploadRoutes_1.default);
 app.use('/api/connections', connectionRoutes_1.default);
+app.use('/api/admin', adminRoutes_1.default);
+app.use('/api/reminders', reminderRoutes_1.default);
+app.use('/api/notifications', notificationRoutes_1.default);
 // Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
 const notePresenceMap = new Map();
 const PRESENCE_COLORS = [
@@ -128,6 +135,11 @@ const PRESENCE_COLORS = [
 ];
 // Socket.io for real-time collaboration / live notes sync
 io.on('connection', (socket) => {
+    socket.on('join-user', (userId) => {
+        if (userId) {
+            socket.join(`user:${userId}`);
+        }
+    });
     socket.on('join-note', (data) => {
         const noteId = typeof data === 'string' ? data : data.noteId;
         const userId = typeof data === 'object' ? data.userId : undefined;
@@ -202,4 +214,7 @@ const protocol = isHttpsEnabled ? 'https' : 'http';
 serverInstance.listen(PORT, () => {
     console.log(`🚀 SecureNote API Server running on ${protocol}://localhost:${PORT}`);
     console.log(`📡 Health check: ${protocol}://localhost:${PORT}/health`);
+    // Initialize reminder scheduler with socket.io
+    (0, reminderScheduler_1.setSchedulerSocketIO)(io);
+    (0, reminderScheduler_1.initReminderScheduler)();
 });

@@ -1,0 +1,193 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.setSchedulerSocketIO = setSchedulerSocketIO;
+exports.processDueReminders = processDueReminders;
+exports.initReminderScheduler = initReminderScheduler;
+const node_cron_1 = __importDefault(require("node-cron"));
+const database_1 = require("../utils/database");
+const webPushService_1 = require("./webPushService");
+let ioInstance = null;
+let isSchedulerRunning = false;
+function setSchedulerSocketIO(io) {
+    ioInstance = io;
+}
+/**
+ * Calculate the next reminder time based on the repeat rule
+ * Uses a loop to ensure next occurrence is strictly in the future (safeguard against downtime)
+ */
+function calculateNextOccurrence(currentDate, repeatRule) {
+    const next = new Date(currentDate);
+    const now = new Date();
+    switch (repeatRule) {
+        case 'daily':
+            do {
+                next.setDate(next.getDate() + 1);
+            } while (next <= now);
+            break;
+        case 'weekly':
+            do {
+                next.setDate(next.getDate() + 7);
+            } while (next <= now);
+            break;
+        case 'monthly':
+            do {
+                next.setMonth(next.getMonth() + 1);
+            } while (next <= now);
+            break;
+        default:
+            break;
+    }
+    return next;
+}
+/**
+ * Process due reminders with concurrency safety and deduplication
+ */
+async function processDueReminders() {
+    if (isSchedulerRunning) {
+        return; // Prevent overlapping runs if previous iteration took longer
+    }
+    isSchedulerRunning = true;
+    const now = new Date();
+    try {
+        // 1. Find all active reminders that are due
+        const dueReminders = await database_1.prisma.reminder.findMany({
+            where: {
+                status: 'scheduled',
+                reminderDateTime: {
+                    lte: now,
+                },
+            },
+            include: {
+                note: {
+                    select: {
+                        id: true,
+                        title: true,
+                        content: true,
+                        isArchived: true,
+                        isLocked: true,
+                    },
+                },
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        username: true,
+                    },
+                },
+            },
+            take: 50, // Batch size to keep loop swift
+        });
+        if (dueReminders.length === 0) {
+            return;
+        }
+        console.log(`⏰ [Reminder Scheduler] Found ${dueReminders.length} due reminders at ${now.toISOString()}`);
+        for (const reminder of dueReminders) {
+            // 2. Concurrency Lock: Mark as 'processing' to prevent other workers from picking it up
+            const acquired = await database_1.prisma.reminder.updateMany({
+                where: {
+                    id: reminder.id,
+                    status: 'scheduled', // Atomic check
+                },
+                data: {
+                    status: 'processing',
+                },
+            });
+            if (acquired.count === 0) {
+                continue; // Handled by another concurrent process
+            }
+            // 3. Check if associated note was archived/trashed
+            if (reminder.note && reminder.note.isArchived) {
+                console.log(`⏭️ Skipping reminder ${reminder.id} because note is archived in trash`);
+                await database_1.prisma.reminder.update({
+                    where: { id: reminder.id },
+                    data: { status: 'cancelled', cancelledAt: now },
+                });
+                continue;
+            }
+            // Title & Message Preparation (Protect privacy: do not expose locked note content in notification)
+            const noteTitle = reminder.title || reminder.note?.title || 'โน้ตเตือนความจำ';
+            const notificationTitle = `🔔 เตือนความจำ: ${noteTitle}`;
+            const notificationBody = `ถึงเวลาแจ้งเตือนโน้ตของคุณแล้ว`;
+            const targetUrl = reminder.noteId ? `/notes/${reminder.noteId}` : '/dashboard';
+            // 4. Create In-App Notification record
+            const notification = await database_1.prisma.notification.create({
+                data: {
+                    userId: reminder.userId,
+                    noteId: reminder.noteId,
+                    reminderId: reminder.id,
+                    title: notificationTitle,
+                    message: notificationBody,
+                },
+            });
+            // 5. Action-Based: Pin the note to top when triggered until user attends to it
+            if (reminder.noteId) {
+                await database_1.prisma.note.update({
+                    where: { id: reminder.noteId },
+                    data: { isPinned: true },
+                }).catch((err) => console.error('Error auto-pinning note on reminder trigger:', err));
+            }
+            // 6. Emit real-time socket event to active sessions of this user
+            if (ioInstance) {
+                ioInstance.to(`user:${reminder.userId}`).emit('notification:new', notification);
+                // Broadcast note updated (pinned to top) so dashboard updates immediately
+                if (reminder.noteId) {
+                    ioInstance.to(`note:${reminder.noteId}`).emit('notification:new', notification);
+                    ioInstance.to(`user:${reminder.userId}`).emit('note:updated', { id: reminder.noteId, isPinned: true });
+                }
+            }
+            // 7. Dispatch Web Push to all devices of the user
+            await webPushService_1.WebPushService.sendPushToUser(reminder.userId, {
+                title: notificationTitle,
+                body: notificationBody,
+                url: targetUrl,
+                noteId: reminder.noteId,
+                reminderId: reminder.id,
+                tag: `reminder-${reminder.id}`,
+            });
+            // 7. Update reminder recurrence or complete
+            if (reminder.repeatRule && reminder.repeatRule !== 'none') {
+                const nextTime = calculateNextOccurrence(reminder.reminderDateTime, reminder.repeatRule);
+                await database_1.prisma.reminder.update({
+                    where: { id: reminder.id },
+                    data: {
+                        status: 'scheduled',
+                        reminderDateTime: nextTime,
+                        sentAt: now,
+                    },
+                });
+                console.log(`🔁 Recurring reminder ${reminder.id} scheduled for next cycle: ${nextTime.toISOString()}`);
+            }
+            else {
+                await database_1.prisma.reminder.update({
+                    where: { id: reminder.id },
+                    data: {
+                        status: 'sent',
+                        sentAt: now,
+                    },
+                });
+                console.log(`✅ Reminder ${reminder.id} sent successfully`);
+            }
+        }
+    }
+    catch (error) {
+        console.error('Error running reminder scheduler cycle:', error);
+    }
+    finally {
+        isSchedulerRunning = false;
+    }
+}
+/**
+ * Initialize Background Scheduler (Runs every 30 seconds)
+ */
+function initReminderScheduler() {
+    console.log('⏰ [Reminder Scheduler] Background scheduler initialized (every 30 seconds)');
+    // Run immediately on boot to handle any reminders that became due while server was restarting
+    processDueReminders().catch((err) => console.error('Initial reminder check error:', err));
+    // Schedule to run every 30 seconds
+    node_cron_1.default.schedule('*/30 * * * * *', () => {
+        processDueReminders().catch((err) => console.error('Periodic reminder check error:', err));
+    });
+}
