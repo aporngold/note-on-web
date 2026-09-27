@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -43,6 +43,14 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken('');
+  }, []);
 
   // Password Validation Rules
   const isMinLength = password.length >= 13;
@@ -399,7 +407,10 @@ export default function RegisterPage() {
             )}
 
             {/* Cloudflare Turnstile Verification */}
-            <TurnstileWidget onVerify={(t) => setTurnstileToken(t)} />
+            <TurnstileWidget
+              onVerify={handleTurnstileVerify}
+              onExpire={handleTurnstileExpire}
+            />
 
             {/* Submit Button */}
             <button

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, Loader2 } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { ShieldCheck, RotateCcw, CheckCircle2 } from 'lucide-react';
 
 interface TurnstileWidgetProps {
   onVerify: (token: string) => void;
@@ -25,7 +25,6 @@ declare global {
       reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
     };
-    onTurnstileLoaded?: () => void;
   }
 }
 
@@ -37,51 +36,74 @@ export default function TurnstileWidget({
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [hasVerified, setHasVerified] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Project Cloudflare Turnstile Site Key with valid fallback
+  // Preserve latest callbacks in refs to prevent infinite re-render / destruction loops
+  const onVerifyRef = useRef(onVerify);
+  const onErrorRef = useRef(onError);
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+    onErrorRef.current = onError;
+    onExpireRef.current = onExpire;
+  });
+
+  // Project Cloudflare Turnstile Site Key
   const siteKey =
     process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAFC5WSh4GUW5XmNn';
 
-  useEffect(() => {
-    let isMounted = true;
+  const renderWidget = useCallback(() => {
+    if (!containerRef.current || !window.turnstile) return;
+    if (widgetIdRef.current) return; // Prevent duplicate render
 
-    const renderWidget = () => {
-      if (!isMounted || !containerRef.current || !window.turnstile) return;
-      if (widgetIdRef.current) return; // Already rendered
+    try {
+      setErrorMessage(null);
+      const id = window.turnstile.render(containerRef.current, {
+        sitekey: siteKey,
+        theme: 'light',
+        callback: (token: string) => {
+          setHasVerified(true);
+          setErrorMessage(null);
+          onVerifyRef.current?.(token);
+        },
+        'error-callback': (err: any) => {
+          console.warn('Turnstile challenge error:', err);
+          setHasVerified(false);
+          setErrorMessage('การตรวจสอบของ Cloudflare ไม่ผ่าน กรุณากดลองใหม่');
+          onErrorRef.current?.('การตรวจสอบความปลอดภัยไม่สำเร็จ');
+        },
+        'expired-callback': () => {
+          setHasVerified(false);
+          setErrorMessage('การตรวจสอบความปลอดภัยหมดอายุ กรุณาลองใหม่อีกครั้ง');
+          onExpireRef.current?.();
+        },
+      });
+      widgetIdRef.current = id;
+    } catch (e: any) {
+      console.warn('Turnstile render warning:', e);
+    }
+  }, [siteKey]);
 
+  const handleRetry = () => {
+    if (widgetIdRef.current && window.turnstile) {
       try {
-        const id = window.turnstile.render(containerRef.current, {
-          sitekey: siteKey,
-          theme: 'light',
-          callback: (token: string) => {
-            if (isMounted) {
-              setHasVerified(true);
-              onVerify(token);
-            }
-          },
-          'error-callback': (err: any) => {
-            if (isMounted) {
-              setHasVerified(false);
-              if (onError) onError('การตรวจสอบความปลอดภัยไม่สำเร็จ');
-            }
-          },
-          'expired-callback': () => {
-            if (isMounted) {
-              setHasVerified(false);
-              if (onExpire) onExpire();
-            }
-          },
-        });
-        widgetIdRef.current = id;
-        setIsLoaded(true);
+        window.turnstile.reset(widgetIdRef.current);
       } catch (e) {
-        console.warn('Turnstile render warning:', e);
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch (_) {}
+        widgetIdRef.current = null;
+        renderWidget();
       }
-    };
+    } else {
+      renderWidget();
+    }
+  };
 
-    // Check if script already exists
+  useEffect(() => {
+    // Check if Cloudflare script already exists
     if (window.turnstile) {
       renderWidget();
     } else {
@@ -96,10 +118,12 @@ export default function TurnstileWidget({
           renderWidget();
         };
         script.onerror = () => {
-          // If script blocked (e.g. offline/adblock in local dev), allow dummy token in local dev
+          // If script blocked (e.g. adblocker in local dev), allow test pass
           if (process.env.NODE_ENV === 'development') {
-            onVerify('1x00000000000000000000AA');
             setHasVerified(true);
+            onVerifyRef.current?.('1x00000000000000000000AA');
+          } else {
+            setErrorMessage('ไม่สามารถโหลดระบบ Cloudflare ได้ กรุณาปิด AdBlock หรือลองใหม่');
           }
         };
         document.head.appendChild(script);
@@ -115,7 +139,6 @@ export default function TurnstileWidget({
     }
 
     return () => {
-      isMounted = false;
       if (widgetIdRef.current && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -123,19 +146,38 @@ export default function TurnstileWidget({
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onVerify, onError, onExpire]);
+  }, [siteKey, renderWidget]); // Stable dependency only! Never include volatile callbacks
 
   return (
-    <div className={`flex flex-col items-center justify-center p-2 rounded-2xl bg-slate-50/80 border border-slate-200/80 ${className}`}>
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium mb-1.5">
-        <ShieldCheck size={14} className="text-teal-600" />
+    <div className={`flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-50/90 border border-slate-200/90 shadow-sm transition-all ${className}`}>
+      <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium mb-2">
+        <ShieldCheck size={15} className="text-teal-600 shrink-0" />
         <span>ระบบตรวจสอบความปลอดภัย (Cloudflare Turnstile)</span>
       </div>
+
       <div ref={containerRef} className="min-h-[65px] flex items-center justify-center" />
+
       {hasVerified && (
-        <span className="text-[11px] text-emerald-600 font-semibold mt-1">
-          ✓ การยืนยันความปลอดภัยสำเร็จ
-        </span>
+        <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold mt-2 animate-in fade-in">
+          <CheckCircle2 size={14} className="text-emerald-500" />
+          <span>ยืนยันความเป็นมนุษย์สำเร็จเรียบร้อย</span>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="flex flex-col items-center gap-1 mt-2">
+          <span className="text-xs text-rose-500 font-medium text-center">
+            {errorMessage}
+          </span>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-700 font-semibold mt-0.5 underline hover:no-underline"
+          >
+            <RotateCcw size={12} />
+            <span>กดเพื่อลองใหม่อีกครั้ง</span>
+          </button>
+        </div>
       )}
     </div>
   );
