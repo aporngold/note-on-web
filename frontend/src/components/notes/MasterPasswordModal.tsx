@@ -176,13 +176,15 @@ export default function MasterPasswordModal({
   return (
     <ViewportPortal>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in select-none"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in select-none"
         onClick={onClose}
       >
         <div
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 relative overflow-hidden select-text"
+          className="bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-7 pb-[max(20px,env(safe-area-inset-bottom))] sm:pb-7 relative overflow-hidden select-text max-h-[92vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
+        {/* Mobile Drag Handle Bar */}
+        <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-2 mb-4 sm:hidden shrink-0" />
         {/* Close Button */}
         <button
           onClick={onClose}
