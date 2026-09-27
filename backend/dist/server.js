@@ -27,6 +27,7 @@ const reminderRoutes_1 = __importDefault(require("./routes/reminderRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const reminderScheduler_1 = require("./services/reminderScheduler");
 const errorHandler_1 = require("./middleware/errorHandler");
+const ensureDb_1 = require("./utils/ensureDb");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 exports.app = app;
@@ -109,6 +110,16 @@ app.get('/health', (req, res) => {
         version: '1.0.0',
         timestamp: new Date().toISOString(),
     });
+});
+// System Database Sync Endpoint (allows remote self-healing of SQLite schema if out-of-sync)
+app.all('/api/system/sync-db', async (req, res) => {
+    try {
+        await (0, ensureDb_1.ensureDatabaseSchema)();
+        res.json({ success: true, message: 'Database schema synchronized successfully.' });
+    }
+    catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const connectionRoutes_1 = __importDefault(require("./routes/connectionRoutes"));
@@ -211,9 +222,13 @@ io.on('connection', (socket) => {
 app.use(errorHandler_1.errorHandler);
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const protocol = isHttpsEnabled ? 'https' : 'http';
-serverInstance.listen(PORT, () => {
+serverInstance.listen(PORT, async () => {
     console.log(`🚀 SecureNote API Server running on ${protocol}://localhost:${PORT}`);
     console.log(`📡 Health check: ${protocol}://localhost:${PORT}/health`);
+    // Ensure database schema is synchronized (critical for cloud deployments like Render)
+    await (0, ensureDb_1.ensureDatabaseSchema)().catch((err) => {
+        console.error('⚠️ [DB-Sync] Initial sync error:', err.message);
+    });
     // Initialize reminder scheduler with socket.io
     (0, reminderScheduler_1.setSchedulerSocketIO)(io);
     (0, reminderScheduler_1.initReminderScheduler)();

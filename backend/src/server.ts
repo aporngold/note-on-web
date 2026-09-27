@@ -21,6 +21,7 @@ import reminderRoutes from './routes/reminderRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import { initReminderScheduler, setSchedulerSocketIO } from './services/reminderScheduler';
 import { errorHandler } from './middleware/errorHandler';
+import { ensureDatabaseSchema } from './utils/ensureDb';
 
 dotenv.config();
 
@@ -115,6 +116,16 @@ app.get('/health', (req, res) => {
     version: '1.0.0',
     timestamp: new Date().toISOString(),
   });
+});
+
+// System Database Sync Endpoint (allows remote self-healing of SQLite schema if out-of-sync)
+app.all('/api/system/sync-db', async (req, res) => {
+  try {
+    await ensureDatabaseSchema();
+    res.json({ success: true, message: 'Database schema synchronized successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 import uploadRoutes from './routes/uploadRoutes';
@@ -237,9 +248,14 @@ app.use(errorHandler);
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const protocol = isHttpsEnabled ? 'https' : 'http';
 
-serverInstance.listen(PORT, () => {
+serverInstance.listen(PORT, async () => {
   console.log(`🚀 SecureNote API Server running on ${protocol}://localhost:${PORT}`);
   console.log(`📡 Health check: ${protocol}://localhost:${PORT}/health`);
+
+  // Ensure database schema is synchronized (critical for cloud deployments like Render)
+  await ensureDatabaseSchema().catch((err) => {
+    console.error('⚠️ [DB-Sync] Initial sync error:', err.message);
+  });
 
   // Initialize reminder scheduler with socket.io
   setSchedulerSocketIO(io);
