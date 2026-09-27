@@ -122,7 +122,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 <div
                   className={`flex items-center transition-all duration-300 ease-in-out ${
                     isSearchExpanded
-                      ? 'w-72 sm:w-96 bg-slate-50 dark:bg-slate-800/90 border border-indigo-500/50 ring-2 ring-indigo-500/20 rounded-xl shadow-sm'
+                      ? 'w-[calc(100vw-110px)] max-w-xs sm:w-96 sm:max-w-none bg-slate-50 dark:bg-slate-800/90 border border-indigo-500/50 ring-2 ring-indigo-500/20 rounded-xl shadow-sm'
                       : 'w-10 h-10 justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer'
                   }`}
                 >

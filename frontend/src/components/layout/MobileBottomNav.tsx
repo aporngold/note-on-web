@@ -105,7 +105,7 @@ export default function MobileBottomNav() {
       {/* Bottom Navigation Bar */}
       <nav
         aria-label="เมนูหลักสำหรับมือถือ"
-        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around pb-safe shadow-lg"
+        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 px-2 pt-1 pb-[max(6px,env(safe-area-inset-bottom))] flex items-center justify-around shadow-lg"
       >
         {/* 1. All Notes */}
         <button
@@ -113,10 +113,15 @@ export default function MobileBottomNav() {
           onClick={() => {
             setSelectedNotebook(null);
             setSelectedLabel(null);
-            if (currentPath !== '/dashboard') router.push('/dashboard');
+            if (router.query.tab) {
+              const { tab, ...rest } = router.query;
+              router.push({ pathname: '/dashboard', query: rest }, undefined, { shallow: true });
+            } else if (currentPath !== '/dashboard') {
+              router.push('/dashboard');
+            }
           }}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
-            currentPath === '/dashboard' && !selectedNotebook && !selectedLabel
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 ${
+            currentPath === '/dashboard' && !router.query.tab && !selectedNotebook && !selectedLabel
               ? 'text-indigo-600 dark:text-indigo-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
@@ -129,7 +134,7 @@ export default function MobileBottomNav() {
         <button
           type="button"
           onClick={() => setActiveSheet('notebooks')}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] relative ${
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 relative ${
             selectedNotebook
               ? 'text-indigo-600 dark:text-indigo-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -138,7 +143,7 @@ export default function MobileBottomNav() {
           <Book size={20} />
           <span className="text-[10px] mt-0.5">สมุด</span>
           {selectedNotebook && (
-            <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-indigo-600" />
+            <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-slate-900" />
           )}
         </button>
 
@@ -146,7 +151,7 @@ export default function MobileBottomNav() {
         <button
           type="button"
           onClick={() => setActiveSheet('search')}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] ${
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 ${
             searchQuery
               ? 'text-indigo-600 dark:text-indigo-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -160,7 +165,7 @@ export default function MobileBottomNav() {
         <button
           type="button"
           onClick={() => setActiveSheet('labels')}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] relative ${
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 relative ${
             selectedLabel
               ? 'text-indigo-600 dark:text-indigo-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -169,7 +174,7 @@ export default function MobileBottomNav() {
           <Tag size={20} />
           <span className="text-[10px] mt-0.5">ป้าย</span>
           {selectedLabel && (
-            <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-purple-600" />
+            <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-purple-600 ring-2 ring-white dark:ring-slate-900" />
           )}
         </button>
 
@@ -177,10 +182,17 @@ export default function MobileBottomNav() {
         <button
           type="button"
           onClick={() => setActiveSheet('more')}
-          className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition min-w-[56px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 relative ${
+            router.query.tab === 'reminders' || currentPath === '/trash'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
         >
           <MoreHorizontal size={20} />
           <span className="text-[10px] mt-0.5">เพิ่มเติม</span>
+          {reminderCount > 0 && (
+            <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
+          )}
         </button>
       </nav>
 

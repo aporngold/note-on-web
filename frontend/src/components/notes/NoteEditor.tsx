@@ -377,6 +377,49 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     };
   }, []);
 
+  // Monitor software keyboard via VisualViewport API on mobile devices to prevent obscuring cursor & text (STEP 6)
+  const [mobileKeyboardOffset, setMobileKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileKeyboardOffset(0);
+        return;
+      }
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      setMobileKeyboardOffset(Math.max(0, Math.round(offset)));
+    };
+
+    window.visualViewport.addEventListener('resize', handleViewportChange);
+    window.visualViewport.addEventListener('scroll', handleViewportChange);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      }
+    };
+  }, []);
+
+  // When keyboard opens on mobile, scroll selection smoothly into view
+  useEffect(() => {
+    if (!editor || mobileKeyboardOffset === 0) return;
+    const timer = setTimeout(() => {
+      const sel = window.getSelection();
+      if (sel && sel.anchorNode) {
+        const el = sel.anchorNode.parentElement;
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [mobileKeyboardOffset, editor]);
+
   // Sync editor content when loaded
   // Initialize boardId for new notes from active board or query parameter
   useEffect(() => {
@@ -1449,7 +1492,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         />
 
         {/* Content Area (TipTap Editor / Preview) */}
-        <div className="flex-1 px-4 py-3.5 sm:p-6 pb-20 lg:pb-6 flex flex-col min-h-0 overflow-y-auto">
+        <div
+          className="flex-1 px-4 py-3.5 sm:p-6 pb-20 lg:pb-6 flex flex-col min-h-0 overflow-y-auto transition-[padding] duration-150"
+          style={{
+            paddingBottom: mobileKeyboardOffset > 0 ? `${mobileKeyboardOffset + 70}px` : undefined,
+          }}
+        >
           {isPreview ? (
             <div
               className="prose dark:prose-invert max-w-none flex-1 text-slate-800 dark:text-slate-200 text-sm leading-relaxed transition-all duration-150"
