@@ -1,10 +1,14 @@
 import axios from 'axios';
 
+const isLanIp = (hostname: string) => {
+  return /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.endsWith('.local');
+};
+
 const getBaseUrl = () => {
-  // If running in browser and accessed via local LAN IP (e.g. 192.168.x.x from mobile)
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    // Only use local LAN IP if accessed via private IP (e.g. 192.168.x.x)
+    if (isLanIp(host)) {
       const isHttps = window.location.protocol === 'https:';
       return `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
     }
@@ -26,7 +30,8 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    // Only adjust baseURL dynamically if accessing via local LAN IP
+    if (isLanIp(host)) {
       const isHttps = window.location.protocol === 'https:';
       config.baseURL = `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
     }

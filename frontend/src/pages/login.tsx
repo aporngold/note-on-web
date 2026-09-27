@@ -75,7 +75,7 @@ export default function LoginPage() {
     let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     if (typeof window !== 'undefined') {
       const host = window.location.hostname;
-      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host) || host.endsWith('.local')) {
         const isHttps = window.location.protocol === 'https:';
         apiUrl = `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
       }
