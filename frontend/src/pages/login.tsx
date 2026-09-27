@@ -10,7 +10,7 @@ import { Eye, EyeOff, Loader2, Lock, Mail, Fingerprint } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { startAuthentication, browserSupportsWebAuthn } from '@simplewebauthn/browser';
 import { useAuthStore } from '@/store/authStore';
-import api from '@/utils/api';
+import api, { getResolvedApiUrl } from '@/utils/api';
 
 const GridBloom = dynamic(() => import('@/components/ui/grid-bloom'), {
   ssr: false,
@@ -72,14 +72,7 @@ export default function LoginPage() {
   }, [router.isReady, router.query.error, router.query.details]);
 
   const handleGoogleSignIn = () => {
-    let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (/^(\d{1,3}\.){3}\d{1,3}$/.test(host) || host.endsWith('.local')) {
-        const isHttps = window.location.protocol === 'https:';
-        apiUrl = `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
-      }
-    }
+    const apiUrl = getResolvedApiUrl();
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     window.location.href = `${apiUrl}/auth/google?origin=${encodeURIComponent(origin)}`;
   };

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { useAuthStore } from '@/store/authStore';
+import { getResolvedApiUrl } from '@/utils/api';
 import TurnstileWidget from '@/components/ui/TurnstileWidget';
 
 const GridBloom = dynamic(() => import('@/components/ui/grid-bloom'), {
@@ -113,7 +114,7 @@ export default function RegisterPage() {
 
   // Handle Google Sign-In click
   const handleGoogleSignIn = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const apiUrl = getResolvedApiUrl();
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     window.location.href = `${apiUrl}/auth/google?origin=${encodeURIComponent(origin)}`;
   };
