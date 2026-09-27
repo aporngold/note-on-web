@@ -36,6 +36,7 @@ import {
   ZoomOut,
   Smile,
   Bell,
+  ClipboardPaste,
 } from 'lucide-react';
 import BottomSheet from '../ui/BottomSheet';
 import toast from 'react-hot-toast';
@@ -209,6 +210,26 @@ export default function MobileEditorToolbar({
     }
     editor.chain().focus().extendMarkRange('link').setLink({ href: url.trim() }).run();
     setActiveSheet(null);
+  };
+
+  const handlePaste = async () => {
+    if (!editor) return;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim().length > 0) {
+          editor.chain().focus().insertContent(text).run();
+          toast.success('วางข้อความจากคลิปบอร์ดแล้ว');
+        } else {
+          toast('คลิปบอร์ดว่างเปล่า', { icon: 'ℹ️' });
+        }
+      } else {
+        toast.error('เบราว์เซอร์ไม่รองรับการอ่านคลิปบอร์ดโดยตรง กรุณากดค้างที่หน้าจอเพื่อวาง');
+      }
+    } catch (err: any) {
+      console.warn('Clipboard read error:', err);
+      toast.error('ไม่สามารถเข้าถึงคลิปบอร์ดได้ กรุณากดค้างที่หน้าจอเพื่อวาง');
+    }
   };
 
   return (
@@ -405,6 +426,17 @@ export default function MobileEditorToolbar({
             aria-label="เช็คลิสต์รายการ"
           >
             <CheckSquare size={18} />
+          </button>
+
+          {/* Paste from Clipboard */}
+          <button
+            type="button"
+            onClick={handlePaste}
+            className="min-w-[40px] h-10 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition active:scale-95"
+            title="วางข้อความจากคลิปบอร์ด (Paste)"
+            aria-label="วาง"
+          >
+            <ClipboardPaste size={18} />
           </button>
 
           {/* 8. Speech to text (พูดเพื่อพิมพ์) */}
@@ -746,6 +778,19 @@ export default function MobileEditorToolbar({
                   <span>{hasReminder ? 'แก้ไขเตือนความจำ' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}</span>
                 </button>
               )}
+
+              {/* Paste from Clipboard */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSheet(null);
+                  handlePaste();
+                }}
+                className="p-3 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition"
+              >
+                <ClipboardPaste size={18} className="text-teal-600 dark:text-teal-400" />
+                <span>วางจากคลิปบอร์ด (Paste)</span>
+              </button>
             </div>
 
             {/* Note Zoom Controls for Mobile & Tablet */}

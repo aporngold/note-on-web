@@ -60,6 +60,7 @@ import {
   Save,
   Smile,
   Bell,
+  ClipboardPaste,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
@@ -356,6 +357,38 @@ export default function NoteRichToolbar({
       setHistoryIndex(nextIdx);
       onContentChange(historyStack[nextIdx]);
       toast('ทำซ้ำการแก้ไข (Redo)', { icon: '↪️' });
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim().length > 0) {
+          if (editor) {
+            editor.chain().focus().insertContent(text).run();
+          } else if (textareaRef?.current) {
+            const ta = textareaRef.current;
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            const currentVal = ta.value;
+            const newVal = currentVal.substring(0, start) + text + currentVal.substring(end);
+            onContentChange(newVal);
+            setTimeout(() => {
+              ta.focus();
+              ta.setSelectionRange(start + text.length, start + text.length);
+            }, 0);
+          }
+          toast.success('วางข้อความจากคลิปบอร์ดแล้ว');
+        } else {
+          toast('คลิปบอร์ดว่างเปล่า', { icon: 'ℹ️' });
+        }
+      } else {
+        toast.error('เบราว์เซอร์ไม่รองรับการอ่านคลิปบอร์ดโดยตรง กรุณากด Ctrl+V เพื่อวาง');
+      }
+    } catch (err: any) {
+      console.warn('Clipboard read error:', err);
+      toast.error('ไม่สามารถเข้าถึงคลิปบอร์ดได้ กรุณากด Ctrl+V เพื่อวาง');
     }
   };
 
@@ -925,6 +958,15 @@ export default function NoteRichToolbar({
           >
             <RotateCw size={16} />
           </button>
+          <button
+            type="button"
+            onClick={handlePaste}
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition active:scale-95 text-slate-700 dark:text-slate-200"
+            title="วางข้อความจากคลิปบอร์ด (Paste)"
+            aria-label="วาง"
+          >
+            <ClipboardPaste size={16} />
+          </button>
           <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-0.5" />
           <button
             type="button"
@@ -1395,6 +1437,17 @@ export default function NoteRichToolbar({
             >
               <span>คัดลอก (Copy)</span>
               <span className="text-[10px] text-slate-400">Ctrl+C</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handlePaste();
+                setActiveMenu(null);
+              }}
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center justify-between"
+            >
+              <span>วาง (Paste)</span>
+              <span className="text-[10px] text-slate-400">Ctrl+V</span>
             </button>
             <button
               type="button"
