@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Note } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
 import {
@@ -15,6 +15,7 @@ import {
   Lock,
   Unlock,
   Bell,
+  Sparkles,
 } from 'lucide-react';
 import { useRouter } from 'next/router';
 import FullscreenNoteModal from '../notes/FullscreenNoteModal';
@@ -68,6 +69,40 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   const [activeMobileCol, setActiveMobileCol] = useState<string>('todo');
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const [reminderModalNote, setReminderModalNote] = useState<Note | null>(null);
+
+  // Mobile Touch Swipe Gesture Tracking
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    // Only trigger mobile tab switching on screen width < 768px
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) return;
+
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+    const diffY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Detect horizontal swipe (horizontal distance must be > 45px and dominant over vertical scroll)
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+      const colOrder = ['todo', 'doing', 'done'];
+      const currentIndex = colOrder.indexOf(activeMobileCol);
+      if (diffX < 0 && currentIndex < colOrder.length - 1) {
+        // Swipe Left -> Next column
+        setActiveMobileCol(colOrder[currentIndex + 1]);
+      } else if (diffX > 0 && currentIndex > 0) {
+        // Swipe Right -> Previous column
+        setActiveMobileCol(colOrder[currentIndex - 1]);
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   const formatReminderDate = (dateStr: string) => {
     try {
@@ -146,29 +181,34 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
 
   return (
     <div className="flex-1 w-full h-full overflow-x-hidden md:overflow-x-auto p-2.5 sm:p-4 md:p-6 bg-slate-50/50 dark:bg-slate-950/50 flex flex-col">
-      {/* Mobile Column Switcher Tabs */}
-      <div className="flex md:hidden items-center gap-1.5 p-1 bg-slate-200/70 dark:bg-slate-800/70 rounded-2xl mb-2.5 shrink-0 border border-slate-200/80 dark:border-slate-700/80">
-        {COLUMNS.map((col) => {
-          const count = notes.filter((n) => !isStickerNote(n) && (n.kanbanStatus || 'todo') === col.id).length;
-          const isSelected = activeMobileCol === col.id;
-          const ColIcon = col.icon;
-          return (
-            <button
-              key={col.id}
-              type="button"
-              onClick={() => setActiveMobileCol(col.id)}
-              className={`flex-1 py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
-                isSelected
-                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              }`}
-            >
-              <ColIcon size={14} className={isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
-              <span className="truncate">{col.title.split(' ')[0]}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${col.badgeBg}`}>{count}</span>
-            </button>
-          );
-        })}
+      {/* Mobile Column Switcher Tabs & Swipe Hint */}
+      <div className="flex md:hidden flex-col gap-1 mb-2 shrink-0">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-200/70 dark:bg-slate-800/70 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+          {COLUMNS.map((col) => {
+            const count = notes.filter((n) => !isStickerNote(n) && (n.kanbanStatus || 'todo') === col.id).length;
+            const isSelected = activeMobileCol === col.id;
+            const ColIcon = col.icon;
+            return (
+              <button
+                key={col.id}
+                type="button"
+                onClick={() => setActiveMobileCol(col.id)}
+                className={`flex-1 py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                  isSelected
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}
+              >
+                <ColIcon size={14} className={isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
+                <span className="truncate">{col.title.split(' ')[0]}</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${col.badgeBg}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-center gap-1 text-[10px] text-slate-600 dark:text-slate-400 font-medium select-none">
+          <span>👈 ปัดซ้าย / ขวา เพื่อสลับคอลัมน์ 👉</span>
+        </div>
       </div>
 
       <div className="flex-1 w-full min-w-0 md:min-w-[780px] md:grid md:grid-cols-3 gap-4 sm:gap-6 items-start">
@@ -186,9 +226,11 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
               key={col.id}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, col.id)}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
               className={`${
                 activeMobileCol === col.id ? 'flex' : 'hidden md:flex'
-              } flex-col w-full min-w-0 h-[calc(100vh-230px)] md:h-[calc(100vh-210px)] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm ${col.columnBg} ${col.headerBorder} backdrop-blur-sm overflow-hidden`}
+              } flex-col w-full min-w-0 h-[calc(100vh-245px)] md:h-[calc(100vh-210px)] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm ${col.columnBg} ${col.headerBorder} backdrop-blur-sm overflow-hidden select-none sm:select-auto`}
             >
               {/* Column Header */}
               <div className="flex items-center justify-between p-3.5 border-b border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70">
@@ -270,7 +312,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                           color: note.textColor || '#0F172A',
                           fontFamily: fontPreset?.family,
                         }}
-                        className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all cursor-grab active:cursor-grabbing group select-none relative cursor-pointer"
+                        className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all active:scale-[0.99] cursor-grab active:cursor-grabbing group select-none relative cursor-pointer"
                         title="คลิกหรือดับเบิ้ลคลิกเพื่อเปิดแก้ไขเต็มจอ / ลากเพื่อเปลี่ยนสถานะ"
                       >
                         {/* Attached Corner Sticker Stamp */}
@@ -347,20 +389,20 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                             </button>
                           </div>
 
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                          <div className="flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setReminderModalNote(note);
                               }}
-                              className={`p-1 rounded hover:bg-black/10 transition ${
+                              className={`p-1.5 sm:p-1 rounded-lg hover:bg-black/10 active:scale-90 transition ${
                                 reminder ? 'text-amber-600 font-bold' : 'text-black/60'
                               }`}
                               title={reminder ? 'แก้ไขการแจ้งเตือน (Reminder)' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}
                               aria-label="ตั้งเวลาแจ้งเตือน"
                             >
-                              <Bell size={12} className={reminder ? 'fill-current animate-pulse text-amber-500' : ''} />
+                              <Bell size={13} className={reminder ? 'fill-current animate-pulse text-amber-500' : ''} />
                             </button>
                             <button
                               type="button"
@@ -368,10 +410,10 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                                 e.stopPropagation();
                                 handleOpenFullscreen(note);
                               }}
-                              className="p-1 rounded hover:bg-black/10 text-black/60"
+                              className="p-1.5 sm:p-1 rounded-lg hover:bg-black/10 active:scale-90 transition text-black/60"
                               title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ"
                             >
-                              <Maximize2 size={12} />
+                              <Maximize2 size={13} />
                             </button>
                             <button
                               type="button"
@@ -379,10 +421,10 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                                 e.stopPropagation();
                                 deleteNote(note.id);
                               }}
-                              className="p-1 rounded hover:bg-rose-500/20 text-rose-600"
+                              className="p-1.5 sm:p-1 rounded-lg hover:bg-rose-500/20 active:scale-90 transition text-rose-600"
                               title="ลบลงถังขยะ"
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={13} />
                             </button>
                           </div>
                         </div>
@@ -394,7 +436,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                               e.stopPropagation();
                               setReminderModalNote(note);
                             }}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100/90 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 hover:scale-105 transition cursor-pointer mb-2 shrink-0 select-none shadow-xs"
+                            className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100/90 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 hover:scale-105 active:scale-95 transition cursor-pointer mb-2 shrink-0 select-none shadow-xs"
                             title="คลิกเพื่อแก้ไขหรือลบการเตือนความจำ"
                           >
                             <Bell size={10} className="fill-current animate-pulse text-amber-600 dark:text-amber-400" />
@@ -433,12 +475,13 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                                   e.stopPropagation();
                                   moveNote(note.id, col.id === 'done' ? 'doing' : 'todo');
                                 }}
-                                className="p-1 rounded hover:bg-black/10 transition"
+                                className="p-1.5 sm:p-1 rounded-lg hover:bg-black/10 active:scale-90 transition flex items-center justify-center min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 text-slate-700 dark:text-slate-200"
                                 title="ย้ายไปคอลัมน์ก่อนหน้า"
                               >
-                                <ArrowLeft size={13} />
+                                <ArrowLeft size={14} />
                               </button>
                             )}
+
                             {col.id !== 'done' && (
                               <button
                                 type="button"
@@ -446,10 +489,10 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                                   e.stopPropagation();
                                   moveNote(note.id, col.id === 'todo' ? 'doing' : 'done');
                                 }}
-                                className="p-1 rounded hover:bg-black/10 transition"
+                                className="p-1.5 sm:p-1 rounded-lg hover:bg-black/10 active:scale-90 transition flex items-center justify-center min-w-[32px] min-h-[32px] sm:min-w-0 sm:min-h-0 text-slate-700 dark:text-slate-200"
                                 title="ย้ายไปคอลัมน์ถัดไป"
                               >
-                                <ArrowRight size={13} />
+                                <ArrowRight size={14} />
                               </button>
                             )}
                           </div>
