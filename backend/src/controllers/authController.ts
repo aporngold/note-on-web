@@ -350,9 +350,12 @@ export class AuthController {
           masterPasswordSalt: user.masterPasswordSalt,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      return res.status(500).json({ error: 'Login failed due to server error' });
+      return res.status(500).json({
+        error: 'Login failed due to server error',
+        details: error?.message || String(error),
+      });
     }
   }
 

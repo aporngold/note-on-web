@@ -295,7 +295,10 @@ class AuthController {
         }
         catch (error) {
             console.error('Login error:', error);
-            return res.status(500).json({ error: 'Login failed due to server error' });
+            return res.status(500).json({
+                error: 'Login failed due to server error',
+                details: error?.message || String(error),
+            });
         }
     }
     static async logout(req, res) {
