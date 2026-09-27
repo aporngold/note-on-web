@@ -1,17 +1,17 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-  // 1. If explicit NEXT_PUBLIC_API_URL is configured (e.g. production on Vercel), ALWAYS prioritize it!
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-  // 2. If testing via local LAN IP (e.g. 192.168.x.x from mobile)
+  // If running in browser and accessed via local LAN IP (e.g. 192.168.x.x from mobile)
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    if (host && /^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
       const isHttps = window.location.protocol === 'https:';
       return `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
     }
+  }
+  // If explicit NEXT_PUBLIC_API_URL is configured (e.g. production on Vercel)
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
   }
   return 'http://localhost:5000/api';
 };
@@ -25,6 +25,11 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      const isHttps = window.location.protocol === 'https:';
+      config.baseURL = `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
+    }
     const token = localStorage.getItem('secure_note_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

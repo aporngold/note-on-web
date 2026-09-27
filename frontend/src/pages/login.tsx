@@ -72,7 +72,14 @@ export default function LoginPage() {
   }, [router.isReady, router.query.error, router.query.details]);
 
   const handleGoogleSignIn = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+        const isHttps = window.location.protocol === 'https:';
+        apiUrl = `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
+      }
+    }
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     window.location.href = `${apiUrl}/auth/google?origin=${encodeURIComponent(origin)}`;
   };
