@@ -16,9 +16,9 @@ async function verifyTurnstile(token: string, remoteIp?: string): Promise<{ succ
     return { success: true };
   }
 
-  // Cloudflare official dummy test secret that always passes: 1x00000000000000000000000000000000BBBBBB
+  // Project Cloudflare Turnstile Secret Key with valid fallback
   const secretKey =
-    process.env.TURNSTILE_SECRET_KEY || '1x00000000000000000000000000000000BBBBBB';
+    process.env.TURNSTILE_SECRET_KEY || '0x4AAAAAAFC5WeKCzo6BecJP-64lGCNRTVA';
 
   if (!token || token.trim() === '') {
     return { success: false, error: 'ไม่สามารถยืนยันคำขอนี้ได้ กรุณาลองใหม่อีกครั้ง' };

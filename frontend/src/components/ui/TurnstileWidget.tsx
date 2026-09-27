@@ -40,9 +40,9 @@ export default function TurnstileWidget({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasVerified, setHasVerified] = useState(false);
 
-  // Cloudflare official always-passes test sitekey: 1x00000000000000000000AA
+  // Project Cloudflare Turnstile Site Key with valid fallback
   const siteKey =
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA';
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '0x4AAAAAAFC5WSh4GUW5XmNn';
 
   useEffect(() => {
     let isMounted = true;
