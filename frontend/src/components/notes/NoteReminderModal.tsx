@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Clock, Calendar, Repeat, Trash2, X, Check, ShieldCheck, AlertCircle, Share } from 'lucide-react';
 import { useReminderStore } from '@/store/reminderStore';
-import { subscribeToWebPush, getCurrentPushSubscription, isIOSDevice, isStandalonePWA } from '@/utils/webPush';
+import { subscribeToWebPush, getCurrentPushSubscription, isIOSDevice, isStandalonePWA, isAndroidDevice } from '@/utils/webPush';
 import toast from 'react-hot-toast';
 import ViewportPortal from '../ui/ViewportPortal';
 
@@ -30,6 +30,7 @@ export default function NoteReminderModal({
 
   const isIOS = typeof window !== 'undefined' && isIOSDevice();
   const isStandalone = typeof window !== 'undefined' && isStandalonePWA();
+  const isAndroid = typeof window !== 'undefined' && isAndroidDevice();
 
   // Initialize dates
   useEffect(() => {
@@ -230,6 +231,21 @@ export default function NoteReminderModal({
                     </button>
                   </>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Android Background Battery Guidance Card */}
+          {isAndroid && (
+            <div className="p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/20 dark:border-amber-800/40 flex items-start gap-2.5 text-[11px] text-slate-700 dark:text-slate-300">
+              <span className="text-amber-500 text-sm shrink-0 mt-0.5">💡</span>
+              <div className="space-y-1 flex-1">
+                <p className="font-semibold text-amber-950 dark:text-amber-200">
+                  คำแนะนำสำหรับ Android (Xiaomi, Oppo, Vivo, Samsung)
+                </p>
+                <p className="text-[10.5px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  เพื่อให้ระบบแจ้งเตือนตรงเวลาเป๊ะแม้ปิดหน้าจอ แนะนำตั้งค่าในเครื่อง: <b>ข้อมูลแอปเบราว์เซอร์ &gt; แบตเตอรี่ &gt; ไม่จำกัด (No restrictions)</b>
+                </p>
               </div>
             </div>
           )}

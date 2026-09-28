@@ -87,6 +87,14 @@ export function isStandalonePWA(): boolean {
 }
 
 /**
+ * Check if the user is using an Android device
+ */
+export function isAndroidDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+/**
  * Request notification permission and subscribe to Web Push
  */
 export async function subscribeToWebPush(): Promise<{ success: boolean; error?: string }> {
