@@ -67,9 +67,36 @@ function getDeviceType(): string {
 }
 
 /**
+ * Check if the user is using an iOS / iPadOS device
+ */
+export function isIOSDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+/**
+ * Check if web app is running in Standalone PWA mode (added to Home Screen)
+ */
+export function isStandalonePWA(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean((window.navigator as any).standalone)
+  );
+}
+
+/**
  * Request notification permission and subscribe to Web Push
  */
 export async function subscribeToWebPush(): Promise<{ success: boolean; error?: string }> {
+  if (isIOSDevice() && !isStandalonePWA()) {
+    return {
+      success: false,
+      error: 'สำหรับ iPhone/iPad: กรุณากดปุ่มแชร์ 📤 แล้วเลือก "เพิ่มไปยังหน้าจอโฮม (Add to Home Screen)" ก่อนเปิดรับการแจ้งเตือนตามกฎของ Apple',
+    };
+  }
+
   if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     return { success: false, error: 'เบราว์เซอร์นี้ไม่รองรับระบบ Web Push Notification' };
   }

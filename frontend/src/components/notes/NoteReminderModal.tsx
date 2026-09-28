@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Clock, Calendar, Repeat, Trash2, X, Check, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Bell, Clock, Calendar, Repeat, Trash2, X, Check, ShieldCheck, AlertCircle, Share } from 'lucide-react';
 import { useReminderStore } from '@/store/reminderStore';
-import { subscribeToWebPush, getCurrentPushSubscription } from '@/utils/webPush';
+import { subscribeToWebPush, getCurrentPushSubscription, isIOSDevice, isStandalonePWA } from '@/utils/webPush';
 import toast from 'react-hot-toast';
 import ViewportPortal from '../ui/ViewportPortal';
 
@@ -27,6 +27,9 @@ export default function NoteReminderModal({
   const [repeatRule, setRepeatRule] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
   const [hasPushPermission, setHasPushPermission] = useState<boolean>(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState<boolean>(false);
+
+  const isIOS = typeof window !== 'undefined' && isIOSDevice();
+  const isStandalone = typeof window !== 'undefined' && isStandalonePWA();
 
   // Initialize dates
   useEffect(() => {
@@ -182,23 +185,51 @@ export default function NoteReminderModal({
         <div className="p-4 sm:p-5 space-y-4 text-xs overflow-y-auto flex-1 overscroll-contain">
           {/* Push Permission Alert Banner if not enabled yet */}
           {!hasPushPermission && (
-            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-start gap-2.5">
-              <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3">
+              <AlertCircle size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div className="flex-1">
-                <p className="font-semibold text-amber-900 dark:text-amber-200">
-                  ต้องการแจ้งเตือนเมื่อปิดหน้าเว็บหรือไม่?
-                </p>
-                <p className="text-[11px] text-amber-700 dark:text-amber-300/80 mt-0.5 leading-relaxed">
-                  เปิดการแจ้งเตือนผ่าน Web Push เพื่อให้ระบบสามารถแจ้งเตือนคุณได้ แม้ปิดแท็บหรือกำลังใช้งานเว็บอื่น
-                </p>
-                <button
-                  type="button"
-                  onClick={handleEnablePushDirectly}
-                  disabled={isRequestingPermission}
-                  className="mt-2 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] transition active:scale-95 disabled:opacity-50"
-                >
-                  {isRequestingPermission ? 'กำลังขออนุญาต...' : 'เปิดการแจ้งเตือน'}
-                </button>
+                {isIOS && !isStandalone ? (
+                  <>
+                    <p className="font-bold text-amber-950 dark:text-amber-200 text-xs flex items-center gap-1.5">
+                      <span>📱 สำหรับผู้ใช้ iPhone / iPad</span>
+                    </p>
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300/90 mt-1 leading-relaxed">
+                      ตามกฎความปลอดภัยของ Apple ระบบ Web Push จะเปิดใช้งานได้เมื่อเปิดผ่านหน้าจอโฮม:
+                    </p>
+                    <div className="mt-2 p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-amber-200/80 dark:border-amber-800/40 space-y-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center shrink-0">1</span>
+                        <span>แตะปุ่ม <b>แชร์ (Share)</b> <Share size={12} className="inline text-indigo-500 mb-0.5" /> ที่แถบด้านล่างของ Safari</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center shrink-0">2</span>
+                        <span>เลื่อนลงมาเลือก <b>&quot;เพิ่มไปยังหน้าจอโฮม&quot;</b> (Add to Home Screen)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-bold text-[10px] flex items-center justify-center shrink-0">3</span>
+                        <span>เปิดแอปจากหน้าจอโฮมเพื่อรับการแจ้งเตือนทันที</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-semibold text-amber-900 dark:text-amber-200">
+                      ต้องการแจ้งเตือนเมื่อปิดหน้าเว็บหรือไม่?
+                    </p>
+                    <p className="text-[11px] text-amber-700 dark:text-amber-300/80 mt-0.5 leading-relaxed">
+                      เปิดการแจ้งเตือนผ่าน Web Push เพื่อให้ระบบสามารถแจ้งเตือนคุณได้ แม้ปิดแท็บหรือกำลังใช้งานเว็บอื่น
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleEnablePushDirectly}
+                      disabled={isRequestingPermission}
+                      className="mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Bell size={13} />
+                      <span>{isRequestingPermission ? 'กำลังขออนุญาต...' : 'เปิดการแจ้งเตือน'}</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
