@@ -436,12 +436,15 @@ class NoteController {
             }
             // If already in trash, delete permanently
             if (note.isArchived) {
+                await database_1.prisma.reminder.deleteMany({ where: { noteId: id } });
                 await database_1.prisma.note.delete({ where: { id } });
                 (0, socket_1.emitToUser)(userId, 'note:deleted', { id, isPermanent: true, boardId: note.boardId });
+                (0, socket_1.emitToUser)(userId, 'reminder:changed', { action: 'deleted', noteId: id });
                 return res.json({ message: 'ลบโน้ตถาวรเรียบร้อยแล้ว', isPermanent: true, noteId: id });
             }
             else {
                 // Move to trash
+                await database_1.prisma.reminder.deleteMany({ where: { noteId: id } });
                 const updated = await database_1.prisma.note.update({
                     where: { id },
                     data: { isArchived: true, isPinned: false },
@@ -465,6 +468,7 @@ class NoteController {
                     labels: updated.labels.map((l) => l.label),
                 };
                 (0, socket_1.emitToUser)(userId, 'note:deleted', { id, isPermanent: false, boardId: note.boardId, note: formatted });
+                (0, socket_1.emitToUser)(userId, 'reminder:changed', { action: 'deleted', noteId: id });
                 if (note.boardId) {
                     (0, socket_1.emitToUser)(userId, 'board:note-count-updated', { boardId: note.boardId, delta: -1 });
                 }

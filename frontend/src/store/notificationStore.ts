@@ -15,6 +15,10 @@ interface NotificationState {
   deleteNotification: (id: string) => Promise<void>;
   clearAll: () => Promise<void>;
   addRealtimeNotification: (notification: InAppNotification) => void;
+  setRemoteNotificationUpdated: (data: { id: string; isRead: boolean; unreadCount?: number }) => void;
+  setRemoteNotificationAllRead: () => void;
+  setRemoteNotificationDeleted: (data: { id: string; unreadCount?: number }) => void;
+  setRemoteNotificationCleared: () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -49,7 +53,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         unreadCount: Math.max(0, state.unreadCount - 1),
       }));
 
-      await api.patch(`/notifications/${id}/read`);
+      const res = await api.patch(`/notifications/${id}/read`);
+      if (typeof res.data?.unreadCount === 'number') {
+        set({ unreadCount: res.data.unreadCount });
+      }
     } catch (err) {
       // Fallback refetch
       get().fetchNotifications();
@@ -79,7 +86,10 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         unreadCount: target && !target.isRead ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
       }));
 
-      await api.delete(`/notifications/${id}`);
+      const res = await api.delete(`/notifications/${id}`);
+      if (typeof res.data?.unreadCount === 'number') {
+        set({ unreadCount: res.data.unreadCount });
+      }
     } catch (err) {
       get().fetchNotifications();
     }
@@ -112,5 +122,30 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       icon: '🔔',
       duration: 5000,
     });
+  },
+
+  setRemoteNotificationUpdated: (data: { id: string; isRead: boolean; unreadCount?: number }) => {
+    set((state) => ({
+      notifications: state.notifications.map((n) => (n.id === data.id ? { ...n, isRead: data.isRead } : n)),
+      unreadCount: typeof data.unreadCount === 'number' ? data.unreadCount : Math.max(0, state.unreadCount - 1),
+    }));
+  },
+
+  setRemoteNotificationAllRead: () => {
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, isRead: true })),
+      unreadCount: 0,
+    }));
+  },
+
+  setRemoteNotificationDeleted: (data: { id: string; unreadCount?: number }) => {
+    set((state) => ({
+      notifications: state.notifications.filter((n) => n.id !== data.id),
+      unreadCount: typeof data.unreadCount === 'number' ? data.unreadCount : Math.max(0, state.unreadCount - 1),
+    }));
+  },
+
+  setRemoteNotificationCleared: () => {
+    set({ notifications: [], unreadCount: 0 });
   },
 }));

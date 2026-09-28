@@ -3,6 +3,7 @@ import { prisma } from '../utils/database';
 import { AuthRequest } from '../middleware/auth';
 import { z } from 'zod';
 import { WebPushService } from '../services/webPushService';
+import { emitToUser } from '../utils/socket';
 
 const reminderSchema = z.object({
   noteId: z.string().min(1, 'ต้องระบุ Note ID'),
@@ -34,7 +35,12 @@ export class ReminderController {
     try {
       const userId = req.userId!;
       const reminders = await prisma.reminder.findMany({
-        where: { userId },
+        where: {
+          userId,
+          note: {
+            isArchived: false,
+          },
+        },
         include: {
           note: {
             select: { id: true, title: true, color: true, isArchived: true, isLocked: true },
@@ -61,8 +67,8 @@ export class ReminderController {
         where: {
           noteId,
           userId,
-          status: 'scheduled',
         },
+        orderBy: { updatedAt: 'desc' },
       });
 
       return res.json({ success: true, reminder });
@@ -129,6 +135,8 @@ export class ReminderController {
         });
       }
 
+      emitToUser(userId, 'reminder:changed', { action: 'saved', noteId, reminder });
+
       return res.json({
         success: true,
         message: 'บันทึกการแจ้งเตือนเรียบร้อยแล้ว',
@@ -156,9 +164,12 @@ export class ReminderController {
         return res.status(404).json({ error: 'ไม่พบข้อมูลการแจ้งเตือน' });
       }
 
+      const noteId = reminder.noteId;
       await prisma.reminder.delete({ where: { id } });
 
-      return res.json({ success: true, message: 'ลบการแจ้งเตือนเรียบร้อยแล้ว' });
+      emitToUser(userId, 'reminder:changed', { action: 'deleted', reminderId: id, noteId });
+
+      return res.json({ success: true, message: 'ลบการแจ้งเตือนเรียบร้อยแล้ว', noteId });
     } catch (err: any) {
       console.error('Error deleting reminder:', err);
       return res.status(500).json({ error: 'ไม่สามารถลบการแจ้งเตือนได้' });

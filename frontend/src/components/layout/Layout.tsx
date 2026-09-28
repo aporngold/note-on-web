@@ -7,6 +7,7 @@ import BackupModal from '../modals/BackupModal';
 import NotificationCenter from '../notifications/NotificationCenter';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
+import { useReminderStore } from '@/store/reminderStore';
 import { useRealtimeNotes } from '@/hooks/useRealtimeNotes';
 import toast from 'react-hot-toast';
 
@@ -52,14 +53,17 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
     }
   }, [user, isLoading, router]);
 
+  const { fetchReminders } = useReminderStore();
+
   useEffect(() => {
     if (user) {
       fetchTrashNotes();
       fetchNotebooks();
       fetchLabels();
       fetchBoards();
+      fetchReminders();
     }
-  }, [user, fetchTrashNotes, fetchNotebooks, fetchLabels, fetchBoards]);
+  }, [user, fetchTrashNotes, fetchNotebooks, fetchLabels, fetchBoards, fetchReminders]);
 
   if (isLoading) {
     return (

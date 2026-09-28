@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationController = void 0;
 const database_1 = require("../utils/database");
+const socket_1 = require("../utils/socket");
 class NotificationController {
     /**
      * Get notifications for the authenticated user
@@ -56,6 +57,7 @@ class NotificationController {
             const unreadCount = await database_1.prisma.notification.count({
                 where: { userId, isRead: false },
             });
+            (0, socket_1.emitToUser)(userId, 'notification:updated', { id, isRead: true, unreadCount });
             return res.json({ success: true, notification: updated, unreadCount });
         }
         catch (err) {
@@ -73,6 +75,7 @@ class NotificationController {
                 where: { userId, isRead: false },
                 data: { isRead: true },
             });
+            (0, socket_1.emitToUser)(userId, 'notification:all-read', { unreadCount: 0 });
             return res.json({ success: true, message: 'อ่านการแจ้งเตือนทั้งหมดแล้ว', unreadCount: 0 });
         }
         catch (err) {
@@ -97,6 +100,7 @@ class NotificationController {
             const unreadCount = await database_1.prisma.notification.count({
                 where: { userId, isRead: false },
             });
+            (0, socket_1.emitToUser)(userId, 'notification:deleted', { id, unreadCount });
             return res.json({ success: true, message: 'ลบการแจ้งเตือนแล้ว', unreadCount });
         }
         catch (err) {
@@ -113,6 +117,7 @@ class NotificationController {
             await database_1.prisma.notification.deleteMany({
                 where: { userId },
             });
+            (0, socket_1.emitToUser)(userId, 'notification:cleared', { unreadCount: 0 });
             return res.json({ success: true, message: 'ล้างการแจ้งเตือนทั้งหมดแล้ว', unreadCount: 0 });
         }
         catch (err) {

@@ -4,6 +4,7 @@ import { Note, Notebook, Label, Board, ViewMode, BoardViewMode, NoteConnection, 
 import toast from 'react-hot-toast';
 import { EncryptionService } from '@/utils/encryption';
 import { useAuthStore } from '@/store/authStore';
+import { useReminderStore } from '@/store/reminderStore';
 import { getStoredSortOption, setStoredSortOption } from '@/utils/sortHelper';
 
 interface NoteState {
@@ -448,6 +449,9 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       };
     });
 
+    // Synchronously clean up any associated reminder so badges update to 0 instantly
+    useReminderStore.getState().removeReminderByNoteId(id);
+
     // 3. Network API Call
     try {
       const res = await api.delete(`/notes/${id}`);
@@ -766,6 +770,8 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         connections: state.connections.filter((c) => c.sourceId !== id && c.targetId !== id),
       };
     });
+    // Remove any reminder associated with this deleted note
+    useReminderStore.getState().removeReminderByNoteId(id);
   },
 
   setRemoteNoteRestored: (restoredNote: Note) => {

@@ -18,6 +18,7 @@ interface ReminderState {
     repeatRule?: 'none' | 'daily' | 'weekly' | 'monthly';
   }) => Promise<Reminder | null>;
   deleteReminder: (id: string, noteId?: string) => Promise<boolean>;
+  removeReminderByNoteId: (noteId: string) => void;
 }
 
 export const useReminderStore = create<ReminderState>((set, get) => ({
@@ -91,16 +92,15 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
       set({ isLoading: true });
       const res = await api.delete(`/reminders/${id}`);
       if (res.data.success) {
+        const resolvedNoteId = noteId || res.data.noteId || get().currentNoteReminder?.noteId;
         set((state) => {
           const nextMap = { ...state.remindersByNote };
-          if (noteId) {
-            delete nextMap[noteId];
-          } else if (state.currentNoteReminder?.id === id) {
-            delete nextMap[state.currentNoteReminder.noteId];
-          } else {
-            // Find noteId from reminders array
-            const found = state.reminders.find((r) => r.id === id);
-            if (found) delete nextMap[found.noteId];
+          if (resolvedNoteId) {
+            delete nextMap[resolvedNoteId];
+          }
+          const found = state.reminders.find((r) => r.id === id);
+          if (found?.noteId) {
+            delete nextMap[found.noteId];
           }
           return {
             reminders: state.reminders.filter((r) => r.id !== id),
@@ -118,5 +118,17 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
       toast.error('ไม่สามารถลบการแจ้งเตือนได้');
       return false;
     }
+  },
+
+  removeReminderByNoteId: (noteId: string) => {
+    set((state) => {
+      const nextMap = { ...state.remindersByNote };
+      delete nextMap[noteId];
+      return {
+        reminders: state.reminders.filter((r) => r.noteId !== noteId),
+        remindersByNote: nextMap,
+        currentNoteReminder: state.currentNoteReminder?.noteId === noteId ? null : state.currentNoteReminder,
+      };
+    });
   },
 }));

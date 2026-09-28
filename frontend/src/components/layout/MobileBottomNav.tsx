@@ -39,6 +39,7 @@ export default function MobileBottomNav() {
   const { theme, setTheme } = useTheme();
   const { user, logout, isVaultUnlocked, lockVault } = useAuthStore();
   const {
+    notes,
     notebooks,
     labels,
     selectedNotebook,
@@ -52,7 +53,7 @@ export default function MobileBottomNav() {
     activeBoardId,
   } = useNoteStore();
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
-  const reminderCount = Object.keys(remindersByNote).length;
+  const reminderCount = notes.filter((n) => !n.isArchived && Boolean(remindersByNote[n.id])).length;
 
   const [activeSheet, setActiveSheet] = useState<'notebooks' | 'labels' | 'search' | 'more' | null>(null);
   const [isNotebookModalOpen, setIsNotebookModalOpen] = useState(false);

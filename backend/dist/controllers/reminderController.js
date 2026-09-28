@@ -4,6 +4,7 @@ exports.ReminderController = void 0;
 const database_1 = require("../utils/database");
 const zod_1 = require("zod");
 const webPushService_1 = require("../services/webPushService");
+const socket_1 = require("../utils/socket");
 const reminderSchema = zod_1.z.object({
     noteId: zod_1.z.string().min(1, 'ต้องระบุ Note ID'),
     title: zod_1.z.string().optional(),
@@ -32,7 +33,12 @@ class ReminderController {
         try {
             const userId = req.userId;
             const reminders = await database_1.prisma.reminder.findMany({
-                where: { userId },
+                where: {
+                    userId,
+                    note: {
+                        isArchived: false,
+                    },
+                },
                 include: {
                     note: {
                         select: { id: true, title: true, color: true, isArchived: true, isLocked: true },
@@ -58,8 +64,8 @@ class ReminderController {
                 where: {
                     noteId,
                     userId,
-                    status: 'scheduled',
                 },
+                orderBy: { updatedAt: 'desc' },
             });
             return res.json({ success: true, reminder });
         }
@@ -119,6 +125,7 @@ class ReminderController {
                     },
                 });
             }
+            (0, socket_1.emitToUser)(userId, 'reminder:changed', { action: 'saved', noteId, reminder });
             return res.json({
                 success: true,
                 message: 'บันทึกการแจ้งเตือนเรียบร้อยแล้ว',
@@ -143,8 +150,10 @@ class ReminderController {
             if (!reminder) {
                 return res.status(404).json({ error: 'ไม่พบข้อมูลการแจ้งเตือน' });
             }
+            const noteId = reminder.noteId;
             await database_1.prisma.reminder.delete({ where: { id } });
-            return res.json({ success: true, message: 'ลบการแจ้งเตือนเรียบร้อยแล้ว' });
+            (0, socket_1.emitToUser)(userId, 'reminder:changed', { action: 'deleted', reminderId: id, noteId });
+            return res.json({ success: true, message: 'ลบการแจ้งเตือนเรียบร้อยแล้ว', noteId });
         }
         catch (err) {
             console.error('Error deleting reminder:', err);

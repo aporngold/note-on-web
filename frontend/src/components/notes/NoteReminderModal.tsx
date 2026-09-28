@@ -160,7 +160,7 @@ export default function NoteReminderModal({
 
   const handleDelete = async () => {
     if (!currentNoteReminder) return;
-    const ok = await deleteReminder(currentNoteReminder.id);
+    const ok = await deleteReminder(currentNoteReminder.id, noteId);
     if (ok) {
       if (onReminderUpdated) onReminderUpdated(false);
       onClose();

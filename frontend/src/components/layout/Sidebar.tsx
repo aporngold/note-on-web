@@ -47,6 +47,7 @@ export default function Sidebar({
   const { theme, setTheme } = useTheme();
   const { user, logout, isVaultUnlocked, lockVault } = useAuthStore();
   const {
+    notes,
     notebooks,
     labels,
     trashNotes,
@@ -66,7 +67,7 @@ export default function Sidebar({
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
-  const reminderCount = Object.keys(remindersByNote).length;
+  const reminderCount = notes.filter((n) => !n.isArchived && Boolean(remindersByNote[n.id])).length;
 
   useEffect(() => {
     if (user) {

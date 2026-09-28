@@ -1,15 +1,24 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
+import { useReminderStore } from '@/store/reminderStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { getSharedSocket } from '@/utils/socketClient';
 
 /**
- * Global Real-time Synchronization Hook for Notes across all devices (Desktop <-> Mobile)
- * Listens to WebSocket events emitted by backend when notes, boards, or connections are created, updated, or deleted.
+ * Global Real-time Synchronization Hook for Notes, Reminders, and Notifications across all devices (Desktop <-> Mobile)
+ * Listens to WebSocket events emitted by backend when notes, boards, connections, reminders, or notifications change.
  * Handles automatic silent re-sync upon reconnection or device wake-up (screen unlock).
  */
 export function useRealtimeNotes() {
   const { user } = useAuthStore();
+  const { fetchReminders } = useReminderStore();
+  const {
+    setRemoteNotificationUpdated,
+    setRemoteNotificationAllRead,
+    setRemoteNotificationDeleted,
+    setRemoteNotificationCleared,
+  } = useNotificationStore();
   const {
     activeBoardId,
     setRemoteNoteCreated,
@@ -50,6 +59,7 @@ export function useRealtimeNotes() {
       fetchBoards().catch(() => {});
       fetchNotebooks().catch(() => {});
       fetchLabels().catch(() => {});
+      fetchReminders().catch(() => {});
       if (activeBoardId) {
         fetchConnections(activeBoardId).catch(() => {});
       }
@@ -119,6 +129,11 @@ export function useRealtimeNotes() {
       }
     };
 
+    const handleReminderChanged = (data: any) => {
+      console.log('⚡ [Realtime] Remote reminder changed:', data);
+      fetchReminders().catch(() => {});
+    };
+
     // Mobile visibility / wake-up listener
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -127,6 +142,7 @@ export function useRealtimeNotes() {
         } else {
           joinUserRoom();
           fetchNotes({ isArchived: false }).catch(() => {});
+          fetchReminders().catch(() => {});
         }
       }
     };
@@ -141,6 +157,11 @@ export function useRealtimeNotes() {
     socket.on('notes:trash-emptied', handleTrashEmptied);
     socket.on('board:changed', handleBoardChanged);
     socket.on('connection:changed', handleConnectionChanged);
+    socket.on('reminder:changed', handleReminderChanged);
+    socket.on('notification:updated', setRemoteNotificationUpdated);
+    socket.on('notification:all-read', setRemoteNotificationAllRead);
+    socket.on('notification:deleted', setRemoteNotificationDeleted);
+    socket.on('notification:cleared', setRemoteNotificationCleared);
 
     window.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange);
@@ -156,6 +177,11 @@ export function useRealtimeNotes() {
       socket.off('notes:trash-emptied', handleTrashEmptied);
       socket.off('board:changed', handleBoardChanged);
       socket.off('connection:changed', handleConnectionChanged);
+      socket.off('reminder:changed', handleReminderChanged);
+      socket.off('notification:updated', setRemoteNotificationUpdated);
+      socket.off('notification:all-read', setRemoteNotificationAllRead);
+      socket.off('notification:deleted', setRemoteNotificationDeleted);
+      socket.off('notification:cleared', setRemoteNotificationCleared);
 
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleVisibilityChange);
@@ -175,5 +201,10 @@ export function useRealtimeNotes() {
     fetchNotebooks,
     fetchLabels,
     fetchConnections,
+    fetchReminders,
+    setRemoteNotificationUpdated,
+    setRemoteNotificationAllRead,
+    setRemoteNotificationDeleted,
+    setRemoteNotificationCleared,
   ]);
 }

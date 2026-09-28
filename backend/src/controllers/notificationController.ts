@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../utils/database';
 import { AuthRequest } from '../middleware/auth';
+import { emitToUser } from '../utils/socket';
 
 export class NotificationController {
   /**
@@ -63,6 +64,8 @@ export class NotificationController {
         where: { userId, isRead: false },
       });
 
+      emitToUser(userId, 'notification:updated', { id, isRead: true, unreadCount });
+
       return res.json({ success: true, notification: updated, unreadCount });
     } catch (err: any) {
       console.error('Error marking notification as read:', err);
@@ -81,6 +84,8 @@ export class NotificationController {
         where: { userId, isRead: false },
         data: { isRead: true },
       });
+
+      emitToUser(userId, 'notification:all-read', { unreadCount: 0 });
 
       return res.json({ success: true, message: 'อ่านการแจ้งเตือนทั้งหมดแล้ว', unreadCount: 0 });
     } catch (err: any) {
@@ -111,6 +116,8 @@ export class NotificationController {
         where: { userId, isRead: false },
       });
 
+      emitToUser(userId, 'notification:deleted', { id, unreadCount });
+
       return res.json({ success: true, message: 'ลบการแจ้งเตือนแล้ว', unreadCount });
     } catch (err: any) {
       console.error('Error deleting notification:', err);
@@ -128,6 +135,8 @@ export class NotificationController {
       await prisma.notification.deleteMany({
         where: { userId },
       });
+
+      emitToUser(userId, 'notification:cleared', { unreadCount: 0 });
 
       return res.json({ success: true, message: 'ล้างการแจ้งเตือนทั้งหมดแล้ว', unreadCount: 0 });
     } catch (err: any) {
