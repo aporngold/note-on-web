@@ -23,6 +23,19 @@ export interface AdminStats {
   notebooks: { total: number };
   labels: { total: number };
   passkeys: { total: number };
+  reminders?: {
+    total: number;
+    scheduled: number;
+    sent: number;
+    cancelled: number;
+  };
+  notifications?: {
+    total: number;
+    unread: number;
+  };
+  pushSubscriptions?: {
+    total: number;
+  };
   database: {
     sizeBytes: number;
     sizeFormatted: string;
@@ -47,6 +60,7 @@ export interface AdminUserItem {
     boards: number;
     notebooks: number;
     passkeys: number;
+    reminders?: number;
   };
 }
 

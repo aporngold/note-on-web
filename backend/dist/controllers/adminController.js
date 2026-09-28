@@ -32,7 +32,7 @@ class AdminController {
             const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const [totalUsers, superAdmins, admins, regularUsers, totalNotes, lockedNotes, totalBoards, totalNotebooks, totalLabels, totalPasskeys, newUsersToday, newUsersThisWeek, newUsersThisMonth,] = await Promise.all([
+            const [totalUsers, superAdmins, admins, regularUsers, totalNotes, lockedNotes, totalBoards, totalNotebooks, totalLabels, totalPasskeys, newUsersToday, newUsersThisWeek, newUsersThisMonth, totalReminders, scheduledReminders, sentReminders, totalNotifications, unreadNotifications, totalPushSubscriptions,] = await Promise.all([
                 database_1.prisma.user.count(),
                 database_1.prisma.user.count({ where: { role: 'SUPER_ADMIN' } }),
                 database_1.prisma.user.count({ where: { role: 'ADMIN' } }),
@@ -46,6 +46,12 @@ class AdminController {
                 database_1.prisma.user.count({ where: { createdAt: { gte: startOfDay } } }),
                 database_1.prisma.user.count({ where: { createdAt: { gte: startOfWeek } } }),
                 database_1.prisma.user.count({ where: { createdAt: { gte: startOfMonth } } }),
+                database_1.prisma.reminder.count(),
+                database_1.prisma.reminder.count({ where: { status: 'scheduled' } }),
+                database_1.prisma.reminder.count({ where: { status: 'sent' } }),
+                database_1.prisma.notification.count(),
+                database_1.prisma.notification.count({ where: { isRead: false } }),
+                database_1.prisma.pushSubscription.count(),
             ]);
             // ตรวจสอบขนาดฐานข้อมูลจริงบน Disk
             let dbSizeBytes = 0;
@@ -90,6 +96,19 @@ class AdminController {
                     notebooks: { total: totalNotebooks },
                     labels: { total: totalLabels },
                     passkeys: { total: totalPasskeys },
+                    reminders: {
+                        total: totalReminders,
+                        scheduled: scheduledReminders,
+                        sent: sentReminders,
+                        cancelled: Math.max(0, totalReminders - scheduledReminders - sentReminders),
+                    },
+                    notifications: {
+                        total: totalNotifications,
+                        unread: unreadNotifications,
+                    },
+                    pushSubscriptions: {
+                        total: totalPushSubscriptions,
+                    },
                     database: {
                         sizeBytes: dbSizeBytes,
                         sizeFormatted: `${(dbSizeBytes / (1024 * 1024)).toFixed(2)} MB`,
@@ -151,6 +170,7 @@ class AdminController {
                                 boards: true,
                                 notebooks: true,
                                 passkeys: true,
+                                reminders: true,
                             },
                         },
                     },

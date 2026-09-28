@@ -46,6 +46,12 @@ export class AdminController {
         newUsersToday,
         newUsersThisWeek,
         newUsersThisMonth,
+        totalReminders,
+        scheduledReminders,
+        sentReminders,
+        totalNotifications,
+        unreadNotifications,
+        totalPushSubscriptions,
       ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { role: 'SUPER_ADMIN' } }),
@@ -60,6 +66,12 @@ export class AdminController {
         prisma.user.count({ where: { createdAt: { gte: startOfDay } } }),
         prisma.user.count({ where: { createdAt: { gte: startOfWeek } } }),
         prisma.user.count({ where: { createdAt: { gte: startOfMonth } } }),
+        prisma.reminder.count(),
+        prisma.reminder.count({ where: { status: 'scheduled' } }),
+        prisma.reminder.count({ where: { status: 'sent' } }),
+        prisma.notification.count(),
+        prisma.notification.count({ where: { isRead: false } }),
+        prisma.pushSubscription.count(),
       ]);
 
       // ตรวจสอบขนาดฐานข้อมูลจริงบน Disk
@@ -108,6 +120,19 @@ export class AdminController {
           notebooks: { total: totalNotebooks },
           labels: { total: totalLabels },
           passkeys: { total: totalPasskeys },
+          reminders: {
+            total: totalReminders,
+            scheduled: scheduledReminders,
+            sent: sentReminders,
+            cancelled: Math.max(0, totalReminders - scheduledReminders - sentReminders),
+          },
+          notifications: {
+            total: totalNotifications,
+            unread: unreadNotifications,
+          },
+          pushSubscriptions: {
+            total: totalPushSubscriptions,
+          },
           database: {
             sizeBytes: dbSizeBytes,
             sizeFormatted: `${(dbSizeBytes / (1024 * 1024)).toFixed(2)} MB`,
@@ -172,6 +197,7 @@ export class AdminController {
                 boards: true,
                 notebooks: true,
                 passkeys: true,
+                reminders: true,
               },
             },
           },

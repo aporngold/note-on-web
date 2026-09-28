@@ -33,6 +33,7 @@ import {
   RotateCcw,
   FileSpreadsheet,
   Trash2,
+  Bell,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
@@ -474,7 +475,7 @@ export default function AdminDashboardPage() {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Stat Cards Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Users Card */}
               <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-500">
@@ -534,6 +535,24 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              {/* Reminders & Notifications Card */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-bold uppercase tracking-wider">เตือนความจำ & พุช</span>
+                  <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500"><Bell size={18} /></span>
+                </div>
+                <div className="mt-3">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                    {stats?.reminders?.total ?? 0}
+                  </span>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400 truncate">
+                    <span>รอส่ง: <b className="text-amber-500 font-bold">{stats?.reminders?.scheduled ?? 0}</b></span>
+                    <span>•</span>
+                    <span>พุช: <b className="text-indigo-400 font-bold">{stats?.pushSubscriptions?.total ?? 0}</b> เครื่อง</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Database & Backup Card */}
               <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-500">
@@ -571,7 +590,7 @@ export default function AdminDashboardPage() {
                   <b>ไม่สามารถเห็นรหัสผ่านจริง</b> และ <b>ไม่สามารถอ่านเนื้อหาโน้ตในห้องนิรภัย</b> ของผู้ใช้งานได้ 
                   แอดมินสามารถดูเฉพาะตัวเลขสถิติภาพรวมและการจัดการระบบเท่านั้น
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60">
                     <span className="text-slate-400 block mb-0.5">โน้ตในห้องนิรภัย</span>
                     <span className="font-bold text-amber-400">{stats?.notes.locked} ฉบับ (เข้ารหัส E2EE)</span>
@@ -584,6 +603,12 @@ export default function AdminDashboardPage() {
                     <span className="text-slate-400 block mb-0.5">สมุดบันทึก & ป้ายกำกับ</span>
                     <span className="font-bold text-emerald-400">
                       {(stats?.notebooks.total || 0) + (stats?.labels.total || 0)} รายการ
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60">
+                    <span className="text-slate-400 block mb-0.5">แจ้งเตือนส่งแล้ว / พุช</span>
+                    <span className="font-bold text-amber-400">
+                      {stats?.reminders?.sent ?? 0} ครั้ง ({stats?.pushSubscriptions?.total ?? 0} อุปกรณ์)
                     </span>
                   </div>
                 </div>
@@ -722,6 +747,11 @@ export default function AdminDashboardPage() {
                             <span className="text-slate-400"> โน้ต / </span>
                             <span className="font-bold text-slate-900 dark:text-white">{u._count.boards}</span>
                             <span className="text-slate-400"> บอร์ด</span>
+                            {Boolean(u._count.reminders) && (
+                              <span className="ml-1 text-[11px] text-amber-500 font-semibold" title="รายการเตือนความจำ">
+                                • 🔔 {u._count.reminders} เตือน
+                              </span>
+                            )}
                           </div>
                         </td>
 
