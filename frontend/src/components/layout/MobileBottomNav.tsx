@@ -31,6 +31,7 @@ import NotebookModal from '../modals/NotebookModal';
 import LabelModal from '../modals/LabelModal';
 import BackupModal from '../modals/BackupModal';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
+import { sendTestWebPush } from '@/utils/webPush';
 import toast from 'react-hot-toast';
 
 export default function MobileBottomNav() {
@@ -58,6 +59,29 @@ export default function MobileBottomNav() {
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [isTestingPushMobile, setIsTestingPushMobile] = useState(false);
+
+  const handleMobilePushTest = async () => {
+    try {
+      setIsTestingPushMobile(true);
+      toast.loading('กำลังเชื่อมต่อ Web Push บนเครื่องนี้และยิงทดสอบ...', { id: 'mobile-push-test' });
+      const res = await sendTestWebPush();
+      if (res.success) {
+        toast.success(
+          res.devicesCount && res.devicesCount > 0
+            ? `ส่งการแจ้งเตือนสำเร็จไปยัง ${res.devicesCount} เครื่อง! สังเกตที่แถบแจ้งเตือนของคุณ`
+            : 'ส่งการแจ้งเตือนสำเร็จ! เช็คแถบแจ้งเตือนของเครื่องคุณ',
+          { id: 'mobile-push-test', duration: 5000, icon: '🔔' }
+        );
+      } else {
+        toast.error(res.error || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ กรุณาอนุญาตสิทธิ์', { id: 'mobile-push-test', duration: 5000 });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'เกิดข้อผิดพลาดในการทดสอบ', { id: 'mobile-push-test' });
+    } finally {
+      setIsTestingPushMobile(false);
+    }
+  };
 
   // Do not show bottom nav on note editing pages so it doesn't obstruct typing
   const isEditingNote = router.pathname.startsWith('/notes/');
@@ -464,6 +488,31 @@ export default function MobileBottomNav() {
                 </span>
               )}
             </button>
+
+            {/* Mobile Web Push Instant Test & Sync Item */}
+            <div className="p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <Bell size={16} />
+                </div>
+                <div className="truncate">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                    Web Push ซิงก์ทุกเครื่อง
+                  </p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                    ซิงก์เตือนพร้อมกันทั้ง PC และมือถือ
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleMobilePushTest}
+                disabled={isTestingPushMobile}
+                className="shrink-0 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl text-[11px] transition shadow-xs flex items-center gap-1 disabled:opacity-50"
+              >
+                <span>{isTestingPushMobile ? 'กำลังส่ง...' : '🧪 ทดสอบเด้งเตือน'}</span>
+              </button>
+            </div>
 
             <button
               onClick={() => {

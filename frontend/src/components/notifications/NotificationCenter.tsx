@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, VolumeX, Settings, AlarmClock } from 'lucide-react';
+import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, VolumeX, Settings, AlarmClock, Smartphone, Monitor, Tablet, Sparkles } from 'lucide-react';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useReminderStore } from '@/store/reminderStore';
 import { useAuthStore } from '@/store/authStore';
@@ -12,6 +12,7 @@ import {
   saveNotificationSoundSetting,
   SoundTone,
 } from '@/utils/soundEffects';
+import { subscribeToWebPush, sendTestWebPush, isIOSDevice, isStandalonePWA, isAndroidDevice } from '@/utils/webPush';
 import toast from 'react-hot-toast';
 
 export default function NotificationCenter() {
@@ -39,6 +40,64 @@ export default function NotificationCenter() {
   const [soundTone, setSoundTone] = useState<SoundTone>('chime');
   const [showSoundMenu, setShowSoundMenu] = useState(false);
   const [snoozeMenuNotifId, setSnoozeMenuNotifId] = useState<string | null>(null);
+
+  const [hasPushPermission, setHasPushPermission] = useState<boolean>(false);
+  const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
+  const [isTestingPush, setIsTestingPush] = useState<boolean>(false);
+
+  const isIOS = typeof window !== 'undefined' && isIOSDevice();
+  const isStandalone = typeof window !== 'undefined' && isStandalonePWA();
+  const isAndroid = typeof window !== 'undefined' && isAndroidDevice();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const granted = Notification.permission === 'granted';
+      setHasPushPermission(granted);
+      if (granted && isOpen) {
+        subscribeToWebPush().catch(() => {});
+      }
+    }
+  }, [isOpen]);
+
+  const handleEnablePush = async () => {
+    try {
+      setIsPushLoading(true);
+      const res = await subscribeToWebPush();
+      if (res.success) {
+        setHasPushPermission(true);
+        toast.success('เชื่อมต่ออุปกรณ์นี้เข้ากับระบบแจ้งเตือนสำเร็จแล้ว!', { icon: '🔔' });
+      } else {
+        toast.error(res.error || 'ไม่สามารถเปิดการแจ้งเตือนได้ กรุณาตรวจสอบการตั้งค่าเบราว์เซอร์');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'เกิดข้อผิดพลาดในการเปิดการแจ้งเตือน');
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
+  const handleTestPushFromCenter = async () => {
+    try {
+      setIsTestingPush(true);
+      toast.loading('กำลังยิงสัญญาณ Web Push มายังอุปกรณ์ของคุณ...', { id: 'push-center-test' });
+      const res = await sendTestWebPush();
+      if (res.success) {
+        setHasPushPermission(true);
+        toast.success(
+          res.devicesCount && res.devicesCount > 0
+            ? `ส่งสัญญาณแจ้งเตือนสำเร็จ (${res.devicesCount} เครื่อง)! สังเกตที่แถบแจ้งเตือนของเครื่องคุณ`
+            : 'ส่งสัญญาณแจ้งเตือนสำเร็จ! สังเกตที่แถบแจ้งเตือนของเครื่องคุณ',
+          { id: 'push-center-test', duration: 5000, icon: '🔔' }
+        );
+      } else {
+        toast.error(res.error || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ กรุณาตรวจสอบสิทธิ์', { id: 'push-center-test', duration: 5000 });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'เกิดข้อผิดพลาดในการทดสอบ', { id: 'push-center-test' });
+    } finally {
+      setIsTestingPush(false);
+    }
+  };
 
   const handleSnooze = async (notif: any, minutes: number | 'tomorrow') => {
     try {
@@ -362,6 +421,64 @@ export default function NotificationCenter() {
                 </div>
               </div>
             )}
+
+            {/* Device Web Push Status & Instant Diagnostic Card */}
+            <div className="p-3 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${hasPushPermission ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-amber-500'}`} />
+                  <div className="truncate">
+                    <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
+                      {isAndroid ? <Smartphone size={12} className="text-indigo-500 inline" /> : isIOS ? <Tablet size={12} className="text-indigo-500 inline" /> : <Monitor size={12} className="text-indigo-500 inline" />}
+                      <span>{hasPushPermission ? 'Web Push บนเครื่องนี้: พร้อมใช้งาน' : 'Web Push: ยังไม่ได้เปิดบนเครื่องนี้'}</span>
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                      {hasPushPermission ? 'แจ้งเตือนตรงเวลาแม้ปิดหน้าเว็บหรือล็อกหน้าจอ' : 'แตะเพื่อผูกเครื่องนี้รับแจ้งเตือนร่วมกับ PC'}
+                    </p>
+                  </div>
+                </div>
+
+                {!hasPushPermission ? (
+                  <button
+                    type="button"
+                    onClick={handleEnablePush}
+                    disabled={isPushLoading}
+                    className="shrink-0 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl text-[10.5px] transition shadow-xs flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <Bell size={11} />
+                    <span>{isPushLoading ? 'กำลังเปิด...' : 'เปิดแจ้งเตือน'}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleTestPushFromCenter}
+                    disabled={isTestingPush}
+                    className="shrink-0 px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-600 dark:text-indigo-300 font-bold rounded-xl text-[10.5px] transition active:scale-95 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <span>{isTestingPush ? 'กำลังยิง...' : '🧪 ทดสอบเด้งเตือน'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* iOS Safari Guidance Note */}
+              {isIOS && !isStandalone && (
+                <div className="mt-2 p-2 rounded-xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/20 text-[10.5px] text-amber-800 dark:text-amber-300 leading-tight">
+                  <p className="font-semibold flex items-center gap-1">
+                    <span>📱 สำหรับ iPhone / iPad:</span>
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-amber-700 dark:text-amber-400">
+                    แตะปุ่ม <b>แชร์</b> ที่ Safari &gt; เลือก <b>&quot;เพิ่มไปยังหน้าจอโฮม&quot;</b> เพื่อเปิดรับการแจ้งเตือน
+                  </p>
+                </div>
+              )}
+
+              {/* Android Battery Guidance Note */}
+              {isAndroid && hasPushPermission && (
+                <div className="mt-2 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/50 text-[9.5px] text-slate-500 dark:text-slate-400">
+                  💡 แนะนำตั้งค่าเครื่อง: <b>ข้อมูลแอปเบราว์เซอร์ &gt; แบตเตอรี่ &gt; ไม่จำกัด</b> เพื่อให้แจ้งเตือนตรงเวลาขณะปิดหน้าจอ
+                </div>
+              )}
+            </div>
 
             {/* List of Notifications */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
