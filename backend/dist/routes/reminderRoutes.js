@@ -15,4 +15,5 @@ router.delete('/:id', reminderController_1.ReminderController.deleteReminder);
 // Push subscription endpoints
 router.post('/subscribe', reminderController_1.ReminderController.subscribePush);
 router.post('/unsubscribe', reminderController_1.ReminderController.unsubscribePush);
+router.post('/test-push', reminderController_1.ReminderController.testPush);
 exports.default = router;

@@ -220,5 +220,36 @@ class ReminderController {
         const key = webPushService_1.WebPushService.getPublicKey();
         return res.json({ success: true, publicKey: key });
     }
+    /**
+     * Send an immediate test Web Push notification to user's registered devices
+     */
+    static async testPush(req, res) {
+        try {
+            const userId = req.userId;
+            const subs = await database_1.prisma.pushSubscription.findMany({ where: { userId } });
+            if (subs.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'ยังไม่พบอุปกรณ์ที่ลงทะเบียนรับการแจ้งเตือนพุช (กรุณากดเปิดรับการแจ้งเตือนก่อน)',
+                });
+            }
+            const result = await webPushService_1.WebPushService.sendPushToUser(userId, {
+                title: '🔔 ทดสอบระบบแจ้งเตือนสำเร็จ!',
+                body: 'ระบบ Web Push บนอุปกรณ์นี้เชื่อมต่อและทำงานได้สมบูรณ์แล้วครับ',
+                url: '/dashboard',
+                tag: `test-${Date.now()}`,
+            });
+            return res.json({
+                success: true,
+                message: `ส่งการแจ้งเตือนทดสอบสำเร็จไปยัง ${result.sent} เครื่อง`,
+                sent: result.sent,
+                failed: result.failed,
+            });
+        }
+        catch (err) {
+            console.error('Error sending test push:', err);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการส่งแจ้งเตือนทดสอบ' });
+        }
+    }
 }
 exports.ReminderController = ReminderController;

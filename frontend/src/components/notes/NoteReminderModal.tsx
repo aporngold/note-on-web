@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Clock, Calendar, Repeat, Trash2, X, Check, ShieldCheck, AlertCircle, Share } from 'lucide-react';
 import { useReminderStore } from '@/store/reminderStore';
-import { subscribeToWebPush, getCurrentPushSubscription, isIOSDevice, isStandalonePWA, isAndroidDevice } from '@/utils/webPush';
+import { subscribeToWebPush, sendTestWebPush, getCurrentPushSubscription, isIOSDevice, isStandalonePWA, isAndroidDevice } from '@/utils/webPush';
 import toast from 'react-hot-toast';
 import ViewportPortal from '../ui/ViewportPortal';
 
@@ -27,6 +27,7 @@ export default function NoteReminderModal({
   const [repeatRule, setRepeatRule] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
   const [hasPushPermission, setHasPushPermission] = useState<boolean>(false);
   const [isRequestingPermission, setIsRequestingPermission] = useState<boolean>(false);
+  const [isTestingPush, setIsTestingPush] = useState<boolean>(false);
 
   const isIOS = typeof window !== 'undefined' && isIOSDevice();
   const isStandalone = typeof window !== 'undefined' && isStandalonePWA();
@@ -147,6 +148,29 @@ export default function NoteReminderModal({
     }
   };
 
+  const handleTestPush = async () => {
+    try {
+      setIsTestingPush(true);
+      toast.loading('กำลังเชื่อมต่อ Web Push และส่งการแจ้งเตือนทดสอบ...', { id: 'test-push' });
+      const res = await sendTestWebPush();
+      if (res.success) {
+        setHasPushPermission(true);
+        toast.success(
+          res.devicesCount && res.devicesCount > 0
+            ? `ส่งข้อความทดสอบสำเร็จแล้ว (${res.devicesCount} เครื่อง)! กรุณาดูที่แถบแจ้งเตือนของเครื่องคุณ`
+            : 'ส่งข้อความทดสอบสำเร็จแล้ว! กรุณาดูที่แถบแจ้งเตือนของเครื่องคุณ',
+          { id: 'test-push', duration: 5000, icon: '🔔' }
+        );
+      } else {
+        toast.error(res.error || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ กรุณาตรวจสอบสิทธิ์', { id: 'test-push', duration: 5000 });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'เกิดข้อผิดพลาดในการทดสอบ', { id: 'test-push' });
+    } finally {
+      setIsTestingPush(false);
+    }
+  };
+
   // Quick preset shortcuts
   const setQuickPreset = (hoursFromNow: number) => {
     const target = new Date(Date.now() + hoursFromNow * 3600 * 1000);
@@ -259,6 +283,29 @@ export default function NoteReminderModal({
               </div>
             </div>
           )}
+
+          {/* Web Push Diagnostic & Instant Test Button */}
+          <div className="p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/50 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${hasPushPermission ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-amber-500'}`} />
+              <div className="truncate">
+                <p className="text-[11.5px] font-bold text-slate-800 dark:text-slate-200">
+                  {hasPushPermission ? 'Web Push บนเครื่องนี้: พร้อมใช้งาน' : 'Web Push: ยังไม่ได้รับสิทธิ์'}
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                  กดทดสอบเพื่อตรวจสอบว่าเครื่องของคุณเด้งแจ้งเตือนได้จริงหรือไม่
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleTestPush}
+              disabled={isTestingPush}
+              className="shrink-0 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl text-[11px] transition shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <span>{isTestingPush ? 'กำลังยิง...' : '🧪 ทดสอบเด้งเตือน'}</span>
+            </button>
+          </div>
 
           {/* Quick presets */}
           <div>

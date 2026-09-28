@@ -120,8 +120,8 @@ export async function subscribeToWebPush(): Promise<{ success: boolean; error?: 
       return { success: false, error: 'คุณได้ปฏิเสธการอนุญาตแจ้งเตือน (กรุณาเปิดการแจ้งเตือนในการตั้งค่าเบราว์เซอร์)' };
     }
 
-const DEFAULT_VAPID_PUBLIC_KEY =
-  'BAbqW8JmjXcbFRodpOYM4DXrR_ge2h-D2dYMBUmw5n8QUfezFjXbe738zCA4nsdoWmOezY39fo7p4NJjopc9SBA';
+    const DEFAULT_VAPID_PUBLIC_KEY =
+      'BAbqW8JmjXcbFRodpOYM4DXrR_ge2h-D2dYMBUmw5n8QUfezFjXbe738zCA4nsdoWmOezY39fo7p4NJjopc9SBA';
 
     // 2. Fetch VAPID Public Key from server
     let publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -140,12 +140,17 @@ const DEFAULT_VAPID_PUBLIC_KEY =
       publicKey = DEFAULT_VAPID_PUBLIC_KEY;
     }
 
-    // 3. Register service worker and subscribe
-    const registration = await navigator.serviceWorker.ready;
+    // 3. Register service worker and ensure it is ready
+    let registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) {
+      registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    }
+    await navigator.serviceWorker.ready;
+
     let subscription = await registration.pushManager.getSubscription();
+    const convertedKey = urlBase64ToUint8Array(publicKey);
 
     if (!subscription) {
-      const convertedKey = urlBase64ToUint8Array(publicKey);
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedKey as unknown as BufferSource,
@@ -158,7 +163,7 @@ const DEFAULT_VAPID_PUBLIC_KEY =
       return { success: false, error: 'ข้อมูล Push Subscription ไม่สมบูรณ์' };
     }
 
-    await api.post('/reminders/subscribe', {
+    const subRes = await api.post('/reminders/subscribe', {
       subscription: {
         endpoint: subJSON.endpoint,
         keys: {
@@ -170,10 +175,37 @@ const DEFAULT_VAPID_PUBLIC_KEY =
       deviceType: getDeviceType(),
     });
 
+    console.log('🔔 [WebPush] Subscribed device successfully:', subRes.data);
     return { success: true };
   } catch (err: any) {
     console.error('Failed to subscribe to Web Push:', err);
-    return { success: false, error: err.message || 'เกิดข้อผิดพลาดในการลงทะเบียนรับการแจ้งเตือน' };
+    return { success: false, error: err.response?.data?.error || err.message || 'เกิดข้อผิดพลาดในการลงทะเบียนรับการแจ้งเตือน' };
+  }
+}
+
+/**
+ * Trigger immediate test Web Push notification to current device
+ */
+export async function sendTestWebPush(): Promise<{ success: boolean; message?: string; devicesCount?: number; error?: string }> {
+  try {
+    // 1. Ensure current device is subscribed
+    const subResult = await subscribeToWebPush();
+    if (!subResult.success) {
+      return { success: false, error: subResult.error };
+    }
+
+    // 2. Request backend to trigger test push
+    const res = await api.post('/reminders/test-push');
+    return {
+      success: true,
+      message: res.data?.message || 'ส่งแจ้งเตือนทดสอบเรียบร้อยแล้ว',
+      devicesCount: res.data?.sent,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.response?.data?.error || err.message || 'ส่งแจ้งเตือนทดสอบไม่สำเร็จ',
+    };
   }
 }
 
