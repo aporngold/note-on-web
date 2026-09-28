@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, VolumeX, Settings, AlarmClock, Smartphone, Monitor, Tablet, Sparkles } from 'lucide-react';
+import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, VolumeX, Settings, AlarmClock, Smartphone, Monitor, Tablet, Sparkles, AlertCircle } from 'lucide-react';
 import { useNotificationStore } from '@/store/notificationStore';
 import { useReminderStore } from '@/store/reminderStore';
 import { useAuthStore } from '@/store/authStore';
@@ -42,6 +42,7 @@ export default function NotificationCenter() {
   const [snoozeMenuNotifId, setSnoozeMenuNotifId] = useState<string | null>(null);
 
   const [hasPushPermission, setHasPushPermission] = useState<boolean>(false);
+  const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default');
   const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
   const [isTestingPush, setIsTestingPush] = useState<boolean>(false);
 
@@ -51,11 +52,14 @@ export default function NotificationCenter() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      const granted = Notification.permission === 'granted';
-      setHasPushPermission(granted);
-      if (granted && isOpen) {
+      const perm = Notification.permission;
+      setPermissionStatus(perm);
+      setHasPushPermission(perm === 'granted');
+      if (perm === 'granted' && isOpen) {
         subscribeToWebPush().catch(() => {});
       }
+    } else {
+      setPermissionStatus('unsupported');
     }
   }, [isOpen]);
 
@@ -426,14 +430,32 @@ export default function NotificationCenter() {
             <div className="p-3 bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 shrink-0">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${hasPushPermission ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-amber-500'}`} />
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      hasPushPermission
+                        ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50'
+                        : permissionStatus === 'denied'
+                        ? 'bg-rose-500'
+                        : 'bg-amber-500'
+                    }`}
+                  />
                   <div className="truncate">
                     <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
                       {isAndroid ? <Smartphone size={12} className="text-indigo-500 inline" /> : isIOS ? <Tablet size={12} className="text-indigo-500 inline" /> : <Monitor size={12} className="text-indigo-500 inline" />}
-                      <span>{hasPushPermission ? 'Web Push บนเครื่องนี้: พร้อมใช้งาน' : 'Web Push: ยังไม่ได้เปิดบนเครื่องนี้'}</span>
+                      <span>
+                        {hasPushPermission
+                          ? 'Web Push บนเครื่องนี้: พร้อมใช้งาน'
+                          : permissionStatus === 'denied'
+                          ? 'Web Push: ถูกบล็อกในเบราว์เซอร์'
+                          : 'Web Push: ยังไม่ได้เปิดบนเครื่องนี้'}
+                      </span>
                     </p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                      {hasPushPermission ? 'แจ้งเตือนตรงเวลาแม้ปิดหน้าเว็บหรือล็อกหน้าจอ' : 'แตะเพื่อผูกเครื่องนี้รับแจ้งเตือนร่วมกับ PC'}
+                      {hasPushPermission
+                        ? 'แจ้งเตือนตรงเวลาแม้ปิดหน้าเว็บหรือล็อกหน้าจอ'
+                        : permissionStatus === 'denied'
+                        ? 'กรุณาแตะดูวิธีปลดล็อกใน Chrome ด้านล่าง'
+                        : 'แตะเพื่อผูกเครื่องนี้รับแจ้งเตือนร่วมกับ PC'}
                     </p>
                   </div>
                 </div>
@@ -446,7 +468,7 @@ export default function NotificationCenter() {
                     className="shrink-0 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold rounded-xl text-[10.5px] transition shadow-xs flex items-center gap-1 disabled:opacity-50"
                   >
                     <Bell size={11} />
-                    <span>{isPushLoading ? 'กำลังเปิด...' : 'เปิดแจ้งเตือน'}</span>
+                    <span>{isPushLoading ? 'กำลังเปิด...' : permissionStatus === 'denied' ? 'วิธีปลดล็อก' : 'เปิดแจ้งเตือน'}</span>
                   </button>
                 ) : (
                   <button
@@ -459,6 +481,22 @@ export default function NotificationCenter() {
                   </button>
                 )}
               </div>
+
+              {/* Browser Permission Denied Alert Box */}
+              {permissionStatus === 'denied' && (
+                <div className="mt-2.5 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-[10.5px] text-rose-900 dark:text-rose-200 space-y-1 animate-fade-in">
+                  <div className="flex items-center gap-1.5 font-bold text-rose-700 dark:text-rose-300">
+                    <AlertCircle size={13} className="shrink-0" />
+                    <span>เบราว์เซอร์ Chrome บล็อกการแจ้งเตือนอยู่</span>
+                  </div>
+                  <div className="text-[10px] text-slate-700 dark:text-slate-300 leading-relaxed pl-1 space-y-0.5">
+                    <p>1. แตะไอคอน <b>แม่กุญแจ 🔒</b> หรือ <b>ตัวเลื่อน ⚙️</b> ที่แถบพิมพ์ชื่อเว็บด้านบนสุด</p>
+                    <p>2. แตะเลือก <b>&quot;สิทธิ์&quot; (Permissions)</b></p>
+                    <p>3. เปลี่ยน <b>การแจ้งเตือน (Notifications)</b> เป็น <b>&quot;อนุญาต&quot; (Allow)</b></p>
+                    <p>4. กดรีเฟรชหน้าเว็บ 1 ครั้ง</p>
+                  </div>
+                </div>
+              )}
 
               {/* iOS Safari Guidance Note */}
               {isIOS && !isStandalone && (

@@ -254,15 +254,22 @@ export default function NoteReminderModal({
                     <p className="text-[11px] text-amber-700 dark:text-amber-300/80 mt-0.5 leading-relaxed">
                       เปิดการแจ้งเตือนผ่าน Web Push เพื่อให้ระบบสามารถแจ้งเตือนคุณได้ แม้ปิดแท็บหรือกำลังใช้งานเว็บอื่น
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleEnablePushDirectly}
-                      disabled={isRequestingPermission}
-                      className="mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
-                    >
-                      <Bell size={13} />
-                      <span>{isRequestingPermission ? 'กำลังขออนุญาต...' : 'เปิดการแจ้งเตือน'}</span>
-                    </button>
+                    {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'denied' ? (
+                      <div className="mt-2 text-[10.5px] text-amber-900 dark:text-amber-200 bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-xl border border-amber-300 dark:border-amber-800 space-y-1">
+                        <p className="font-bold text-rose-600 dark:text-rose-400">⚠️ เบราว์เซอร์บล็อกการแจ้งเตือนของเว็บนี้</p>
+                        <p>วิธีปลดล็อก: แตะไอคอน <b>แม่กุญแจ 🔒</b> ที่แถบ URL ด้านบนสุด &gt; เลือก <b>สิทธิ์ (Permissions)</b> &gt; เปลี่ยนการแจ้งเตือนเป็น <b>อนุญาต (Allow)</b> แล้วรีเฟรช</p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleEnablePushDirectly}
+                        disabled={isRequestingPermission}
+                        className="mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Bell size={13} />
+                        <span>{isRequestingPermission ? 'กำลังขออนุญาต...' : 'เปิดการแจ้งเตือน'}</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>

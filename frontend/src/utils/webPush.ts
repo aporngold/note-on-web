@@ -95,6 +95,16 @@ export function isAndroidDevice(): boolean {
 }
 
 /**
+ * Check browser notification permission status
+ */
+export function getNotificationPermissionStatus(): 'granted' | 'denied' | 'default' | 'unsupported' {
+  if (typeof window === 'undefined' || !('Notification' in window)) {
+    return 'unsupported';
+  }
+  return Notification.permission;
+}
+
+/**
  * Request notification permission and subscribe to Web Push
  */
 export async function subscribeToWebPush(): Promise<{ success: boolean; error?: string }> {
@@ -112,12 +122,24 @@ export async function subscribeToWebPush(): Promise<{ success: boolean; error?: 
   try {
     // 1. Check or request permission
     let permission = Notification.permission;
+    if (permission === 'denied') {
+      return {
+        success: false,
+        error:
+          'เบราว์เซอร์บล็อกการแจ้งเตือนของเว็บนี้อยู่: แตะไอคอน 🔒 หรือ ⚙️ ที่แถบ URL ด้านบนสุด > เลือก "สิทธิ์" (Permissions) > เปลี่ยนการแจ้งเตือนเป็น "อนุญาต" แล้วรีเฟรชหน้าเว็บ',
+      };
+    }
+
     if (permission !== 'granted') {
       permission = await Notification.requestPermission();
     }
 
     if (permission !== 'granted') {
-      return { success: false, error: 'คุณได้ปฏิเสธการอนุญาตแจ้งเตือน (กรุณาเปิดการแจ้งเตือนในการตั้งค่าเบราว์เซอร์)' };
+      return {
+        success: false,
+        error:
+          'เบราว์เซอร์ไม่อนุญาตการแจ้งเตือน: แตะไอคอน 🔒 ที่แถบพิมพ์ชื่อเว็บด้านบนสุด > สิทธิ์ (Permissions) > อนุญาตการแจ้งเตือน',
+      };
     }
 
     const DEFAULT_VAPID_PUBLIC_KEY =

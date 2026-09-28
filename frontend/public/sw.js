@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
     tag: data.tag || 'note-reminder',
     renotify: true,
     requireInteraction: true,
-    vibrate: [200, 100, 200],
+    vibrate: [300, 100, 200, 100, 300],
     data: {
       url: data.url || '/dashboard',
       noteId: data.noteId,
@@ -45,7 +45,16 @@ self.addEventListener('push', (event) => {
     ],
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  const showPromise = self.registration.showNotification(title, options).catch((err) => {
+    console.warn('showNotification with full options failed, retrying simple notification:', err);
+    return self.registration.showNotification(title, {
+      body: data.body || 'ถึงเวลาเตือนความจำสำหรับโน้ตของคุณแล้ว',
+      icon: '/NoteAll-icon.png',
+      tag: data.tag || 'note-reminder',
+    });
+  });
+
+  event.waitUntil(showPromise);
 });
 
 // ── Notification Click Listener ──
