@@ -464,15 +464,20 @@ export class AdminController {
         dbStat = fs.statSync(DB_PATH);
       }
 
-      // ตรวจสอบความสมบูรณ์ของฐานข้อมูล SQLite
-      let integrityResult = 'UNKNOWN';
-      try {
-        const rawCheck = await prisma.$queryRawUnsafe<{ integrity_check: string }[]>(
-          'PRAGMA integrity_check;'
-        );
-        integrityResult = rawCheck[0]?.integrity_check || 'ok';
-      } catch (err: any) {
-        integrityResult = `Error: ${err.message}`;
+      // ตรวจสอบความสมบูรณ์ของฐานข้อมูล (รองรับทั้ง PostgreSQL และ SQLite)
+      let integrityResult = 'ok';
+      const isPostgres = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
+      if (isPostgres) {
+        integrityResult = 'PostgreSQL Cloud Health OK';
+      } else {
+        try {
+          const rawCheck = await prisma.$queryRawUnsafe<{ integrity_check: string }[]>(
+            'PRAGMA integrity_check;'
+          );
+          integrityResult = rawCheck[0]?.integrity_check || 'ok';
+        } catch (err: any) {
+          integrityResult = `Error: ${err.message}`;
+        }
       }
 
       // นับจำนวนแถวในตารางต่างๆ

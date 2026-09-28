@@ -16,14 +16,22 @@ async function main() {
     }
 
     // 2. ตรวจสอบและสร้าง/อัปเดตตารางฐานข้อมูล
-    console.log('🔄 [2/4] กำลังตรวจสอบและรัน Migration (prisma migrate deploy)...');
-    try {
-      execSync('npx prisma migrate deploy', { stdio: 'inherit', cwd: backendDir });
-      console.log('✅ ตรวจสอบและรัน Migration สำเร็จเรียบร้อย');
-    } catch (migrateErr) {
-      console.warn('⚠️ Migrate deploy ไม่สำเร็จ กำลังใช้มาตรการสำรอง (prisma db push)...');
-      execSync('npx prisma db push', { stdio: 'inherit', cwd: backendDir });
-      console.log('✅ ซิงค์โครงสร้างตารางด้วย db push สำเร็จเรียบร้อย');
+    const isPostgres = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
+    console.log(`🔄 [2/4] กำลังตรวจสอบและซิงค์โครงสร้างฐานข้อมูล (${isPostgres ? 'PostgreSQL' : 'SQLite'})...`);
+    
+    if (isPostgres) {
+      console.log('🐘 ซิงค์โครงสร้างตารางเข้า PostgreSQL ด้วย prisma db push...');
+      execSync('npx prisma db push --skip-generate', { stdio: 'inherit', cwd: backendDir });
+      console.log('✅ ซิงค์โครงสร้างตาราง PostgreSQL สำเร็จเรียบร้อย');
+    } else {
+      try {
+        execSync('npx prisma migrate deploy', { stdio: 'inherit', cwd: backendDir });
+        console.log('✅ ตรวจสอบและรัน Migration สำเร็จเรียบร้อย');
+      } catch (migrateErr) {
+        console.warn('⚠️ Migrate deploy ไม่สำเร็จ กำลังใช้มาตรการสำรอง (prisma db push)...');
+        execSync('npx prisma db push', { stdio: 'inherit', cwd: backendDir });
+        console.log('✅ ซิงค์โครงสร้างตารางด้วย db push สำเร็จเรียบร้อย');
+      }
     }
 
     // 3. เตรียมบัญชีทดสอบระบบ (Test User): KnowMan / SystemTest

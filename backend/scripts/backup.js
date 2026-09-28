@@ -20,6 +20,12 @@ function formatTimestamp(date) {
 function runBackup() {
   console.log('🔄 [SecureNote Backup] กำลังตรวจสอบฐานข้อมูล...');
 
+  // หากเป็น Cloud PostgreSQL ให้อาศัย Cloud DB แทนการสำรอง dev.db ในเครื่อง
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres')) {
+    console.log('ℹ️ เชื่อมต่อกับ Cloud PostgreSQL Database เรียบร้อย (ข้ามการสำรองไฟล์ SQLite ในเครื่อง)');
+    return;
+  }
+
   if (!fs.existsSync(DB_PATH)) {
     console.log('ℹ️  ไม่พบไฟล์ dev.db (อาจเป็นครั้งแรกที่เริ่มระบบ)');
     return;

@@ -57,7 +57,11 @@ class WebPushService {
                 },
             };
             try {
-                await web_push_1.default.sendNotification(pushSubscription, payloadString);
+                const pushOptions = {
+                    TTL: 60 * 60 * 24, // 24 hours
+                    urgency: 'high', // Wake up device from sleep/Doze mode immediately (RFC 8030)
+                };
+                await web_push_1.default.sendNotification(pushSubscription, payloadString, pushOptions);
                 sent++;
                 await database_1.prisma.pushSubscription.update({
                     where: { id: sub.id },

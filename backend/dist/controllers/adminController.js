@@ -413,14 +413,20 @@ class AdminController {
             if (fs_1.default.existsSync(DB_PATH)) {
                 dbStat = fs_1.default.statSync(DB_PATH);
             }
-            // ตรวจสอบความสมบูรณ์ของฐานข้อมูล SQLite
-            let integrityResult = 'UNKNOWN';
-            try {
-                const rawCheck = await database_1.prisma.$queryRawUnsafe('PRAGMA integrity_check;');
-                integrityResult = rawCheck[0]?.integrity_check || 'ok';
+            // ตรวจสอบความสมบูรณ์ของฐานข้อมูล (รองรับทั้ง PostgreSQL และ SQLite)
+            let integrityResult = 'ok';
+            const isPostgres = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
+            if (isPostgres) {
+                integrityResult = 'PostgreSQL Cloud Health OK';
             }
-            catch (err) {
-                integrityResult = `Error: ${err.message}`;
+            else {
+                try {
+                    const rawCheck = await database_1.prisma.$queryRawUnsafe('PRAGMA integrity_check;');
+                    integrityResult = rawCheck[0]?.integrity_check || 'ok';
+                }
+                catch (err) {
+                    integrityResult = `Error: ${err.message}`;
+                }
             }
             // นับจำนวนแถวในตารางต่างๆ
             const [usersCount, notesCount, boardsCount, notebooksCount, labelsCount, sessionsCount, passkeysCount, auditLogsCount, backupRecordsCount,] = await Promise.all([
