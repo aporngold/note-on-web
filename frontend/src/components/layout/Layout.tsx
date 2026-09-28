@@ -7,6 +7,7 @@ import BackupModal from '../modals/BackupModal';
 import NotificationCenter from '../notifications/NotificationCenter';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
+import { useRealtimeNotes } from '@/hooks/useRealtimeNotes';
 import toast from 'react-hot-toast';
 
 interface LayoutProps {
@@ -15,6 +16,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, showSearch = true }: LayoutProps) {
+  useRealtimeNotes();
   const router = useRouter();
   const { user, isLoading, checkAuth } = useAuthStore();
   const {

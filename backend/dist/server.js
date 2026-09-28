@@ -26,6 +26,7 @@ const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
 const reminderRoutes_1 = __importDefault(require("./routes/reminderRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const reminderScheduler_1 = require("./services/reminderScheduler");
+const socket_1 = require("./utils/socket");
 const errorHandler_1 = require("./middleware/errorHandler");
 const ensureDb_1 = require("./utils/ensureDb");
 dotenv_1.default.config();
@@ -229,7 +230,8 @@ serverInstance.listen(PORT, async () => {
     await (0, ensureDb_1.ensureDatabaseSchema)().catch((err) => {
         console.error('⚠️ [DB-Sync] Initial sync error:', err.message);
     });
-    // Initialize reminder scheduler with socket.io
+    // Initialize socket utility and reminder scheduler with socket.io
+    (0, socket_1.setSocketIO)(io);
     (0, reminderScheduler_1.setSchedulerSocketIO)(io);
     (0, reminderScheduler_1.initReminderScheduler)();
 });

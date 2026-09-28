@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NoteController = exports.MAX_NOTES_PER_BOARD = void 0;
 const database_1 = require("../utils/database");
 const zod_1 = require("zod");
+const socket_1 = require("../utils/socket");
 const createNoteSchema = zod_1.z.object({
     title: zod_1.z.string().optional().default(''),
     content: zod_1.z.string().optional().default(''),
@@ -306,10 +307,16 @@ class NoteController {
                     },
                 },
             });
-            return res.status(201).json({
+            const formatted = {
                 ...newNote,
                 labels: newNote.labels.map((l) => l.label),
-            });
+            };
+            // Broadcast note creation in real-time to all connected devices of this user
+            (0, socket_1.emitToUser)(userId, 'note:created', formatted);
+            if (formatted.boardId) {
+                (0, socket_1.emitToUser)(userId, 'board:note-count-updated', { boardId: formatted.boardId, delta: 1 });
+            }
+            return res.status(201).json(formatted);
         }
         catch (error) {
             console.error('createNote error:', error);
@@ -404,10 +411,13 @@ class NoteController {
                     },
                 },
             });
-            return res.json({
+            const formatted = {
                 ...updated,
                 labels: updated.labels.map((l) => l.label),
-            });
+            };
+            // Broadcast note update in real-time to all connected devices of this user
+            (0, socket_1.emitToUser)(userId, 'note:updated', formatted);
+            return res.json(formatted);
         }
         catch (error) {
             console.error('updateNote error:', error);
@@ -427,6 +437,7 @@ class NoteController {
             // If already in trash, delete permanently
             if (note.isArchived) {
                 await database_1.prisma.note.delete({ where: { id } });
+                (0, socket_1.emitToUser)(userId, 'note:deleted', { id, isPermanent: true, boardId: note.boardId });
                 return res.json({ message: 'ลบโน้ตถาวรเรียบร้อยแล้ว', isPermanent: true, noteId: id });
             }
             else {
@@ -453,6 +464,10 @@ class NoteController {
                     ...updated,
                     labels: updated.labels.map((l) => l.label),
                 };
+                (0, socket_1.emitToUser)(userId, 'note:deleted', { id, isPermanent: false, boardId: note.boardId, note: formatted });
+                if (note.boardId) {
+                    (0, socket_1.emitToUser)(userId, 'board:note-count-updated', { boardId: note.boardId, delta: -1 });
+                }
                 return res.json({ message: 'ย้ายโน้ตไปที่ถังขยะแล้ว', isPermanent: false, noteId: id, note: formatted });
             }
         }
@@ -502,6 +517,10 @@ class NoteController {
                 ...restored,
                 labels: restored.labels.map((l) => l.label),
             };
+            (0, socket_1.emitToUser)(userId, 'note:restored', formatted);
+            if (formatted.boardId) {
+                (0, socket_1.emitToUser)(userId, 'board:note-count-updated', { boardId: formatted.boardId, delta: 1 });
+            }
             return res.json({ message: 'กู้คืนโน้ตเรียบร้อยแล้ว', note: formatted });
         }
         catch (error) {
@@ -555,10 +574,15 @@ class NoteController {
                     },
                 },
             });
-            return res.status(201).json({
+            const formatted = {
                 ...duplicated,
                 labels: duplicated.labels.map((l) => l.label),
-            });
+            };
+            (0, socket_1.emitToUser)(userId, 'note:created', formatted);
+            if (formatted.boardId) {
+                (0, socket_1.emitToUser)(userId, 'board:note-count-updated', { boardId: formatted.boardId, delta: 1 });
+            }
+            return res.status(201).json(formatted);
         }
         catch (error) {
             return res.status(500).json({ error: 'Failed to duplicate note' });
@@ -578,6 +602,7 @@ class NoteController {
                 where: { id },
                 data: { isPinned: !note.isPinned },
             });
+            (0, socket_1.emitToUser)(userId, 'note:updated', updated);
             return res.json({
                 message: updated.isPinned ? 'ปักหมุดโน้ตแล้ว' : 'ยกเลิกการปักหมุดแล้ว',
                 isPinned: updated.isPinned,
@@ -601,6 +626,7 @@ class NoteController {
                 where: { id },
                 data: { isFavorite: !note.isFavorite },
             });
+            (0, socket_1.emitToUser)(userId, 'note:updated', updated);
             return res.json({
                 message: updated.isFavorite ? 'เพิ่มในรายการโปรดแล้ว' : 'นำออกจากรายการโปรดแล้ว',
                 isFavorite: updated.isFavorite,
@@ -616,6 +642,7 @@ class NoteController {
             const result = await database_1.prisma.note.deleteMany({
                 where: { userId, isArchived: true },
             });
+            (0, socket_1.emitToUser)(userId, 'notes:trash-emptied', {});
             return res.json({ message: `ลบโน้ตในถังขยะทั้งหมดแล้ว (${result.count} รายการ)` });
         }
         catch (error) {

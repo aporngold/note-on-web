@@ -66,8 +66,13 @@ interface NoteState {
   deleteLabel: (id: string) => Promise<void>;
 
   // Remote updates from WebSocket
+  setRemoteNoteCreated: (note: Note) => void;
   setRemoteNoteMoved: (noteId: string, posX: number, posY: number) => void;
   setRemoteNoteUpdated: (note: Note) => void;
+  setRemoteNoteDeleted: (data: { id: string; isPermanent?: boolean; boardId?: string | null; note?: Note }) => void;
+  setRemoteNoteRestored: (note: Note) => void;
+  setRemoteBoardCountUpdated: (data: { boardId: string; delta: number }) => void;
+  setRemoteTrashEmptied: () => void;
   setRemoteConnectionChanged: (data: any) => void;
 
   setSearchQuery: (q: string) => void;
@@ -712,6 +717,24 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     get().fetchNotes();
   },
 
+  setRemoteNoteCreated: (newNote: Note) => {
+    set((state) => {
+      // Deduplicate: If note already exists locally, update it instead of prepending duplicate
+      if (state.notes.some((n) => n.id === newNote.id)) {
+        return {
+          notes: state.notes.map((n) => (n.id === newNote.id ? { ...n, ...newNote } : n)),
+        };
+      }
+      return {
+        notes: [newNote, ...state.notes],
+        boards: state.boards.map((b) => {
+          const matches = newNote.boardId ? b.id === newNote.boardId : b.isDefault;
+          return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;
+        }),
+      };
+    });
+  },
+
   setRemoteNoteMoved: (noteId: string, posX: number, posY: number) => {
     set((state) => ({
       notes: state.notes.map((n) => (n.id === noteId ? { ...n, posX, posY } : n)),
@@ -722,6 +745,53 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     set((state) => ({
       notes: state.notes.map((n) => (n.id === note.id ? { ...n, ...note } : n)),
     }));
+  },
+
+  setRemoteNoteDeleted: (data: { id: string; isPermanent?: boolean; boardId?: string | null; note?: Note }) => {
+    const { id, isPermanent, boardId, note } = data;
+    set((state) => {
+      let nextTrash = state.trashNotes;
+      if (isPermanent) {
+        nextTrash = state.trashNotes.filter((n) => n.id !== id);
+      } else if (note) {
+        nextTrash = [{ ...note, isArchived: true }, ...state.trashNotes.filter((n) => n.id !== id)];
+      }
+      return {
+        notes: state.notes.filter((n) => n.id !== id),
+        trashNotes: nextTrash,
+        boards: state.boards.map((b) => {
+          const matches = boardId ? b.id === boardId : b.isDefault;
+          return matches ? { ...b, noteCount: Math.max(0, (b.noteCount || 1) - 1) } : b;
+        }),
+        connections: state.connections.filter((c) => c.sourceId !== id && c.targetId !== id),
+      };
+    });
+  },
+
+  setRemoteNoteRestored: (restoredNote: Note) => {
+    set((state) => ({
+      trashNotes: state.trashNotes.filter((n) => n.id !== restoredNote.id),
+      notes: state.notes.some((n) => n.id === restoredNote.id)
+        ? state.notes.map((n) => (n.id === restoredNote.id ? { ...n, ...restoredNote, isArchived: false } : n))
+        : [{ ...restoredNote, isArchived: false }, ...state.notes],
+      boards: state.boards.map((b) => {
+        const matches = restoredNote.boardId ? b.id === restoredNote.boardId : b.isDefault;
+        return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;
+      }),
+    }));
+  },
+
+  setRemoteBoardCountUpdated: (data: { boardId: string; delta: number }) => {
+    const { boardId, delta } = data;
+    set((state) => ({
+      boards: state.boards.map((b) =>
+        b.id === boardId ? { ...b, noteCount: Math.max(0, (b.noteCount || 0) + delta) } : b
+      ),
+    }));
+  },
+
+  setRemoteTrashEmptied: () => {
+    set({ trashNotes: [] });
   },
 
   setRemoteConnectionChanged: () => {

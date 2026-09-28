@@ -20,6 +20,7 @@ import adminRoutes from './routes/adminRoutes';
 import reminderRoutes from './routes/reminderRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import { initReminderScheduler, setSchedulerSocketIO } from './services/reminderScheduler';
+import { setSocketIO } from './utils/socket';
 import { errorHandler } from './middleware/errorHandler';
 import { ensureDatabaseSchema } from './utils/ensureDb';
 
@@ -257,7 +258,8 @@ serverInstance.listen(PORT, async () => {
     console.error('⚠️ [DB-Sync] Initial sync error:', err.message);
   });
 
-  // Initialize reminder scheduler with socket.io
+  // Initialize socket utility and reminder scheduler with socket.io
+  setSocketIO(io);
   setSchedulerSocketIO(io);
   initReminderScheduler();
 });

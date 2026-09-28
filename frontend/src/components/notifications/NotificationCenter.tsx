@@ -4,7 +4,8 @@ import { Bell, Check, Trash2, Clock, CheckCheck, ExternalLink, X, Volume2, Volum
 import { useNotificationStore } from '@/store/notificationStore';
 import { useReminderStore } from '@/store/reminderStore';
 import { useAuthStore } from '@/store/authStore';
-import io, { Socket } from 'socket.io-client';
+import { getSharedSocket } from '@/utils/socketClient';
+import type { Socket } from 'socket.io-client';
 import {
   playNotificationSound,
   triggerVibration,
@@ -225,18 +226,18 @@ export default function NotificationCenter() {
   useEffect(() => {
     if (!user?.id) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:5000';
-    const socket = io(wsUrl, {
-      transports: ['websocket', 'polling'],
-      withCredentials: true,
-    });
+    const socket = getSharedSocket();
     socketRef.current = socket;
 
-    socket.on('connect', () => {
+    if (socket.connected) {
       socket.emit('join-user', user.id);
-    });
+    } else {
+      socket.once('connect', () => {
+        socket.emit('join-user', user.id);
+      });
+    }
 
-    socket.on('notification:new', (notif: any) => {
+    const handleNewNotification = (notif: any) => {
       addRealtimeNotification(notif);
       playNotificationSound();
       triggerVibration();
@@ -301,11 +302,12 @@ export default function NotificationCenter() {
         ),
         { duration: 10000, position: 'top-right' }
       );
-    });
+    };
+
+    socket.on('notification:new', handleNewNotification);
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      socket.off('notification:new', handleNewNotification);
     };
   }, [user?.id, addRealtimeNotification]);
 
