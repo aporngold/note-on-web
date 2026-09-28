@@ -62,9 +62,15 @@ export default function NoteReminderModal({
       }
     });
 
-    // Check push permission status
+    // Check push permission status and auto-sync token with backend
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      setHasPushPermission(Notification.permission === 'granted');
+      const isGranted = Notification.permission === 'granted';
+      setHasPushPermission(isGranted);
+      if (isGranted) {
+        subscribeToWebPush().catch((err) => {
+          console.warn('Auto push subscription sync notice:', err);
+        });
+      }
     }
   }, [isOpen, noteId, fetchReminderByNote]);
 
@@ -87,18 +93,22 @@ export default function NoteReminderModal({
       return;
     }
 
-    // Auto-request Web Push permission if not granted yet
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted') {
-      try {
-        setIsRequestingPermission(true);
-        const pushResult = await subscribeToWebPush();
-        if (pushResult.success) {
-          setHasPushPermission(true);
+    // Always ensure this device is registered with Web Push in backend
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        await subscribeToWebPush().catch(() => {});
+      } else if (Notification.permission !== 'denied') {
+        try {
+          setIsRequestingPermission(true);
+          const pushResult = await subscribeToWebPush();
+          if (pushResult.success) {
+            setHasPushPermission(true);
+          }
+        } catch (e) {
+          // Continue even if push subscription failed (in-app notifications will still work)
+        } finally {
+          setIsRequestingPermission(false);
         }
-      } catch (e) {
-        // Continue even if push subscription failed (in-app notifications will still work)
-      } finally {
-        setIsRequestingPermission(false);
       }
     }
 

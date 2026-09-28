@@ -8,7 +8,7 @@ import '@/styles/globals.css';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { stopGlobalSpeechToText } from '@/components/notes/SpeechToTextButton';
-import { registerServiceWorker } from '@/utils/webPush';
+import { registerServiceWorker, subscribeToWebPush } from '@/utils/webPush';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +23,15 @@ export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   useEffect(() => {
-    registerServiceWorker();
+    registerServiceWorker().then(() => {
+      // Auto-sync Web Push Subscription if user is logged in and already granted permission
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        const token = localStorage.getItem('secure_note_token');
+        if (token) {
+          subscribeToWebPush().catch(() => {});
+        }
+      }
+    });
   }, []);
 
   useEffect(() => {
