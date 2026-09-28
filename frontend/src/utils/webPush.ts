@@ -163,11 +163,15 @@ export async function subscribeToWebPush(): Promise<{ success: boolean; error?: 
     }
 
     // 3. Register service worker and ensure it is ready
-    let registration = await navigator.serviceWorker.getRegistration();
-    if (!registration) {
-      registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    try {
+      await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    } catch (swErr) {
+      console.warn('SW register notice:', swErr);
     }
-    await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.ready;
+    if (!registration || !registration.pushManager) {
+      return { success: false, error: 'เบราว์เซอร์ไม่รองรับ PushManager บนอุปกรณ์นี้' };
+    }
 
     let subscription = await registration.pushManager.getSubscription();
     const convertedKey = urlBase64ToUint8Array(publicKey);
