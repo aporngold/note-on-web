@@ -100,19 +100,31 @@ export default function NoteReminderModal({
       return;
     }
 
-    // Always ensure this device is registered with Web Push in backend
+    // Ensure Web Push subscription and verify permissions
+    let pushWarningMessage = '';
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        await subscribeToWebPush().catch(() => {});
-      } else if (Notification.permission !== 'denied') {
+      if (Notification.permission === 'denied') {
+        pushWarningMessage = 'เบราว์เซอร์บล็อกการแจ้งเตือนอยู่: มือถือจะไม่เด้งเตือนจนกว่าคุณจะแตะไอคอน 🔒 ด้านบนสุด > สิทธิ์ (Permissions) > อนุญาตการแจ้งเตือน';
+      } else if (Notification.permission === 'granted') {
+        try {
+          const pushResult = await subscribeToWebPush();
+          if (!pushResult.success) {
+            pushWarningMessage = pushResult.error || 'ไม่สามารถผูกการแจ้งเตือนพุชกับอุปกรณ์นี้ได้';
+          }
+        } catch (e: any) {
+          pushWarningMessage = e?.message || 'เกิดข้อผิดพลาดในการลงทะเบียนรับพุช';
+        }
+      } else {
         try {
           setIsRequestingPermission(true);
           const pushResult = await subscribeToWebPush();
           if (pushResult.success) {
             setHasPushPermission(true);
+          } else {
+            pushWarningMessage = pushResult.error || 'ยังไม่ได้รับสิทธิ์การแจ้งเตือนพุช';
           }
-        } catch (e) {
-          // Continue even if push subscription failed (in-app notifications will still work)
+        } catch (e: any) {
+          pushWarningMessage = e?.message || 'ไม่สามารถขอสิทธิ์การแจ้งเตือนได้';
         } finally {
           setIsRequestingPermission(false);
         }
@@ -128,6 +140,19 @@ export default function NoteReminderModal({
     });
 
     if (saved) {
+      if (pushWarningMessage) {
+        toast(
+          (t) => (
+            <div className="text-xs space-y-1">
+              <p className="font-bold text-amber-500">⚠️ บันทึกเตือนความจำสำเร็จ แต่ Push ไม่พร้อมใช้งาน</p>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{pushWarningMessage}</p>
+            </div>
+          ),
+          { duration: 8000, icon: '⚠️' }
+        );
+      } else {
+        toast.success('บันทึกการแจ้งเตือนสำเร็จแล้ว', { icon: '🔔' });
+      }
       if (onReminderUpdated) onReminderUpdated(true);
       onClose();
     }

@@ -107,7 +107,7 @@ export function getNotificationPermissionStatus(): 'granted' | 'denied' | 'defau
 /**
  * Request notification permission and subscribe to Web Push
  */
-export async function subscribeToWebPush(): Promise<{ success: boolean; error?: string }> {
+export async function subscribeToWebPush(forceNew: boolean = false): Promise<{ success: boolean; error?: string }> {
   if (isIOSDevice() && !isStandalonePWA()) {
     return {
       success: false,
@@ -173,21 +173,26 @@ export async function subscribeToWebPush(): Promise<{ success: boolean; error?: 
       return { success: false, error: 'เบราว์เซอร์ไม่รองรับ PushManager บนอุปกรณ์นี้' };
     }
 
-    // Unsubscribe any stale/cached token so Google FCM generates a fresh, active token
-    try {
-      const existingSub = await registration.pushManager.getSubscription();
-      if (existingSub) {
-        await existingSub.unsubscribe();
+    let subscription = await registration.pushManager.getSubscription();
+
+    // If forceNew requested, unsubscribe the old token first
+    if (forceNew && subscription) {
+      try {
+        await subscription.unsubscribe();
+        subscription = null;
+      } catch (unsubErr) {
+        console.warn('Notice unsubscribing existing token:', unsubErr);
       }
-    } catch (unsubErr) {
-      console.warn('Notice unsubscribing stale token:', unsubErr);
     }
 
-    const convertedKey = urlBase64ToUint8Array(publicKey);
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: convertedKey as unknown as BufferSource,
-    });
+    // If no subscription exists, create a new one with VAPID key
+    if (!subscription) {
+      const convertedKey = urlBase64ToUint8Array(publicKey);
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey as unknown as BufferSource,
+      });
+    }
 
     // 4. Send subscription to server
     const subJSON = subscription.toJSON();

@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body || 'ถึงเวลาเตือนความจำสำหรับโน้ตของคุณแล้ว',
     icon: '/NoteAll-icon.png',
-    badge: '/NoteAll.ico',
+    badge: '/NoteAll-icon.png',
     tag: data.tag || 'note-reminder',
     renotify: true,
     requireInteraction: true,
