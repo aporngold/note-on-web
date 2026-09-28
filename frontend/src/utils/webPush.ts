@@ -173,15 +173,21 @@ export async function subscribeToWebPush(): Promise<{ success: boolean; error?: 
       return { success: false, error: 'เบราว์เซอร์ไม่รองรับ PushManager บนอุปกรณ์นี้' };
     }
 
-    let subscription = await registration.pushManager.getSubscription();
-    const convertedKey = urlBase64ToUint8Array(publicKey);
-
-    if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey as unknown as BufferSource,
-      });
+    // Unsubscribe any stale/cached token so Google FCM generates a fresh, active token
+    try {
+      const existingSub = await registration.pushManager.getSubscription();
+      if (existingSub) {
+        await existingSub.unsubscribe();
+      }
+    } catch (unsubErr) {
+      console.warn('Notice unsubscribing stale token:', unsubErr);
     }
+
+    const convertedKey = urlBase64ToUint8Array(publicKey);
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: convertedKey as unknown as BufferSource,
+    });
 
     // 4. Send subscription to server
     const subJSON = subscription.toJSON();
