@@ -27,6 +27,7 @@ self.addEventListener('push', (event) => {
     tag: data.tag || 'note-reminder',
     renotify: true,
     requireInteraction: true,
+    vibrate: [200, 100, 200],
     data: {
       url: data.url || '/dashboard',
       noteId: data.noteId,
