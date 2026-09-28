@@ -214,7 +214,7 @@ export default function VaultPage() {
       {/* Fullscreen Note Focus Modal */}
       {fullscreenNote && (
         <FullscreenNoteModal
-          note={fullscreenNote}
+          note={notes.find((n) => n.id === fullscreenNote.id) || fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {
             setFullscreenNote(null);

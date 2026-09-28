@@ -3,6 +3,7 @@ import { prisma } from '../utils/database';
 import { AuthRequest } from '../middleware/auth';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { emitToUser } from '../utils/socket';
 
 const boardSchema = z.object({
   name: z.string().min(1, 'ชื่อบอร์ดต้องไม่ว่างเปล่า').max(50),
@@ -124,6 +125,8 @@ export class BoardController {
         },
       });
 
+      emitToUser(userId, 'board:changed', { action: 'created', boardId: board.id });
+
       return res.status(201).json({
         ...board,
         noteCount: 0,
@@ -164,6 +167,8 @@ export class BoardController {
         },
       });
 
+      emitToUser(userId, 'board:changed', { action: 'updated', boardId: updated.id });
+
       return res.json(updated);
     } catch (error) {
       console.error('updateBoard error:', error);
@@ -198,6 +203,8 @@ export class BoardController {
           shareCode,
         },
       });
+
+      emitToUser(userId, 'board:changed', { action: 'updated', boardId: updated.id });
 
       return res.json(updated);
     } catch (error) {
@@ -281,6 +288,9 @@ export class BoardController {
           where: { boardId: id },
         });
 
+        emitToUser(userId, 'board:changed', { action: 'cleared', boardId: id });
+        emitToUser(userId, 'board:note-count-updated', { boardId: id, noteCount: 0 });
+
         return res.json({
           message: 'ลบโน้ตทั้งหมดบนกระดานหลักเรียบร้อยแล้ว (ย้ายไปที่ถังขยะ)',
           isDefaultBoardCleared: true,
@@ -304,6 +314,8 @@ export class BoardController {
       });
 
       await prisma.board.delete({ where: { id } });
+
+      emitToUser(userId, 'board:changed', { action: 'deleted', boardId: id });
 
       return res.json({
         message: 'ลบกระดานเรียบร้อยแล้ว (โน้ตทั้งหมดถูกย้ายไปที่ถังขยะ)',

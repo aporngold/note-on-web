@@ -7,6 +7,7 @@ exports.BoardController = void 0;
 const database_1 = require("../utils/database");
 const zod_1 = require("zod");
 const crypto_1 = __importDefault(require("crypto"));
+const socket_1 = require("../utils/socket");
 const boardSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'ชื่อบอร์ดต้องไม่ว่างเปล่า').max(50),
     description: zod_1.z.string().optional(),
@@ -114,6 +115,7 @@ class BoardController {
                     userId,
                 },
             });
+            (0, socket_1.emitToUser)(userId, 'board:changed', { action: 'created', boardId: board.id });
             return res.status(201).json({
                 ...board,
                 noteCount: 0,
@@ -150,6 +152,7 @@ class BoardController {
                     ...(parsed.data.sharePermission !== undefined && { sharePermission: parsed.data.sharePermission }),
                 },
             });
+            (0, socket_1.emitToUser)(userId, 'board:changed', { action: 'updated', boardId: updated.id });
             return res.json(updated);
         }
         catch (error) {
@@ -180,6 +183,7 @@ class BoardController {
                     shareCode,
                 },
             });
+            (0, socket_1.emitToUser)(userId, 'board:changed', { action: 'updated', boardId: updated.id });
             return res.json(updated);
         }
         catch (error) {
@@ -254,6 +258,8 @@ class BoardController {
                 await database_1.prisma.noteConnection.deleteMany({
                     where: { boardId: id },
                 });
+                (0, socket_1.emitToUser)(userId, 'board:changed', { action: 'cleared', boardId: id });
+                (0, socket_1.emitToUser)(userId, 'board:note-count-updated', { boardId: id, noteCount: 0 });
                 return res.json({
                     message: 'ลบโน้ตทั้งหมดบนกระดานหลักเรียบร้อยแล้ว (ย้ายไปที่ถังขยะ)',
                     isDefaultBoardCleared: true,
@@ -273,6 +279,7 @@ class BoardController {
                 orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
             });
             await database_1.prisma.board.delete({ where: { id } });
+            (0, socket_1.emitToUser)(userId, 'board:changed', { action: 'deleted', boardId: id });
             return res.json({
                 message: 'ลบกระดานเรียบร้อยแล้ว (โน้ตทั้งหมดถูกย้ายไปที่ถังขยะ)',
                 fallbackBoardId: fallbackBoard?.id,

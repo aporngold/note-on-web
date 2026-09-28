@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../utils/database';
 import { AuthRequest } from '../middleware/auth';
 import { z } from 'zod';
+import { emitToUser } from '../utils/socket';
 
 const createConnectionSchema = z.object({
   sourceId: z.string().min(1),
@@ -41,6 +42,7 @@ export class ConnectionController {
 
   static async createConnection(req: AuthRequest, res: Response) {
     try {
+      const userId = req.userId!;
       const parsed = createConnectionSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Invalid connection data' });
@@ -86,6 +88,8 @@ export class ConnectionController {
         },
       });
 
+      emitToUser(userId, 'connection:changed', { boardId });
+
       return res.status(201).json(connection);
     } catch (error) {
       console.error('createConnection error:', error);
@@ -95,11 +99,19 @@ export class ConnectionController {
 
   static async deleteConnection(req: AuthRequest, res: Response) {
     try {
+      const userId = req.userId!;
       const { id } = req.params;
+
+      const connection = await prisma.noteConnection.findFirst({
+        where: { id },
+        select: { boardId: true },
+      });
 
       await prisma.noteConnection.delete({
         where: { id },
       });
+
+      emitToUser(userId, 'connection:changed', { id, boardId: connection?.boardId });
 
       return res.json({ message: 'ลบการเชื่อมต่อเรียบร้อยแล้ว' });
     } catch (error) {

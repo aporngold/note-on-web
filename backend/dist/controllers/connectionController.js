@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConnectionController = void 0;
 const database_1 = require("../utils/database");
 const zod_1 = require("zod");
+const socket_1 = require("../utils/socket");
 const createConnectionSchema = zod_1.z.object({
     sourceId: zod_1.z.string().min(1),
     targetId: zod_1.z.string().min(1),
@@ -38,6 +39,7 @@ class ConnectionController {
     }
     static async createConnection(req, res) {
         try {
+            const userId = req.userId;
             const parsed = createConnectionSchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Invalid connection data' });
@@ -77,6 +79,7 @@ class ConnectionController {
                     },
                 },
             });
+            (0, socket_1.emitToUser)(userId, 'connection:changed', { boardId });
             return res.status(201).json(connection);
         }
         catch (error) {
@@ -86,10 +89,16 @@ class ConnectionController {
     }
     static async deleteConnection(req, res) {
         try {
+            const userId = req.userId;
             const { id } = req.params;
+            const connection = await database_1.prisma.noteConnection.findFirst({
+                where: { id },
+                select: { boardId: true },
+            });
             await database_1.prisma.noteConnection.delete({
                 where: { id },
             });
+            (0, socket_1.emitToUser)(userId, 'connection:changed', { id, boardId: connection?.boardId });
             return res.json({ message: 'ลบการเชื่อมต่อเรียบร้อยแล้ว' });
         }
         catch (error) {
