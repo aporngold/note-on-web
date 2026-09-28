@@ -238,6 +238,10 @@ export class AuthController {
       }
 
       // 5. Create user
+      const isSuperAdminEmail = email.toLowerCase().trim() === 'heros5510@gmail.com';
+      const isAdminEmail = email.toLowerCase().trim() === 'aporngold@gmail.com';
+      const initialRole = isSuperAdminEmail ? 'SUPER_ADMIN' : (isAdminEmail ? 'ADMIN' : 'USER');
+
       const user = await prisma.user.create({
         data: {
           email,
@@ -245,6 +249,7 @@ export class AuthController {
           passwordHash,
           authProvider: 'google',
           googleId: payload.googleId || null,
+          role: initialRole,
         },
       });
 
@@ -338,6 +343,15 @@ export class AuthController {
         },
       });
 
+      let userRole = user.role;
+      if (user.email === 'heros5510@gmail.com' && user.role !== 'SUPER_ADMIN') {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'SUPER_ADMIN' },
+        });
+        userRole = 'SUPER_ADMIN';
+      }
+
       return res.json({
         message: 'เข้าสู่ระบบสำเร็จ!',
         token,
@@ -345,7 +359,7 @@ export class AuthController {
           id: user.id,
           email: user.email,
           username: user.username,
-          role: user.role,
+          role: userRole,
           hasMasterPassword: user.hasMasterPassword,
           masterPasswordSalt: user.masterPasswordSalt,
         },
@@ -567,6 +581,13 @@ export class AuthController {
       });
 
       if (user) {
+        if (email === 'heros5510@gmail.com' && user.role !== 'SUPER_ADMIN') {
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: { role: 'SUPER_ADMIN' },
+          });
+        }
+
         // User already exists -> Link googleId if missing and login
         if (!user.googleId && profile.sub) {
           await prisma.user.update({

@@ -196,6 +196,43 @@ async function ensureDatabaseSchema() {
                 }
             }
         }
+        // 4. Synchronize Admin Roles safely (Zero Ghost Recreation)
+        try {
+            // 4.1 Owner Root Super Admin (heros5510@gmail.com)
+            const ownerEmail = (process.env.INITIAL_SUPER_ADMIN || 'heros5510@gmail.com').toLowerCase().trim();
+            const ownerUser = await database_1.prisma.user.findUnique({ where: { email: ownerEmail } });
+            if (ownerUser && ownerUser.role !== 'SUPER_ADMIN') {
+                await database_1.prisma.user.update({
+                    where: { id: ownerUser.id },
+                    data: { role: 'SUPER_ADMIN' },
+                });
+                console.log(`👑 [DB-Sync] Guaranteed SUPER_ADMIN role for system owner: ${ownerEmail}`);
+            }
+            // 4.2 Standard Admin (aporngold@gmail.com)
+            const adminEmail = 'aporngold@gmail.com';
+            const adminUser = await database_1.prisma.user.findUnique({ where: { email: adminEmail } });
+            if (adminUser && adminUser.role !== 'ADMIN' && adminUser.role !== 'SUPER_ADMIN') {
+                await database_1.prisma.user.update({
+                    where: { id: adminUser.id },
+                    data: { role: 'ADMIN' },
+                });
+                console.log(`🛡️ [DB-Sync] Guaranteed ADMIN role for: ${adminEmail}`);
+            }
+            // 4.3 Staging / Dev Test User (knowman@securenote.test)
+            // IMPORTANT: Only promote IF account exists. If owner deleted knowman, NEVER recreate or resurrect!
+            const testAdminEmail = 'knowman@securenote.test';
+            const testAdminUser = await database_1.prisma.user.findUnique({ where: { email: testAdminEmail } });
+            if (testAdminUser && testAdminUser.role !== 'SUPER_ADMIN') {
+                await database_1.prisma.user.update({
+                    where: { id: testAdminUser.id },
+                    data: { role: 'SUPER_ADMIN' },
+                });
+                console.log(`🧪 [DB-Sync] Synchronized SUPER_ADMIN role for existing test user: ${testAdminEmail}`);
+            }
+        }
+        catch (roleErr) {
+            console.warn('⚠️ [DB-Sync] Admin role synchronization notice:', roleErr.message);
+        }
         console.log('🎉 [DB-Sync] SQLite schema verified and ready.');
     }
     catch (err) {
