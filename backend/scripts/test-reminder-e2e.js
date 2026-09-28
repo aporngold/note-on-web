@@ -2,7 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
-const API_URL = 'http://localhost:5000/api';
+const API_URL = process.env.API_URL || 'http://localhost:5000/api';
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
 async function createTokenForUser(email) {
