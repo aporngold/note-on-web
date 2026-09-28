@@ -85,15 +85,24 @@ export async function subscribeToWebPush(): Promise<{ success: boolean; error?: 
       return { success: false, error: 'คุณได้ปฏิเสธการอนุญาตแจ้งเตือน (กรุณาเปิดการแจ้งเตือนในการตั้งค่าเบราว์เซอร์)' };
     }
 
+const DEFAULT_VAPID_PUBLIC_KEY =
+  'BAbqW8JmjXcbFRodpOYM4DXrR_ge2h-D2dYMBUmw5n8QUfezFjXbe738zCA4nsdoWmOezY39fo7p4NJjopc9SBA';
+
     // 2. Fetch VAPID Public Key from server
     let publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!publicKey) {
-      const res = await api.get('/reminders/vapid-key');
-      publicKey = res.data.publicKey;
+      try {
+        const res = await api.get('/reminders/vapid-key');
+        if (res.data?.publicKey) {
+          publicKey = res.data.publicKey;
+        }
+      } catch (keyErr) {
+        console.warn('Could not fetch VAPID key from API, falling back to default:', keyErr);
+      }
     }
 
     if (!publicKey) {
-      return { success: false, error: 'ไม่พบ VAPID Public Key สำหรับเชื่อมต่อการแจ้งเตือน' };
+      publicKey = DEFAULT_VAPID_PUBLIC_KEY;
     }
 
     // 3. Register service worker and subscribe

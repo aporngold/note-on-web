@@ -3,15 +3,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WebPushService = void 0;
+exports.WebPushService = exports.DEFAULT_VAPID_SUBJECT = exports.DEFAULT_VAPID_PRIVATE_KEY = exports.DEFAULT_VAPID_PUBLIC_KEY = void 0;
 const web_push_1 = __importDefault(require("web-push"));
 const database_1 = require("../utils/database");
+// Fallback Production VAPID Keys (ensures fail-safe Web Push on Cloud deployments)
+exports.DEFAULT_VAPID_PUBLIC_KEY = 'BAbqW8JmjXcbFRodpOYM4DXrR_ge2h-D2dYMBUmw5n8QUfezFjXbe738zCA4nsdoWmOezY39fo7p4NJjopc9SBA';
+exports.DEFAULT_VAPID_PRIVATE_KEY = 'h8_7l6uJAWTHdz509r55OKmOwTaBmbrSvagsgL5eXew';
+exports.DEFAULT_VAPID_SUBJECT = 'mailto:support@noteonweb.com';
 // Initialize VAPID details if configured
 let isVapidConfigured = false;
 function configureVapidIfNeeded() {
-    const pub = process.env.VAPID_PUBLIC_KEY;
-    const priv = process.env.VAPID_PRIVATE_KEY;
-    const sub = process.env.VAPID_SUBJECT || 'mailto:support@noteonweb.com';
+    const pub = process.env.VAPID_PUBLIC_KEY || exports.DEFAULT_VAPID_PUBLIC_KEY;
+    const priv = process.env.VAPID_PRIVATE_KEY || exports.DEFAULT_VAPID_PRIVATE_KEY;
+    const sub = process.env.VAPID_SUBJECT || exports.DEFAULT_VAPID_SUBJECT;
     if (pub && priv && !isVapidConfigured) {
         try {
             web_push_1.default.setVapidDetails(sub, pub, priv);
@@ -81,8 +85,8 @@ class WebPushService {
      * Get public VAPID key
      */
     static getPublicKey() {
-        configureVapidIfNeeded();
-        return process.env.VAPID_PUBLIC_KEY || '';
+        const { pub } = configureVapidIfNeeded();
+        return pub || exports.DEFAULT_VAPID_PUBLIC_KEY;
     }
 }
 exports.WebPushService = WebPushService;

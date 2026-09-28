@@ -1,12 +1,19 @@
 import webpush from 'web-push';
 import { prisma } from '../utils/database';
 
+// Fallback Production VAPID Keys (ensures fail-safe Web Push on Cloud deployments)
+export const DEFAULT_VAPID_PUBLIC_KEY =
+  'BAbqW8JmjXcbFRodpOYM4DXrR_ge2h-D2dYMBUmw5n8QUfezFjXbe738zCA4nsdoWmOezY39fo7p4NJjopc9SBA';
+export const DEFAULT_VAPID_PRIVATE_KEY =
+  'h8_7l6uJAWTHdz509r55OKmOwTaBmbrSvagsgL5eXew';
+export const DEFAULT_VAPID_SUBJECT = 'mailto:support@noteonweb.com';
+
 // Initialize VAPID details if configured
 let isVapidConfigured = false;
 function configureVapidIfNeeded() {
-  const pub = process.env.VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  const sub = process.env.VAPID_SUBJECT || 'mailto:support@noteonweb.com';
+  const pub = process.env.VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY || DEFAULT_VAPID_PRIVATE_KEY;
+  const sub = process.env.VAPID_SUBJECT || DEFAULT_VAPID_SUBJECT;
 
   if (pub && priv && !isVapidConfigured) {
     try {
@@ -99,7 +106,7 @@ export class WebPushService {
    * Get public VAPID key
    */
   static getPublicKey(): string {
-    configureVapidIfNeeded();
-    return process.env.VAPID_PUBLIC_KEY || '';
+    const { pub } = configureVapidIfNeeded();
+    return pub || DEFAULT_VAPID_PUBLIC_KEY;
   }
 }
