@@ -13,7 +13,90 @@ import {
   SoundTone,
 } from '@/utils/soundEffects';
 import { subscribeToWebPush, sendTestWebPush, isIOSDevice, isStandalonePWA, isAndroidDevice } from '@/utils/webPush';
+import ViewportPopover from '../ui/ViewportPopover';
 import toast from 'react-hot-toast';
+
+function NotificationSnoozeButton({
+  notif,
+  onSnooze,
+}: {
+  notif: any;
+  onSnooze: (notif: any, minutes: number | 'tomorrow') => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className={`p-1.5 sm:p-1 rounded-lg transition ${
+          isOpen
+            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600'
+            : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+        }`}
+        title="เลื่อนเวลาแจ้งเตือน (Snooze)"
+        aria-label="เลื่อนเวลาแจ้งเตือน"
+      >
+        <AlarmClock size={14} />
+      </button>
+
+      <ViewportPopover
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        triggerRef={triggerRef}
+        placement="bottom-end"
+        offset={6}
+        zIndex={99999}
+        className="w-36 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 py-1 text-[11px] animate-fade-in"
+      >
+        <div onClick={(e) => e.stopPropagation()} className="divide-y divide-slate-100 dark:divide-slate-700/60">
+          <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>เลื่อนเตือน</span>
+            <AlarmClock size={11} className="text-amber-500" />
+          </div>
+          <div className="py-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                onSnooze(notif, 10);
+                setIsOpen(false);
+              }}
+              className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
+            >
+              +10 นาที
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSnooze(notif, 60);
+                setIsOpen(false);
+              }}
+              className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
+            >
+              +1 ชั่วโมง
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onSnooze(notif, 'tomorrow');
+                setIsOpen(false);
+              }}
+              className="w-full text-left px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 font-medium transition"
+            >
+              พรุ่งนี้ 09:00
+            </button>
+          </div>
+        </div>
+      </ViewportPopover>
+    </>
+  );
+}
 
 export default function NotificationCenter() {
   const router = useRouter();
@@ -39,7 +122,6 @@ export default function NotificationCenter() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [soundTone, setSoundTone] = useState<SoundTone>('chime');
   const [showSoundMenu, setShowSoundMenu] = useState(false);
-  const [snoozeMenuNotifId, setSnoozeMenuNotifId] = useState<string | null>(null);
 
   const [hasPushPermission, setHasPushPermission] = useState<boolean>(false);
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default');
@@ -119,7 +201,6 @@ export default function NotificationCenter() {
         reminderDateTime: targetTime.toISOString(),
       });
       await markAsRead(notif.id);
-      setSnoozeMenuNotifId(null);
       const formatted = targetTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
       toast.success(`เลื่อนการแจ้งเตือนไปที่ ${minutes === 'tomorrow' ? 'พรุ่งนี้ 09:00' : formatted}`, { icon: '⏰' });
     } catch (e) {
@@ -580,58 +661,9 @@ export default function NotificationCenter() {
 
                     {/* Item Action Buttons (Snooze, Mark as read & Delete) */}
                     <div className="flex items-center gap-1 shrink-0">
-                      {/* Snooze Action Button */}
+                      {/* Snooze Action Button (Viewport Collision-Aware) */}
                       {notif.noteId && (
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSnoozeMenuNotifId(snoozeMenuNotifId === notif.id ? null : notif.id);
-                            }}
-                            className={`p-1.5 sm:p-1 rounded-lg transition ${
-                              snoozeMenuNotifId === notif.id
-                                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-600'
-                                : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                            }`}
-                            title="เลื่อนเวลาแจ้งเตือน (Snooze)"
-                            aria-label="เลื่อนเวลาแจ้งเตือน"
-                          >
-                            <AlarmClock size={14} />
-                          </button>
-
-                          {snoozeMenuNotifId === notif.id && (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1 z-30 animate-fade-in text-[11px]"
-                            >
-                              <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-                                เลื่อนเตือน
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleSnooze(notif, 10)}
-                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                              >
-                                +10 นาที
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleSnooze(notif, 60)}
-                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                              >
-                                +1 ชั่วโมง
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleSnooze(notif, 'tomorrow')}
-                                className="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-400 font-medium"
-                              >
-                                พรุ่งนี้ 09:00
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <NotificationSnoozeButton notif={notif} onSnooze={handleSnooze} />
                       )}
 
                       {!notif.isRead && (

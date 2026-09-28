@@ -50,15 +50,21 @@ export default function NoteReminderModal({
         setTime(`${hh}:${min}`);
         setRepeatRule(existing.repeatRule || 'none');
       } else {
-        // Default tomorrow 09:00
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const yyyy = tomorrow.getFullYear();
-        const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-        const dd = String(tomorrow.getDate()).padStart(2, '0');
+        // Smart Default: Current time + round up to next full hour
+        const target = new Date();
+        target.setHours(target.getHours() + 1);
+        target.setMinutes(0);
+        target.setSeconds(0);
+        target.setMilliseconds(0);
+
+        const yyyy = target.getFullYear();
+        const mm = String(target.getMonth() + 1).padStart(2, '0');
+        const dd = String(target.getDate()).padStart(2, '0');
+        const hh = String(target.getHours()).padStart(2, '0');
+        const min = String(target.getMinutes()).padStart(2, '0');
 
         setDate(`${yyyy}-${mm}-${dd}`);
-        setTime('09:00');
+        setTime(`${hh}:${min}`);
         setRepeatRule('none');
       }
     });
