@@ -1,12 +1,13 @@
 import { io, Socket } from 'socket.io-client';
+import { getResolvedWsUrl } from './api';
 
 let socketInstance: Socket | null = null;
 
 export function getSharedSocket(): Socket {
   if (!socketInstance) {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:5000';
+    const wsUrl = getResolvedWsUrl();
     socketInstance = io(wsUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       withCredentials: true,
       autoConnect: true,
       reconnection: true,

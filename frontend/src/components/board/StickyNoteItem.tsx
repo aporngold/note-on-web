@@ -666,6 +666,9 @@ export default function StickyNoteItem({
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
       window.addEventListener('touchend', handleTouchEnd);
       window.addEventListener('touchcancel', handleTouchEnd);
+      window.addEventListener('dragend', handleEnd);
+      window.addEventListener('pointercancel', handleEnd);
+      window.addEventListener('blur', handleEnd);
     }
 
     return () => {
@@ -674,6 +677,9 @@ export default function StickyNoteItem({
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('touchcancel', handleTouchEnd);
+      window.removeEventListener('dragend', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+      window.removeEventListener('blur', handleEnd);
     };
   }, [isDragging, resizingDir, isRotating, dragOffset, resizeStart, zoom, note.id, onDragEnd, updateNote]);
 
@@ -825,6 +831,19 @@ export default function StickyNoteItem({
             : 'box-shadow 0.25s ease-out, transform 0.2s ease-out, opacity 0.25s ease-out',
         }}
         data-note-card="true"
+        draggable={false}
+        onDragStart={(e) => {
+          const target = e.target as HTMLElement;
+          if (
+            target.closest('input') ||
+            target.closest('textarea') ||
+            target.closest('[contenteditable="true"]') ||
+            target.closest('.select-text')
+          ) {
+            return;
+          }
+          e.preventDefault();
+        }}
         className={`sticky-note-item absolute rounded-sm p-3.5 sm:p-4 pt-3.5 flex flex-col justify-between select-none cursor-grab active:cursor-grabbing border-t-2 ${
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${
@@ -1715,8 +1734,10 @@ export default function StickyNoteItem({
                       <img
                         src={fileUrl}
                         alt={att.originalName}
+                        draggable={false}
+                        onDragStart={(e) => e.preventDefault()}
                         onClick={() => setPreviewImage(fileUrl)}
-                        className="w-8 h-8 object-cover rounded cursor-pointer shrink-0 border border-black/10 shadow-xs"
+                        className="w-8 h-8 object-cover rounded cursor-pointer shrink-0 border border-black/10 shadow-xs pointer-events-auto"
                       />
                     ) : isPdf ? (
                       <span className="p-1.5 bg-rose-500/20 text-rose-700 rounded shrink-0">

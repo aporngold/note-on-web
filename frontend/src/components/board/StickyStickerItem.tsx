@@ -379,6 +379,9 @@ export default function StickyStickerItem({
       window.addEventListener('touchmove', handleTouchMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
       window.addEventListener('touchcancel', handleEnd);
+      window.addEventListener('dragend', handleEnd);
+      window.addEventListener('pointercancel', handleEnd);
+      window.addEventListener('blur', handleEnd);
     }
 
     return () => {
@@ -387,6 +390,9 @@ export default function StickyStickerItem({
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleEnd);
       window.removeEventListener('touchcancel', handleEnd);
+      window.removeEventListener('dragend', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+      window.removeEventListener('blur', handleEnd);
     };
   }, [
     isDragging,
@@ -510,6 +516,8 @@ export default function StickyStickerItem({
               : 25,
           transition: isDragging || resizingDir || isRotating ? 'none' : 'transform 0.15s ease-out',
         }}
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
         className="absolute select-none cursor-grab active:cursor-grabbing group/sticker"
         onClick={() => onBringToFront?.()}
         onMouseDown={handleMouseDown}

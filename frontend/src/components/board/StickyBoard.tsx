@@ -158,6 +158,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Reservation of slots to prevent overlapping when creating notes rapidly
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
 
+  useEffect(() => {
+    pendingSlotsRef.current = [];
+  }, [notes.length, activeBoardId]);
+
   // Dynamic canvas dimensions: exactly 7 notes wide (2060px), height expands with rows as before
   const dynamicCanvasSize = React.useMemo(() => {
     let maxNoteY = 0;
@@ -937,8 +941,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
     const isSlotOccupied = (candX: number, candY: number, candW = 260, candH = 260) => {
       const margin = 16;
-      // 1. Check against all existing notes on the board
+      // 1. Check against all existing active notes on the board (ignore archived notes & canvas stickers)
       const noteCollision = notes.some((n) => {
+        if (n.isArchived) return false;
+        if (isStickerNote(n)) return false;
         const nx = n.posX ?? startX;
         const ny = n.posY ?? startY;
         const nw = n.width ?? 260;
@@ -975,7 +981,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         pendingSlotsRef.current.push({ x: candX, y: candY });
         setTimeout(() => {
           pendingSlotsRef.current = pendingSlotsRef.current.filter((p) => p.x !== candX || p.y !== candY);
-        }, 5000);
+        }, 1200);
         return { x: candX, y: candY };
       }
     }

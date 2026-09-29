@@ -142,6 +142,7 @@ export function useRealtimeNotes() {
         } else {
           joinUserRoom();
           fetchNotes({ isArchived: false }).catch(() => {});
+          fetchBoards().catch(() => {});
           fetchReminders().catch(() => {});
         }
       }
