@@ -78,7 +78,10 @@ export default function Dashboard() {
 
   // Client-side search, tab filtering, and auto-sorting
   const filteredNotes = React.useMemo(() => {
+    const seen = new Set<string>();
     const matched = notes.filter((n) => {
+      if (!n?.id || seen.has(n.id)) return false;
+      seen.add(n.id);
       // Fail-safe: Exclude archived / deleted notes from active dashboard views
       if (n.isArchived) return false;
       // Exclude canvas stickers from standard grid / list views
@@ -113,7 +116,10 @@ export default function Dashboard() {
   // Board notes should NOT be filtered out by activeTab (reminders/pinned/favorites),
   // but should obey search query if user searches on board.
   const boardNotes = React.useMemo(() => {
+    const seen = new Set<string>();
     return notes.filter((n) => {
+      if (!n?.id || seen.has(n.id)) return false;
+      seen.add(n.id);
       if (n.isArchived) return false;
       if (isViewingDefaultBoard) {
         if (n.boardId && n.boardId !== defaultBoard?.id) return false;

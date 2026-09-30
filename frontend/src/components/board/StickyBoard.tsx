@@ -100,7 +100,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const getBoardNoteCount = (b: Board) => {
     const isActive = b.id === activeBoardId || (!activeBoardId && b.isDefault);
     if (isActive) {
-      return notes.filter((n) => !n.isArchived).length;
+      const seen = new Set<string>();
+      return notes.filter((n) => {
+        if (!n?.id || seen.has(n.id) || n.isArchived) return false;
+        seen.add(n.id);
+        return true;
+      }).length;
     }
     return b.noteCount ?? 0;
   };
@@ -1031,8 +1036,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       // Smoothly scroll ONLY if the note is outside current viewport (keeps screen completely calm and still if already visible)
       const container = canvasContainerRef.current;
       if (container) {
-        const noteLeft = (newNote.posX ?? 24) * zoom;
-        const noteTop = (newNote.posY ?? 24) * zoom;
+        const noteLeft = (newNote.posX ?? 16) * zoom;
+        const noteTop = (newNote.posY ?? 16) * zoom;
         const noteRight = noteLeft + 260 * zoom;
         const noteBottom = noteTop + 260 * zoom;
 
@@ -1059,17 +1064,21 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       setTimeout(() => {
         const el = document.getElementById(`note-card-${newNote.id}`);
         if (el) {
-          const input = el.querySelector('input[type="text"]') as HTMLInputElement | null;
-          if (input) {
-            input.focus({ preventScroll: true });
-            const valLen = input.value.length;
-            input.setSelectionRange(valLen, valLen);
-          } else {
-            const editable = el.querySelector('[contenteditable="true"]') as HTMLElement | null;
-            editable?.focus({ preventScroll: true });
+          // On mobile, do not auto-focus to prevent soft keyboard from violently jumping the viewport
+          const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+          if (!isMobileDevice) {
+            const input = el.querySelector('input[type="text"]') as HTMLInputElement | null;
+            if (input) {
+              input.focus({ preventScroll: true });
+              const valLen = input.value.length;
+              input.setSelectionRange(valLen, valLen);
+            } else {
+              const editable = el.querySelector('[contenteditable="true"]') as HTMLElement | null;
+              editable?.focus({ preventScroll: true });
+            }
           }
         }
-      }, 50);
+      }, 150);
 
       // Complete subtle highlight and finish all effects within 0.50 second (500ms)
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);

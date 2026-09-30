@@ -370,13 +370,21 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   createNote: async (data) => {
     const res = await api.post('/notes', data);
     const newNote = res.data;
-    set((state) => ({
-      notes: [newNote, ...state.notes],
-      boards: state.boards.map((b) => {
-        const matches = newNote.boardId ? b.id === newNote.boardId : b.isDefault;
-        return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;
-      }),
-    }));
+    set((state) => {
+      // Deduplicate: If WebSocket note:created already added this note before HTTP returned, update it instead of prepending duplicate!
+      if (state.notes.some((n) => n.id === newNote.id)) {
+        return {
+          notes: state.notes.map((n) => (n.id === newNote.id ? { ...n, ...newNote } : n)),
+        };
+      }
+      return {
+        notes: [newNote, ...state.notes],
+        boards: state.boards.map((b) => {
+          const matches = newNote.boardId ? b.id === newNote.boardId : b.isDefault;
+          return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;
+        }),
+      };
+    });
     get().fetchNotebooks();
     get().fetchLabels();
     return newNote;
