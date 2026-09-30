@@ -273,16 +273,17 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
         set((state) => ({
           boards: state.boards.map((b) => (b.id === id ? { ...b, noteCount: 0 } : b)),
-          notes: state.notes.filter((n) => n.boardId !== id && n.boardId != null),
+          notes: state.notes.filter((n) => n.boardId && n.boardId !== id),
           trashNotes: [
             ...defaultNotesToTrash,
             ...state.trashNotes.filter((tn) => !defaultNotesToTrash.some((dn) => dn.id === tn.id)),
           ],
         }));
         toast.success(data.message || 'ลบโน้ตทั้งหมดบนกระดานหลักเรียบร้อยแล้ว (ย้ายไปที่ถังขยะ)');
-        get().fetchNotes();
+        get().fetchNotes({ isArchived: false });
         get().fetchTrashNotes();
         get().fetchBoards();
+        useReminderStore.getState().fetchReminders();
         return;
       }
 
@@ -309,9 +310,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         trashNotes: [...boardNotesToTrash, ...get().trashNotes.filter((tn) => !boardNotesToTrash.some((bn) => bn.id === tn.id))],
       });
       toast.success(data.message || 'ลบบอร์ดเรียบร้อย (โน้ตทั้งหมดถูกย้ายไปที่ถังขยะ)');
-      get().fetchNotes();
+      get().fetchNotes({ isArchived: false });
       get().fetchTrashNotes();
       get().fetchBoards();
+      useReminderStore.getState().fetchReminders();
     } catch (error: any) {
       console.error('deleteBoard error:', error);
       toast.error(error.response?.data?.error || 'เกิดข้อผิดพลาดในการลบบอร์ด');
@@ -730,7 +732,11 @@ export const useNoteStore = create<NoteState>((set, get) => ({
 
   setRemoteNoteCreated: (newNote: Note) => {
     set((state) => {
-      // Deduplicate: If note already exists locally, update it instead of prepending duplicate
+      // 1. If note is archived or already in trash, NEVER add it to active notes!
+      if (newNote.isArchived || state.trashNotes.some((n) => n.id === newNote.id)) {
+        return state;
+      }
+      // 2. Deduplicate: If note already exists locally, update it instead of prepending duplicate
       if (state.notes.some((n) => n.id === newNote.id)) {
         return {
           notes: state.notes.map((n) => (n.id === newNote.id ? { ...n, ...newNote } : n)),
