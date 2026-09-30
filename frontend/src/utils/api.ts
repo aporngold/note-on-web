@@ -18,12 +18,16 @@ export const getResolvedApiUrl = (): string => {
       const isHttps = window.location.protocol === 'https:';
       return `${isHttps ? 'https' : 'http'}://${host}:5000/api`;
     }
+    // If running on public domain (e.g. Vercel), ALWAYS prioritize production backend over localhost env!
+    if (!['localhost', '127.0.0.1'].includes(host)) {
+      if (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes('localhost')) {
+        return process.env.NEXT_PUBLIC_API_URL;
+      }
+      return 'https://note-on-web.onrender.com/api';
+    }
   }
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
-  }
-  if (typeof window !== 'undefined' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-    return 'https://note-on-web.onrender.com/api';
   }
   return 'http://localhost:5000/api';
 };

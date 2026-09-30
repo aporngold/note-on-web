@@ -131,7 +131,9 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       if (params.isArchived) {
         set({ trashNotes: res.data, isLoading: false, isTrashLoading: false });
       } else {
-        set({ notes: res.data, isLoading: false });
+        // Strict safety: active notes must never include archived notes
+        const activeOnly = Array.isArray(res.data) ? res.data.filter((n: Note) => !n.isArchived) : [];
+        set({ notes: activeOnly, isLoading: false });
       }
 
       // If activeBoardId, also fetch connections for the board (only when not viewing trash)
@@ -473,7 +475,12 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       get().fetchBoards();
     } catch (error: any) {
       console.error('deleteNote error:', error);
-      // Rollback to previous state
+      // If 404, it means the note was already deleted/removed on the server, so NEVER roll back!
+      if (error.response?.status === 404) {
+        toast.success(isPermanent ? 'โน้ตนี้ถูกลบเรียบร้อยแล้ว' : 'ย้ายโน้ตไปที่ถังขยะแล้ว');
+        return;
+      }
+      // Rollback to previous state only if it was an unexpected failure
       set({
         notes: prevState.notes,
         trashNotes: prevState.trashNotes,
@@ -746,9 +753,18 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   setRemoteNoteUpdated: (note: Note) => {
-    set((state) => ({
-      notes: state.notes.map((n) => (n.id === note.id ? { ...n, ...note } : n)),
-    }));
+    set((state) => {
+      // If the remotely updated note has been archived, ensure it is removed from active notes
+      if (note.isArchived) {
+        return {
+          notes: state.notes.filter((n) => n.id !== note.id),
+          trashNotes: [{ ...note, isArchived: true }, ...state.trashNotes.filter((n) => n.id !== note.id)],
+        };
+      }
+      return {
+        notes: state.notes.map((n) => (n.id === note.id ? { ...n, ...note } : n)),
+      };
+    });
   },
 
   setRemoteNoteDeleted: (data: { id: string; isPermanent?: boolean; boardId?: string | null; note?: Note }) => {
