@@ -662,7 +662,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   // Ensure a note is completely inside the visible viewport and comfortable to read/edit
   // Supports Mobile (iPhone/Android), Tablet (iPad), and Desktop with viewport follow
   const ensureNoteInView = useCallback(
-    (targetNote: Note) => {
+    (targetNote: Note, forceScroll = false) => {
       const container = canvasContainerRef.current;
       if (!container) return;
 
@@ -690,7 +690,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         noteTop >= viewTop + margin &&
         noteBottom <= viewBottom - margin;
 
-      if (!isComfortablyVisible) {
+      if (forceScroll || !isComfortablyVisible) {
         let targetX: number;
         let targetY: number;
 
@@ -700,14 +700,19 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           // If top row (Y < 380), keep at top so tabs/header aren't obscured, else center vertically
           targetY = (targetNote.posY ?? 16) < 380 ? 0 : Math.max(0, Math.round(noteTop + noteHeight / 2 - viewH / 2));
         } else {
-          // Desktop: calm minimal pan
-          targetX = viewLeft;
-          targetY = viewTop;
-          if (noteRight > viewRight - margin || noteLeft < viewLeft + margin) {
-            targetX = Math.max(0, Math.round(noteLeft - margin));
-          }
-          if (noteBottom > viewBottom - margin || noteTop < viewTop + margin) {
-            targetY = (targetNote.posY ?? 16) < 380 ? 0 : Math.max(0, Math.round(noteTop - margin));
+          // Desktop: smoothly pan to align newly created / focused note with comfortable 48px margin
+          if (forceScroll) {
+            targetX = Math.max(0, Math.round(noteLeft - 48));
+            targetY = (targetNote.posY ?? 16) < 380 ? 0 : Math.max(0, Math.round(noteTop - 48));
+          } else {
+            targetX = viewLeft;
+            targetY = viewTop;
+            if (noteRight > viewRight - margin || noteLeft < viewLeft + margin) {
+              targetX = Math.max(0, Math.round(noteLeft - margin));
+            }
+            if (noteBottom > viewBottom - margin || noteTop < viewTop + margin) {
+              targetY = (targetNote.posY ?? 16) < 380 ? 0 : Math.max(0, Math.round(noteTop - margin));
+            }
           }
         }
 
@@ -885,10 +890,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       const note = customEvt.detail;
       if (!note) return;
 
-      // Only scroll if the note belongs to the currently viewed board
-      const isForActiveBoard = activeBoardId
-        ? note.boardId === activeBoardId
-        : (!note.boardId || activeBoard?.isDefault);
+      const defaultBoard = boards.find((b) => b.isDefault) || boards[0];
+      const isViewingDefault = !activeBoardId || activeBoardId === defaultBoard?.id || activeBoard?.isDefault;
+
+      // Only scroll if the note belongs to the currently viewed board (proper default board matching)
+      const isForActiveBoard = isViewingDefault
+        ? (!note.boardId || note.boardId === defaultBoard?.id)
+        : (note.boardId === activeBoardId);
 
       if (isForActiveBoard) {
         bringToFront(note.id);
@@ -897,13 +905,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
         highlightTimerRef.current = setTimeout(() => {
           setHighlightedNoteId(null);
-        }, 1200);
+        }, 1500);
 
-        ensureNoteInView(note);
+        ensureNoteInView(note, true);
         if (typeof window !== 'undefined') {
           requestAnimationFrame(() => {
-            ensureNoteInView(note);
-            setTimeout(() => ensureNoteInView(note), 60);
+            ensureNoteInView(note, true);
+            setTimeout(() => ensureNoteInView(note, true), 80);
           });
         }
       }
@@ -913,7 +921,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     return () => {
       window.removeEventListener('board:note-created', handleRemoteNoteCreated);
     };
-  }, [activeBoardId, activeBoard, bringToFront, ensureNoteInView]);
+  }, [activeBoardId, activeBoard, boards, bringToFront, ensureNoteInView]);
 
   // Handle drag and drop coordinates saving without artificial boundary clamping
   const handleDragEnd = async (id: string, x: number, y: number) => {
@@ -1099,11 +1107,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
       // Smoothly navigate viewport to the new note if it's outside current view
       // Supports Desktop, iPad/Tablet, and Mobile (iPhone/Android) with centered viewport
-      ensureNoteInView(newNote);
+      ensureNoteInView(newNote, true);
       if (typeof window !== 'undefined') {
         requestAnimationFrame(() => {
-          ensureNoteInView(newNote);
-          setTimeout(() => ensureNoteInView(newNote), 60);
+          ensureNoteInView(newNote, true);
+          setTimeout(() => ensureNoteInView(newNote, true), 60);
         });
       }
 
