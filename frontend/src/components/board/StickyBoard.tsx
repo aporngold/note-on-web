@@ -1033,32 +1033,63 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       setFocusedNoteId(newNote.id);
       setHighlightedNoteId(newNote.id);
 
-      // Smoothly scroll ONLY if the note is outside current viewport (keeps screen completely calm and still if already visible)
-      const container = canvasContainerRef.current;
-      if (container) {
-        const noteLeft = (newNote.posX ?? 16) * zoom;
-        const noteTop = (newNote.posY ?? 16) * zoom;
-        const noteRight = noteLeft + 260 * zoom;
-        const noteBottom = noteTop + 260 * zoom;
+      // Smoothly navigate viewport to the new note if it's outside current view
+      // Supports Desktop, iPad/Tablet, and Mobile (iPhone/Android) with centered viewport
+      const scrollToNewNote = () => {
+        const container = canvasContainerRef.current;
+        if (!container) return;
+
+        const currentZoom = zoom || 1.0;
+        const noteW = (newNote.width || 260) * currentZoom;
+        const noteH = (newNote.height || 240) * currentZoom;
+        const noteLeft = (newNote.posX ?? 16) * currentZoom;
+        const noteTop = (newNote.posY ?? 16) * currentZoom;
+        const noteRight = noteLeft + noteW;
+        const noteBottom = noteTop + noteH;
 
         const viewLeft = container.scrollLeft;
         const viewTop = container.scrollTop;
-        const viewRight = viewLeft + container.clientWidth;
-        const viewBottom = viewTop + container.clientHeight;
+        const viewW = container.clientWidth;
+        const viewH = container.clientHeight;
+        const viewRight = viewLeft + viewW;
+        const viewBottom = viewTop + viewH;
 
         const isFullyVisible =
-          noteLeft >= viewLeft &&
-          noteRight <= viewRight &&
-          noteTop >= viewTop &&
-          noteBottom <= viewBottom;
+          noteLeft >= viewLeft + 12 &&
+          noteRight <= viewRight - 12 &&
+          noteTop >= viewTop + 12 &&
+          noteBottom <= viewBottom - 12;
 
         if (!isFullyVisible) {
+          const isTouchOrNarrow = typeof window !== 'undefined' && window.innerWidth < 1024;
+          let targetScrollLeft: number;
+          let targetScrollTop: number;
+
+          if (isTouchOrNarrow) {
+            // Center horizontally on Mobile / iPad
+            targetScrollLeft = Math.max(0, noteLeft + noteW / 2 - viewW / 2);
+            // If top row (Y < 380), keep at top so tabs/header aren't obscured, else center vertically
+            targetScrollTop = (newNote.posY ?? 16) < 380 ? 0 : Math.max(0, noteTop + noteH / 2 - viewH / 2);
+          } else {
+            // Desktop: calm and minimal scroll
+            targetScrollLeft = Math.max(0, noteLeft - 48);
+            targetScrollTop = (newNote.posY ?? 16) < 380 ? 0 : Math.max(0, noteTop - 48);
+          }
+
           container.scrollTo({
-            left: Math.max(0, noteLeft - 48),
-            top: Math.max(0, noteTop - 48),
+            left: targetScrollLeft,
+            top: targetScrollTop,
             behavior: 'smooth',
           });
         }
+      };
+
+      if (typeof window !== 'undefined') {
+        requestAnimationFrame(() => {
+          scrollToNewNote();
+          // Secondary fallback for iOS Safari / Mobile WebKit momentum rendering
+          setTimeout(scrollToNewNote, 60);
+        });
       }
 
       setTimeout(() => {
