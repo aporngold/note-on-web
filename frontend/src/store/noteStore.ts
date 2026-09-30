@@ -72,7 +72,8 @@ interface NoteState {
   setRemoteNoteUpdated: (note: Note) => void;
   setRemoteNoteDeleted: (data: { id: string; isPermanent?: boolean; boardId?: string | null; note?: Note }) => void;
   setRemoteNoteRestored: (note: Note) => void;
-  setRemoteBoardCountUpdated: (data: { boardId: string; delta: number }) => void;
+  setRemoteBoardCountUpdated: (data: { boardId: string; delta?: number; noteCount?: number }) => void;
+  setRemoteBoardCleared: (data: { boardId: string; isDefault?: boolean }) => void;
   setRemoteTrashEmptied: () => void;
   setRemoteConnectionChanged: (data: any) => void;
 
@@ -809,13 +810,38 @@ export const useNoteStore = create<NoteState>((set, get) => ({
     }));
   },
 
-  setRemoteBoardCountUpdated: (data: { boardId: string; delta: number }) => {
-    const { boardId, delta } = data;
+  setRemoteBoardCountUpdated: (data: { boardId: string; delta?: number; noteCount?: number }) => {
+    const { boardId, delta, noteCount } = data;
     set((state) => ({
-      boards: state.boards.map((b) =>
-        b.id === boardId ? { ...b, noteCount: Math.max(0, (b.noteCount || 0) + delta) } : b
-      ),
+      boards: state.boards.map((b) => {
+        if (b.id !== boardId) return b;
+        if (typeof noteCount === 'number') {
+          return { ...b, noteCount: Math.max(0, noteCount) };
+        }
+        if (typeof delta === 'number') {
+          return { ...b, noteCount: Math.max(0, (b.noteCount || 0) + delta) };
+        }
+        return b;
+      }),
     }));
+  },
+
+  setRemoteBoardCleared: (data: { boardId: string; isDefault?: boolean }) => {
+    const { boardId, isDefault } = data;
+    set((state) => {
+      const clearedNotes = state.notes
+        .filter((n) => (isDefault ? (!n.boardId || n.boardId === boardId) : n.boardId === boardId))
+        .map((n) => ({ ...n, isArchived: true }));
+
+      return {
+        notes: state.notes.filter((n) => (isDefault ? (n.boardId && n.boardId !== boardId) : n.boardId !== boardId)),
+        trashNotes: [
+          ...clearedNotes,
+          ...state.trashNotes.filter((tn) => !clearedNotes.some((cn) => cn.id === tn.id)),
+        ],
+        boards: state.boards.map((b) => (b.id === boardId ? { ...b, noteCount: 0 } : b)),
+      };
+    });
   },
 
   setRemoteTrashEmptied: () => {

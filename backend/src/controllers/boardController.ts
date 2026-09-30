@@ -290,6 +290,7 @@ export class BoardController {
 
         emitToUser(userId, 'board:changed', { action: 'cleared', boardId: id });
         emitToUser(userId, 'board:note-count-updated', { boardId: id, noteCount: 0 });
+        emitToUser(userId, 'notes:board-cleared', { boardId: id, isDefault: true });
 
         return res.json({
           message: 'ลบโน้ตทั้งหมดบนกระดานหลักเรียบร้อยแล้ว (ย้ายไปที่ถังขยะ)',
@@ -316,6 +317,7 @@ export class BoardController {
       await prisma.board.delete({ where: { id } });
 
       emitToUser(userId, 'board:changed', { action: 'deleted', boardId: id });
+      emitToUser(userId, 'notes:board-cleared', { boardId: id, isDefault: false });
 
       return res.json({
         message: 'ลบกระดานเรียบร้อยแล้ว (โน้ตทั้งหมดถูกย้ายไปที่ถังขยะ)',

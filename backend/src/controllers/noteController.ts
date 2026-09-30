@@ -105,7 +105,16 @@ export class NoteController {
 
       // Board filter
       if (boardId && !isViewingTrash) {
-        where.boardId = String(boardId);
+        const boardStr = String(boardId);
+        const targetBoard = await prisma.board.findFirst({
+          where: { id: boardStr, userId },
+          select: { isDefault: true },
+        });
+        if (targetBoard?.isDefault) {
+          where.OR = [{ boardId: boardStr }, { boardId: null }];
+        } else {
+          where.boardId = boardStr;
+        }
       }
 
       // Color filter
@@ -253,6 +262,7 @@ export class NoteController {
 
       // Determine target boardId (if null/undefined, check if user has a default board)
       let resolvedBoardId = boardId || null;
+      let isDefaultBoard = false;
       if (!resolvedBoardId) {
         const defaultBoard = await prisma.board.findFirst({
           where: { userId, isDefault: true },
@@ -260,13 +270,25 @@ export class NoteController {
         });
         if (defaultBoard) {
           resolvedBoardId = defaultBoard.id;
+          isDefaultBoard = true;
+        }
+      } else {
+        const targetBoard = await prisma.board.findFirst({
+          where: { id: resolvedBoardId, userId },
+          select: { isDefault: true },
+        });
+        if (targetBoard?.isDefault) {
+          isDefaultBoard = true;
         }
       }
 
       // Enforce maximum 56 notes per board limit
       if (resolvedBoardId) {
+        const countWhere = isDefaultBoard
+          ? { userId, isArchived: false, OR: [{ boardId: resolvedBoardId }, { boardId: null }] }
+          : { userId, boardId: resolvedBoardId, isArchived: false };
         const activeBoardNoteCount = await prisma.note.count({
-          where: { userId, boardId: resolvedBoardId, isArchived: false },
+          where: countWhere,
         });
         if (activeBoardNoteCount >= MAX_NOTES_PER_BOARD) {
           return res.status(400).json({
@@ -279,16 +301,20 @@ export class NoteController {
       let resolvedPosY = posY;
 
       // Query existing active notes on this board to verify coordinates and prevent overlapping notes
+      const notesWhere = isDefaultBoard
+        ? { userId, isArchived: false, OR: [{ boardId: resolvedBoardId }, { boardId: null }] }
+        : { userId, boardId: resolvedBoardId, isArchived: false };
+
       const existingNotes = await prisma.note.findMany({
-        where: { userId, boardId: resolvedBoardId, isArchived: false },
+        where: notesWhere,
         select: { posX: true, posY: true, width: true, height: true },
       });
 
       const isSlotColliding = (candX: number, candY: number, candW = 260, candH = 260) => {
         const margin = 16;
         return existingNotes.some((n) => {
-          const nx = n.posX ?? 24;
-          const ny = n.posY ?? 24;
+          const nx = n.posX ?? 16;
+          const ny = n.posY ?? 16;
           const nw = n.width ?? 260;
           const nh = n.height ?? 260;
           return (

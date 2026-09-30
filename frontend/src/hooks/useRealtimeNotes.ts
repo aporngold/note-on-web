@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
 import { useReminderStore } from '@/store/reminderStore';
@@ -27,6 +27,7 @@ export function useRealtimeNotes() {
     setRemoteNoteRestored,
     setRemoteNoteMoved,
     setRemoteBoardCountUpdated,
+    setRemoteBoardCleared,
     setRemoteTrashEmptied,
     fetchNotes,
     fetchBoards,
@@ -34,6 +35,11 @@ export function useRealtimeNotes() {
     fetchLabels,
     fetchConnections,
   } = useNoteStore();
+
+  const activeBoardIdRef = useRef(activeBoardId);
+  useEffect(() => {
+    activeBoardIdRef.current = activeBoardId;
+  }, [activeBoardId]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -60,8 +66,9 @@ export function useRealtimeNotes() {
       fetchNotebooks().catch(() => {});
       fetchLabels().catch(() => {});
       fetchReminders().catch(() => {});
-      if (activeBoardId) {
-        fetchConnections(activeBoardId).catch(() => {});
+      const currentBoard = activeBoardIdRef.current;
+      if (currentBoard) {
+        fetchConnections(currentBoard).catch(() => {});
       }
     };
 
@@ -102,10 +109,18 @@ export function useRealtimeNotes() {
       }
     };
 
-    const handleBoardCountUpdated = (data: { boardId: string; delta: number }) => {
-      if (data?.boardId && typeof data.delta === 'number') {
+    const handleBoardCountUpdated = (data: { boardId: string; delta?: number; noteCount?: number }) => {
+      if (data?.boardId && (typeof data.delta === 'number' || typeof data.noteCount === 'number')) {
         setRemoteBoardCountUpdated(data);
       }
+    };
+
+    const handleBoardCleared = (data: { boardId: string; isDefault?: boolean }) => {
+      console.log('⚡ [Realtime] Remote board cleared:', data?.boardId);
+      if (data?.boardId) {
+        setRemoteBoardCleared(data);
+      }
+      fetchBoards().catch(() => {});
     };
 
     const handleTrashEmptied = () => {
@@ -124,8 +139,9 @@ export function useRealtimeNotes() {
 
     const handleConnectionChanged = () => {
       console.log('⚡ [Realtime] Remote connection changed');
-      if (activeBoardId) {
-        fetchConnections(activeBoardId).catch(() => {});
+      const currentBoard = activeBoardIdRef.current;
+      if (currentBoard) {
+        fetchConnections(currentBoard).catch(() => {});
       }
     };
 
@@ -155,6 +171,7 @@ export function useRealtimeNotes() {
     socket.on('note:restored', handleNoteRestored);
     socket.on('board-note-moved', handleNoteMoved);
     socket.on('board:note-count-updated', handleBoardCountUpdated);
+    socket.on('notes:board-cleared', handleBoardCleared);
     socket.on('notes:trash-emptied', handleTrashEmptied);
     socket.on('board:changed', handleBoardChanged);
     socket.on('connection:changed', handleConnectionChanged);
@@ -175,6 +192,7 @@ export function useRealtimeNotes() {
       socket.off('note:restored', handleNoteRestored);
       socket.off('board-note-moved', handleNoteMoved);
       socket.off('board:note-count-updated', handleBoardCountUpdated);
+      socket.off('notes:board-cleared', handleBoardCleared);
       socket.off('notes:trash-emptied', handleTrashEmptied);
       socket.off('board:changed', handleBoardChanged);
       socket.off('connection:changed', handleConnectionChanged);
@@ -189,13 +207,13 @@ export function useRealtimeNotes() {
     };
   }, [
     user?.id,
-    activeBoardId,
     setRemoteNoteCreated,
     setRemoteNoteUpdated,
     setRemoteNoteDeleted,
     setRemoteNoteRestored,
     setRemoteNoteMoved,
     setRemoteBoardCountUpdated,
+    setRemoteBoardCleared,
     setRemoteTrashEmptied,
     fetchNotes,
     fetchBoards,
