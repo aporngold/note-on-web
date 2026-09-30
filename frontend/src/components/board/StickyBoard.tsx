@@ -902,10 +902,17 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         bringToFront(note.id);
         setFocusedNoteId(note.id);
         setHighlightedNoteId(note.id);
+
+        // Complete subtle highlight and finish all effects within 0.50 second (original behavior)
         if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
         highlightTimerRef.current = setTimeout(() => {
           setHighlightedNoteId(null);
-        }, 1500);
+        }, 400);
+
+        if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = setTimeout(() => {
+          setFocusedNoteId((curr) => (curr === note.id ? null : curr));
+        }, 550);
 
         ensureNoteInView(note, true);
         if (typeof window !== 'undefined') {
