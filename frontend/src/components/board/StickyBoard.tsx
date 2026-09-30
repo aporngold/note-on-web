@@ -162,6 +162,8 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Reservation of slots to prevent overlapping when creating notes rapidly
   const pendingSlotsRef = useRef<Array<{ x: number; y: number }>>([]);
+  // Ref to suppress resetting scroll to (0,0) when focusing a newly created/saved note
+  const isFocusingSavedNoteRef = useRef(false);
 
   useEffect(() => {
     pendingSlotsRef.current = [];
@@ -658,24 +660,29 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   }, []);
 
   // Ensure a note is completely inside the visible viewport and comfortable to read/edit
+  // Supports Mobile (iPhone/Android), Tablet (iPad), and Desktop with viewport follow
   const ensureNoteInView = useCallback(
     (targetNote: Note) => {
       const container = canvasContainerRef.current;
       if (!container) return;
 
-      const noteWidth = (targetNote.width ?? 260) * zoom;
-      const noteHeight = (targetNote.height ?? 260) * zoom;
-      const noteLeft = (targetNote.posX ?? 16) * zoom;
-      const noteTop = (targetNote.posY ?? 16) * zoom;
+      const currentZoom = zoom || 1.0;
+      const noteWidth = (targetNote.width ?? 260) * currentZoom;
+      const noteHeight = (targetNote.height ?? 260) * currentZoom;
+      const noteLeft = (targetNote.posX ?? 16) * currentZoom;
+      const noteTop = (targetNote.posY ?? 16) * currentZoom;
       const noteRight = noteLeft + noteWidth;
       const noteBottom = noteTop + noteHeight;
 
       const viewLeft = container.scrollLeft;
       const viewTop = container.scrollTop;
-      const viewRight = viewLeft + container.clientWidth;
-      const viewBottom = viewTop + container.clientHeight;
+      const viewW = container.clientWidth;
+      const viewH = container.clientHeight;
+      const viewRight = viewLeft + viewW;
+      const viewBottom = viewTop + viewH;
 
-      const margin = 48;
+      const isTouchOrNarrow = typeof window !== 'undefined' && window.innerWidth < 1024;
+      const margin = isTouchOrNarrow ? 12 : 48;
 
       const isComfortablyVisible =
         noteLeft >= viewLeft + margin &&
@@ -684,19 +691,42 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         noteBottom <= viewBottom - margin;
 
       if (!isComfortablyVisible) {
-        let targetX = viewLeft;
-        let targetY = viewTop;
+        let targetX: number;
+        let targetY: number;
 
-        if (noteRight > viewRight - margin || noteLeft < viewLeft + margin) {
-          targetX = Math.max(0, noteLeft - margin);
+        if (isTouchOrNarrow) {
+          // Center note horizontally in viewport on Mobile / iPad / Tablet
+          targetX = Math.max(0, Math.round(noteLeft + noteWidth / 2 - viewW / 2));
+          // If top row (Y < 380), keep at top so tabs/header aren't obscured, else center vertically
+          targetY = (targetNote.posY ?? 16) < 380 ? 0 : Math.max(0, Math.round(noteTop + noteHeight / 2 - viewH / 2));
+        } else {
+          // Desktop: calm minimal pan
+          targetX = viewLeft;
+          targetY = viewTop;
+          if (noteRight > viewRight - margin || noteLeft < viewLeft + margin) {
+            targetX = Math.max(0, Math.round(noteLeft - margin));
+          }
+          if (noteBottom > viewBottom - margin || noteTop < viewTop + margin) {
+            targetY = (targetNote.posY ?? 16) < 380 ? 0 : Math.max(0, Math.round(noteTop - margin));
+          }
         }
 
-        if (noteBottom > viewBottom - margin || noteTop < viewTop + margin) {
-          targetY = Math.max(0, noteTop - margin);
-        }
+        // Suppress any activeBoardId reset to (0,0)
+        isFocusingSavedNoteRef.current = true;
+        setTimeout(() => {
+          isFocusingSavedNoteRef.current = false;
+        }, 1500);
 
-        if (targetX !== viewLeft || targetY !== viewTop) {
-          container.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+        container.scrollTo({ left: targetX, top: targetY, behavior: 'smooth' });
+
+        // iOS Safari / WebKit fallback if smooth scroll gets interrupted by layout
+        if (isTouchOrNarrow) {
+          setTimeout(() => {
+            if (container && Math.abs(container.scrollLeft - targetX) > 20) {
+              container.scrollLeft = targetX;
+              container.scrollTop = targetY;
+            }
+          }, 320);
         }
       }
     },
@@ -783,9 +813,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     }
   }, [notes, updateNote]);
 
-  // Ref to suppress resetting scroll to (0,0) when focusing a newly created/saved note
-  const isFocusingSavedNoteRef = useRef(false);
-
   // Automatically focus newly created note from other views (ensures note is in view while keeping left notes visible)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -850,6 +877,43 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       canvasContainerRef.current.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     }
   }, [activeBoardId]);
+
+  // Listen for newly created notes (both remote via WebSocket and cross-device sync)
+  useEffect(() => {
+    const handleRemoteNoteCreated = (e: Event) => {
+      const customEvt = e as CustomEvent<Note>;
+      const note = customEvt.detail;
+      if (!note) return;
+
+      // Only scroll if the note belongs to the currently viewed board
+      const isForActiveBoard = activeBoardId
+        ? note.boardId === activeBoardId
+        : (!note.boardId || activeBoard?.isDefault);
+
+      if (isForActiveBoard) {
+        bringToFront(note.id);
+        setFocusedNoteId(note.id);
+        setHighlightedNoteId(note.id);
+        if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+        highlightTimerRef.current = setTimeout(() => {
+          setHighlightedNoteId(null);
+        }, 1200);
+
+        ensureNoteInView(note);
+        if (typeof window !== 'undefined') {
+          requestAnimationFrame(() => {
+            ensureNoteInView(note);
+            setTimeout(() => ensureNoteInView(note), 60);
+          });
+        }
+      }
+    };
+
+    window.addEventListener('board:note-created', handleRemoteNoteCreated);
+    return () => {
+      window.removeEventListener('board:note-created', handleRemoteNoteCreated);
+    };
+  }, [activeBoardId, activeBoard, bringToFront, ensureNoteInView]);
 
   // Handle drag and drop coordinates saving without artificial boundary clamping
   const handleDragEnd = async (id: string, x: number, y: number) => {
@@ -1035,60 +1099,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
       // Smoothly navigate viewport to the new note if it's outside current view
       // Supports Desktop, iPad/Tablet, and Mobile (iPhone/Android) with centered viewport
-      const scrollToNewNote = () => {
-        const container = canvasContainerRef.current;
-        if (!container) return;
-
-        const currentZoom = zoom || 1.0;
-        const noteW = (newNote.width || 260) * currentZoom;
-        const noteH = (newNote.height || 240) * currentZoom;
-        const noteLeft = (newNote.posX ?? 16) * currentZoom;
-        const noteTop = (newNote.posY ?? 16) * currentZoom;
-        const noteRight = noteLeft + noteW;
-        const noteBottom = noteTop + noteH;
-
-        const viewLeft = container.scrollLeft;
-        const viewTop = container.scrollTop;
-        const viewW = container.clientWidth;
-        const viewH = container.clientHeight;
-        const viewRight = viewLeft + viewW;
-        const viewBottom = viewTop + viewH;
-
-        const isFullyVisible =
-          noteLeft >= viewLeft + 12 &&
-          noteRight <= viewRight - 12 &&
-          noteTop >= viewTop + 12 &&
-          noteBottom <= viewBottom - 12;
-
-        if (!isFullyVisible) {
-          const isTouchOrNarrow = typeof window !== 'undefined' && window.innerWidth < 1024;
-          let targetScrollLeft: number;
-          let targetScrollTop: number;
-
-          if (isTouchOrNarrow) {
-            // Center horizontally on Mobile / iPad
-            targetScrollLeft = Math.max(0, noteLeft + noteW / 2 - viewW / 2);
-            // If top row (Y < 380), keep at top so tabs/header aren't obscured, else center vertically
-            targetScrollTop = (newNote.posY ?? 16) < 380 ? 0 : Math.max(0, noteTop + noteH / 2 - viewH / 2);
-          } else {
-            // Desktop: calm and minimal scroll
-            targetScrollLeft = Math.max(0, noteLeft - 48);
-            targetScrollTop = (newNote.posY ?? 16) < 380 ? 0 : Math.max(0, noteTop - 48);
-          }
-
-          container.scrollTo({
-            left: targetScrollLeft,
-            top: targetScrollTop,
-            behavior: 'smooth',
-          });
-        }
-      };
-
+      ensureNoteInView(newNote);
       if (typeof window !== 'undefined') {
         requestAnimationFrame(() => {
-          scrollToNewNote();
-          // Secondary fallback for iOS Safari / Mobile WebKit momentum rendering
-          setTimeout(scrollToNewNote, 60);
+          ensureNoteInView(newNote);
+          setTimeout(() => ensureNoteInView(newNote), 60);
         });
       }
 
@@ -1726,7 +1741,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       ) : (
         <div
           ref={canvasContainerRef}
-          style={getBoardStyle()}
+          style={{
+            ...getBoardStyle(),
+            WebkitOverflowScrolling: 'touch',
+          }}
           onDoubleClick={handleCanvasDoubleClick}
           onClick={(e) => {
             const target = e.target as HTMLElement | null;

@@ -78,6 +78,10 @@ export function useRealtimeNotes() {
       fetchNotebooks().catch(() => {});
       fetchLabels().catch(() => {});
       fetchBoards().catch(() => {});
+
+      if (typeof window !== 'undefined' && newNote) {
+        window.dispatchEvent(new CustomEvent('board:note-created', { detail: newNote }));
+      }
     };
 
     const handleNoteUpdated = (updatedNote: any) => {
