@@ -27,6 +27,7 @@ export default function BoardShareModal({
   onClose,
 }: BoardShareModalProps) {
   const { shareBoard } = useNoteStore();
+  const [shareCode, setShareCode] = useState<string | null>(board.shareCode ?? null);
   const [isPublic, setIsPublic] = useState(board.isPublic ?? false);
   const [permission, setPermission] = useState<'read' | 'edit'>(
     (board.sharePermission as 'read' | 'edit') || 'read'
@@ -34,19 +35,30 @@ export default function BoardShareModal({
   const [isCopied, setIsCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  React.useEffect(() => {
+    setIsPublic(board.isPublic ?? false);
+    setShareCode(board.shareCode ?? null);
+    setPermission((board.sharePermission as 'read' | 'edit') || 'read');
+  }, [board.isPublic, board.shareCode, board.sharePermission]);
+
   if (!isOpen) return null;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const shareUrl = board.shareCode ? `${origin}/share/${board.shareCode}` : '';
+  const effectiveCode = shareCode || board.shareCode;
+  const shareUrl = effectiveCode ? `${origin}/share/${effectiveCode}` : '';
 
   const handleToggleShare = async () => {
     try {
       setIsSaving(true);
-      await shareBoard(board.id, {
-        isPublic: !isPublic,
+      const nextPublic = !isPublic;
+      const updated = await shareBoard(board.id, {
+        isPublic: nextPublic,
         sharePermission: permission,
       });
-      setIsPublic(!isPublic);
+      setIsPublic(nextPublic);
+      if (updated?.shareCode) {
+        setShareCode(updated.shareCode);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -58,10 +70,13 @@ export default function BoardShareModal({
     try {
       setPermission(newPerm);
       if (isPublic) {
-        await shareBoard(board.id, {
+        const updated = await shareBoard(board.id, {
           isPublic: true,
           sharePermission: newPerm,
         });
+        if (updated?.shareCode) {
+          setShareCode(updated.shareCode);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -195,6 +210,28 @@ export default function BoardShareModal({
               >
                 {isCopied ? <Check size={14} /> : <Copy size={14} />}
                 <span>{isCopied ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
+                    navigator
+                      .share({
+                        title: `กระดาน ${board.name} - NoteAll`,
+                        text: `ดูกระดาน "${board.name}" บน NoteAll`,
+                        url: shareUrl,
+                      })
+                      .catch(() => {});
+                  } else {
+                    handleCopyLink();
+                  }
+                }}
+                className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+                title="แชร์เข้าแอปบนมือถือ (LINE, Messenger ฯลฯ)"
+              >
+                <Share2 size={14} />
+                <span>แชร์แอป</span>
               </button>
             </div>
 

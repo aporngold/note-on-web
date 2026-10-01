@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star, Bell, CalendarDays, Download, AlertCircle, Clock, Calendar, FileText } from 'lucide-react';
+import { Plus, Pin, Filter, X, Sparkles, BookOpen, Star, Bell, CalendarDays, Download, AlertCircle, Clock, Calendar, FileText, Share2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import NoteCard from '@/components/notes/NoteCard';
 import NoteList from '@/components/notes/NoteList';
@@ -9,6 +9,7 @@ import KanbanView from '@/components/board/KanbanView';
 import MasterPasswordModal from '@/components/notes/MasterPasswordModal';
 import FullscreenNoteModal from '@/components/notes/FullscreenNoteModal';
 import AISearchModal from '@/components/dashboard/AISearchModal';
+import BoardShareModal from '@/components/modals/BoardShareModal';
 import SortDropdown from '@/components/ui/SortDropdown';
 import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
@@ -49,6 +50,7 @@ export default function Dashboard() {
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites' | 'reminders'>('all');
   const [isAiSearchOpen, setIsAiSearchOpen] = useState(false);
+  const [isBoardShareModalOpen, setIsBoardShareModalOpen] = useState(false);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const reminderNotesCount = notes.filter((n) => Boolean(remindersByNote[n.id])).length;
 
@@ -110,6 +112,7 @@ export default function Dashboard() {
   }, [notes, activeTab, searchQuery, sortBy, viewMode, remindersByNote]);
 
   const defaultBoard = boards.find((b) => b.isDefault) || boards[0];
+  const currentActiveBoard = boards.find((b) => b.id === activeBoardId) || defaultBoard;
   const isViewingDefaultBoard = !activeBoardId || activeBoardId === defaultBoard?.id;
 
   // In board mode, show notes belonging to active board (or unassigned notes if on default board)
@@ -324,6 +327,19 @@ export default function Dashboard() {
                 onChange={(opt) => setSortBy(opt)}
                 variant="dashboard"
               />
+
+              {/* Share Active Board Button */}
+              {currentActiveBoard && (
+                <button
+                  type="button"
+                  onClick={() => setIsBoardShareModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition"
+                  title={`แชร์กระดาน "${currentActiveBoard.name}"`}
+                >
+                  <Share2 size={13} className="text-indigo-500" />
+                  <span className="hidden sm:inline">แชร์กระดาน</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -651,6 +667,15 @@ export default function Dashboard() {
         onClose={() => setIsAiSearchOpen(false)}
         onSelectNote={(note) => setFullscreenNote(note)}
       />
+
+      {/* Board Share Modal */}
+      {currentActiveBoard && isBoardShareModalOpen && (
+        <BoardShareModal
+          board={currentActiveBoard}
+          isOpen={isBoardShareModalOpen}
+          onClose={() => setIsBoardShareModalOpen(false)}
+        />
+      )}
     </Layout>
   );
 }

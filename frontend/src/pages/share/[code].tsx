@@ -26,6 +26,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { FileAttachment } from '@/types';
 import { stripHtmlTags } from '@/utils/editorHelper';
+import { getResolvedApiUrl } from '@/utils/api';
 
 interface SharedBoardNote {
   id: string;
@@ -83,13 +84,7 @@ export default function SharedNotePage() {
     if (!code) return;
     try {
       setIsLoading(true);
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      if (typeof window !== 'undefined') {
-        const host = window.location.hostname;
-        if (host && host !== 'localhost' && host !== '127.0.0.1') {
-          apiUrl = `${window.location.protocol}//${host}:5000/api`;
-        }
-      }
+      const apiUrl = getResolvedApiUrl();
       const headers: Record<string, string> = {};
       if (pwd) {
         headers['x-share-password'] = pwd;
@@ -338,7 +333,7 @@ export default function SharedNotePage() {
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {noteData.attachments.map((att) => {
-                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+                    const apiUrl = getResolvedApiUrl();
                     const backendOrigin = apiUrl.replace(/\/api$/, '');
                     const downloadUrl = att.url.startsWith('http') ? att.url : `${backendOrigin}${att.url}`;
 
@@ -492,7 +487,7 @@ export default function SharedNotePage() {
                       <p className="text-xs font-bold text-slate-400 uppercase">ไฟล์แนบ</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {selectedBoardNote.attachments.map((att) => {
-                          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+                          const apiUrl = getResolvedApiUrl();
                           const backendOrigin = apiUrl.replace(/\/api$/, '');
                           const downloadUrl = att.url.startsWith('http') ? att.url : `${backendOrigin}${att.url}`;
 
