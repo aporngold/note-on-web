@@ -363,21 +363,24 @@ export default function AdminDashboardPage() {
       </Head>
 
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
-        {/* Top Header Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white shadow-xl shadow-indigo-500/15 border border-indigo-400/30 p-6 sm:p-8">
-          <div className="absolute -top-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-12 left-1/3 w-64 h-64 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
+        {/* Top Header Banner (Luminous Pearlescent White with Soft Indigo & Pale Violet Accents) */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/35 dark:from-slate-900 dark:via-indigo-950/40 dark:to-purple-950/30 border border-indigo-100/80 dark:border-slate-800 shadow-xl shadow-indigo-100/40 dark:shadow-none p-6 sm:p-8 backdrop-blur-sm">
+          {/* Subtle Pearlescent Ambient Glows */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-300/60 dark:via-indigo-500/40 to-transparent" />
+          <div className="absolute -top-14 -right-14 w-80 h-80 bg-gradient-to-br from-indigo-200/35 to-purple-200/25 dark:from-indigo-600/10 dark:to-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-14 left-1/4 w-72 h-72 bg-gradient-to-tr from-purple-200/30 to-indigo-100/30 dark:from-purple-600/10 dark:to-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="p-2.5 rounded-2xl bg-white/15 backdrop-blur-md text-white border border-white/20 shadow-sm">
+                <span className="p-2.5 rounded-2xl bg-white/90 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100/90 dark:border-indigo-900/50 shadow-sm shadow-indigo-100/50">
                   <ShieldCheck size={24} />
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                   แผงควบคุมระบบ (Admin Dashboard)
                 </h1>
               </div>
-              <p className="text-indigo-100 text-xs sm:text-sm max-w-xl leading-relaxed font-normal">
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed font-normal">
                 ศูนย์กลางการจัดการระบบ ตรวจสอบความปลอดภัย ดูกระดานโน้ต 56 แผ่น และดูแลฐานข้อมูล NoteAll
               </p>
             </div>
@@ -385,13 +388,13 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-3">
               {/* Role Badge */}
               <div
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 backdrop-blur-md border shadow-sm ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border shadow-2xs backdrop-blur-sm ${
                   isSuperAdmin
-                    ? 'bg-amber-400/20 text-amber-200 border-amber-300/40'
-                    : 'bg-white/20 text-white border-white/30'
+                    ? 'bg-amber-50/90 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60'
+                    : 'bg-indigo-50/90 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60'
                 }`}
               >
-                <Sparkles size={14} className={isSuperAdmin ? 'text-amber-300' : 'text-indigo-200'} />
+                <Sparkles size={14} className={isSuperAdmin ? 'text-amber-500 dark:text-amber-400' : 'text-indigo-500 dark:text-indigo-400'} />
                 <span>{user.role}</span>
               </div>
 
@@ -399,10 +402,10 @@ export default function AdminDashboardPage() {
               <button
                 onClick={refreshCurrentTab}
                 disabled={isLoading}
-                className="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white text-xs font-bold flex items-center gap-2 backdrop-blur-md transition-all shadow-sm active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-white/90 dark:bg-slate-800/90 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-2 backdrop-blur-md transition-all shadow-2xs active:scale-95"
                 title="รีเฟรชข้อมูล"
               >
-                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                <RefreshCw size={14} className={`text-slate-500 dark:text-slate-400 ${isLoading ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">รีเฟรช</span>
               </button>
             </div>
