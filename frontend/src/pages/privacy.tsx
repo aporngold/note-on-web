@@ -57,7 +57,7 @@ export default function PrivacyPolicyPage() {
             นโยบายความเป็นส่วนตัว<br className="hidden sm:inline" /> (Privacy Policy)
           </h1>
           <p className="mt-3 text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-            มีผลบังคับใช้ตั้งแต่วันที่ 1 มกราคม 2567 (อัปเดตล่าสุด: ตุลาคม 2567)<br />
+            มีผลบังคับใช้ตั้งแต่วันที่ 1 มกราคม 2567 (อัปเดตล่าสุด: ตุลาคม 2569)<br />
             เราให้ความสำคัญสูงสุดกับความปลอดภัย ความเป็นส่วนตัว และสิทธิในข้อมูลของท่าน ภายใต้สถาปัตยกรรมความปลอดภัย <b>Zero-Knowledge Encryption</b>
           </p>
         </div>
