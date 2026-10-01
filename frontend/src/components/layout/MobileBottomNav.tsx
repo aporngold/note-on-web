@@ -31,6 +31,7 @@ import NotebookModal from '../modals/NotebookModal';
 import LabelModal from '../modals/LabelModal';
 import BackupModal from '../modals/BackupModal';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
+import DeleteAccountModal from '../modals/DeleteAccountModal';
 import { sendTestWebPush } from '@/utils/webPush';
 import toast from 'react-hot-toast';
 
@@ -60,6 +61,7 @@ export default function MobileBottomNav() {
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const [isTestingPushMobile, setIsTestingPushMobile] = useState(false);
 
   const handleMobilePushTest = async () => {
@@ -576,6 +578,30 @@ export default function MobileBottomNav() {
               </div>
               <span className="text-xs text-slate-400">{theme === 'dark' ? 'Dark' : 'Light'}</span>
             </button>
+
+            {/* Privacy Policy (PDPA) */}
+            <button
+              onClick={() => {
+                setActiveSheet(null);
+                router.push('/privacy');
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold transition"
+            >
+              <ShieldCheck size={18} className="text-emerald-500" />
+              <span>นโยบายความเป็นส่วนตัว (PDPA)</span>
+            </button>
+
+            {/* Delete Account (PDPA Right to Erasure) */}
+            <button
+              onClick={() => {
+                setActiveSheet(null);
+                setIsDeleteAccountModalOpen(true);
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-sm font-semibold transition"
+            >
+              <Trash2 size={18} className="text-rose-500" />
+              <span>ลบบัญชีและข้อมูลทั้งหมด (PDPA)</span>
+            </button>
           </div>
 
           <div className="h-px bg-slate-100 dark:bg-slate-800" />
@@ -622,6 +648,10 @@ export default function MobileBottomNav() {
       <MasterPasswordModal
         isOpen={isVaultModalOpen}
         onClose={() => setIsVaultModalOpen(false)}
+      />
+      <DeleteAccountModal
+        isOpen={isDeleteAccountModalOpen}
+        onClose={() => setIsDeleteAccountModalOpen(false)}
       />
     </>
   );

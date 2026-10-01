@@ -2,6 +2,8 @@ export interface User {
   id: string;
   email: string;
   username: string;
+  authProvider?: string;
+  googleId?: string | null;
   hasMasterPassword?: boolean;
   masterPasswordSalt?: string | null;
   role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';

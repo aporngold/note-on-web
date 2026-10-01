@@ -11,6 +11,7 @@ router.post('/login', loginLimiter, AuthController.login);
 router.post('/logout', authenticate, AuthController.logout);
 router.get('/me', authenticate, AuthController.me);
 router.post('/change-password', authenticate, AuthController.changePassword);
+router.delete('/me', authenticate, AuthController.deleteMyAccount);
 
 // Master Password & E2EE Routes
 router.post('/master-password/setup', authenticate, AuthController.setupMasterPassword);

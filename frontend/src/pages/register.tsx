@@ -434,6 +434,16 @@ export default function RegisterPage() {
             </button>
           </form>
         )}
+
+        {/* PDPA Privacy Policy Notice */}
+        <div className="text-center pt-3 border-t border-slate-200/60">
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            การสร้างบัญชีถือว่าท่านยอมรับ{' '}
+            <Link href="/privacy" className="text-indigo-600 hover:text-indigo-700 hover:underline font-semibold" target="_blank">
+              นโยบายความเป็นส่วนตัว (PDPA)
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -256,7 +256,7 @@ export default function LoginPage() {
         </button>
 
         {/* Footer info */}
-        <div className="text-center pt-2 border-t border-slate-200/60">
+        <div className="text-center pt-2 border-t border-slate-200/60 space-y-1.5">
           <p className="text-xs text-slate-600">
             ยังไม่มีบัญชีใช้งาน?{' '}
             <Link
@@ -264,6 +264,11 @@ export default function LoginPage() {
               className="text-teal-600 hover:text-sky-600 font-semibold hover:underline transition-colors"
             >
               สมัครสมาชิกใหม่
+            </Link>
+          </p>
+          <p className="text-[11px] text-slate-400">
+            <Link href="/privacy" className="hover:text-slate-600 hover:underline transition">
+              นโยบายความเป็นส่วนตัว (PDPA)
             </Link>
           </p>
         </div>

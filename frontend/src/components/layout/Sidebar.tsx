@@ -30,6 +30,7 @@ import NotebookModal from '../modals/NotebookModal';
 import LabelModal from '../modals/LabelModal';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
 import PasskeyModal from '../modals/PasskeyModal';
+import DeleteAccountModal from '../modals/DeleteAccountModal';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -66,6 +67,7 @@ export default function Sidebar({
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const reminderCount = notes.filter((n) => !n.isArchived && Boolean(remindersByNote[n.id])).length;
 
@@ -562,6 +564,15 @@ export default function Sidebar({
           </div>
 
           <div className="flex items-center gap-1">
+            {/* Privacy Policy (PDPA) */}
+            <Link
+              href="/privacy"
+              className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition"
+              title="นโยบายความเป็นส่วนตัว (PDPA)"
+            >
+              <ShieldCheck size={16} />
+            </Link>
+
             {/* Passkeys Management */}
             <button
               onClick={() => setIsPasskeyModalOpen(true)}
@@ -578,6 +589,15 @@ export default function Sidebar({
               title="สลับโหมดมืด/สว่าง"
             >
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
+            {/* Delete Account (PDPA Right to Erasure) */}
+            <button
+              onClick={() => setIsDeleteAccountModalOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+              title="ลบบัญชีและข้อมูลทั้งหมด (PDPA)"
+            >
+              <Trash2 size={16} />
             </button>
 
             {/* Logout */}
@@ -608,6 +628,10 @@ export default function Sidebar({
       <PasskeyModal
         isOpen={isPasskeyModalOpen}
         onClose={() => setIsPasskeyModalOpen(false)}
+      />
+      <DeleteAccountModal
+        isOpen={isDeleteAccountModalOpen}
+        onClose={() => setIsDeleteAccountModalOpen(false)}
       />
     </aside>
   );
