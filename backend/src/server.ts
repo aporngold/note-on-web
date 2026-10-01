@@ -19,6 +19,7 @@ import aiRoutes from './routes/aiRoutes';
 import adminRoutes from './routes/adminRoutes';
 import reminderRoutes from './routes/reminderRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import privacyRoutes from './routes/privacyRoutes';
 import { initReminderScheduler, setSchedulerSocketIO } from './services/reminderScheduler';
 import { setSocketIO } from './utils/socket';
 import { errorHandler } from './middleware/errorHandler';
@@ -133,7 +134,10 @@ import uploadRoutes from './routes/uploadRoutes';
 import connectionRoutes from './routes/connectionRoutes';
 
 // Static file serving for uploads (images, PDFs, documents)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+  dotfiles: 'ignore',
+  index: false,
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -149,6 +153,7 @@ app.use('/api/connections', connectionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/privacy', privacyRoutes);
 
 // Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
 const notePresenceMap = new Map<string, Map<string, { userId: string; username: string; color?: string }>>();

@@ -113,8 +113,9 @@ export async function processDueReminders() {
         continue;
       }
 
-      // Title & Message Preparation (Protect privacy: do not expose locked note content in notification)
-      const noteTitle = reminder.title || reminder.note?.title || 'โน้ตเตือนความจำ';
+      // Title & Message Preparation (Protect privacy: do not expose locked note title/content on lock screens)
+      const isLocked = Boolean(reminder.note?.isLocked);
+      const noteTitle = isLocked ? 'บันทึกลับที่ได้รับการป้องกัน' : (reminder.title || reminder.note?.title || 'โน้ตเตือนความจำ');
       const notificationTitle = `🔔 เตือนความจำ: ${noteTitle}`;
       const notificationBody = `ถึงเวลาแจ้งเตือนโน้ตของคุณแล้ว`;
       const targetUrl = reminder.noteId ? `/notes/${reminder.noteId}` : '/dashboard';

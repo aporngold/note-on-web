@@ -35,6 +35,8 @@ model User {
   reminders     Reminder[]
   notifications Notification[]
   pushSubscriptions PushSubscription[]
+  consents      UserConsent[]
+  privacyRequests DataSubjectRequest[]
 }
 
 model Note {
@@ -292,3 +294,41 @@ model PushSubscription {
   @@index([userId])
 }
 
+model UserConsent {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  consentType     String    // 'TERMS_OF_SERVICE' | 'PRIVACY_NOTICE_ACK' | 'WEB_PUSH' | 'MARKETING_EMAIL'
+  version         String    @default("2569.1")
+  isGranted       Boolean   @default(true)
+  
+  ipAddress       String?
+  userAgent       String?
+  
+  grantedAt       DateTime? @default(now())
+  revokedAt       DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId, consentType])
+}
+
+model DataSubjectRequest {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  requestType     String    // 'ACCESS' | 'DATA_PORTABILITY' | 'ERASURE' | 'RECTIFICATION' | 'RESTRICTION' | 'OBJECTION' | 'WITHDRAW_CONSENT'
+  status          String    @default("PENDING") // 'PENDING' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'COMPLETED'
+  details         String?
+  adminNotes      String?
+  rejectedReason  String?
+  
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId, status])
+}

@@ -25,6 +25,7 @@ const aiRoutes_1 = __importDefault(require("./routes/aiRoutes"));
 const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
 const reminderRoutes_1 = __importDefault(require("./routes/reminderRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
+const privacyRoutes_1 = __importDefault(require("./routes/privacyRoutes"));
 const reminderScheduler_1 = require("./services/reminderScheduler");
 const socket_1 = require("./utils/socket");
 const errorHandler_1 = require("./middleware/errorHandler");
@@ -125,7 +126,10 @@ app.all('/api/system/sync-db', async (req, res) => {
 const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const connectionRoutes_1 = __importDefault(require("./routes/connectionRoutes"));
 // Static file serving for uploads (images, PDFs, documents)
-app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads')));
+app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../uploads'), {
+    dotfiles: 'ignore',
+    index: false,
+}));
 // API Routes
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/notes', noteRoutes_1.default);
@@ -140,6 +144,7 @@ app.use('/api/connections', connectionRoutes_1.default);
 app.use('/api/admin', adminRoutes_1.default);
 app.use('/api/reminders', reminderRoutes_1.default);
 app.use('/api/notifications', notificationRoutes_1.default);
+app.use('/api/privacy', privacyRoutes_1.default);
 // Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
 const notePresenceMap = new Map();
 const PRESENCE_COLORS = [

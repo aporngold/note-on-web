@@ -16,8 +16,8 @@ export class ShareController {
         where: { id: noteId, userId },
       });
 
-      if (!note) {
-        return res.status(404).json({ error: 'ไม่พบบันทึกนี้ หรือคุณไม่มีสิทธิ์เป็นเจ้าของ' });
+      if (!note || note.isArchived) {
+        return res.status(404).json({ error: 'ไม่พบบันทึกนี้ หรือบันทึกอยู่ในถังขยะ' });
       }
 
       if (!isShared) {
@@ -120,8 +120,8 @@ export class ShareController {
         },
       });
 
-      if (!note) {
-        return res.status(404).json({ error: 'ไม่พบบันทึกนี้ หรือลิงก์การแชร์ถูกปิดไปแล้ว' });
+      if (!note || note.isArchived) {
+        return res.status(404).json({ error: 'ไม่พบบันทึกนี้ หรือลิงก์การแชร์ถูกปิดหรือบันทึกถูกย้ายลงถังขยะแล้ว' });
       }
 
       // If password protected

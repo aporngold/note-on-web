@@ -273,6 +273,37 @@ export class AuthController {
         ],
       });
 
+      // Record initial PDPA Consents (Terms of Service & Privacy Notice Acknowledgment)
+      try {
+        const ipAddress = (req.headers['x-forwarded-for'] as string) || req.ip || req.socket.remoteAddress || null;
+        const userAgent = req.headers['user-agent'] || null;
+
+        await prisma.userConsent.createMany({
+          data: [
+            {
+              userId: user.id,
+              consentType: 'TERMS_OF_SERVICE',
+              version: '2569.1',
+              isGranted: true,
+              ipAddress,
+              userAgent,
+              grantedAt: new Date(),
+            },
+            {
+              userId: user.id,
+              consentType: 'PRIVACY_NOTICE_ACK',
+              version: '2569.1',
+              isGranted: true,
+              ipAddress,
+              userAgent,
+              grantedAt: new Date(),
+            },
+          ],
+        });
+      } catch (consentErr) {
+        console.warn('Could not record initial PDPA consents:', consentErr);
+      }
+
       const token = jwt.sign(
         { userId: user.id },
         process.env.JWT_SECRET || 'secret',

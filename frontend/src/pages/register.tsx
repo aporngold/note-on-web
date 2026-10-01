@@ -43,6 +43,8 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [turnstileToken, setTurnstileToken] = useState<string>('');
+  const [agreedTerms, setAgreedTerms] = useState<boolean>(false);
+  const [ackPrivacy, setAckPrivacy] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleTurnstileVerify = useCallback((token: string) => {
@@ -413,13 +415,49 @@ export default function RegisterPage() {
               onExpire={handleTurnstileExpire}
             />
 
+            {/* PDPA Explicit Consent & Notice */}
+            <div className="space-y-2 pt-2 border-t border-slate-200/80">
+              <label className="flex items-start gap-2.5 cursor-pointer text-left">
+                <input
+                  type="checkbox"
+                  checked={agreedTerms}
+                  onChange={(e) => setAgreedTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                />
+                <span className="text-xs text-slate-600 leading-snug">
+                  ฉันได้อ่านและยอมรับ{' '}
+                  <Link href="/privacy" target="_blank" className="text-indigo-600 hover:underline font-semibold">
+                    ข้อตกลงการให้บริการ (Terms of Service)
+                  </Link>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-2.5 cursor-pointer text-left">
+                <input
+                  type="checkbox"
+                  checked={ackPrivacy}
+                  onChange={(e) => setAckPrivacy(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                />
+                <span className="text-xs text-slate-600 leading-snug">
+                  ฉันรับทราบ{' '}
+                  <Link href="/privacy" target="_blank" className="text-indigo-600 hover:underline font-semibold">
+                    ประกาศความเป็นส่วนตัว (Privacy Notice)
+                  </Link>{' '}
+                  ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
+                </span>
+              </label>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
               disabled={
                 isLoading ||
                 (wantPassword && (!isPasswordValid || !isPasswordMatch)) ||
-                !turnstileToken
+                !turnstileToken ||
+                !agreedTerms ||
+                !ackPrivacy
               }
               className="w-full py-3 bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-600 hover:to-sky-600 text-white rounded-xl font-semibold shadow-lg shadow-teal-500/20 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-3"
             >
@@ -434,16 +472,6 @@ export default function RegisterPage() {
             </button>
           </form>
         )}
-
-        {/* PDPA Privacy Policy Notice */}
-        <div className="text-center pt-3 border-t border-slate-200/60">
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            การสร้างบัญชีถือว่าท่านยอมรับ{' '}
-            <Link href="/privacy" className="text-indigo-600 hover:text-indigo-700 hover:underline font-semibold" target="_blank">
-              นโยบายความเป็นส่วนตัว (PDPA)
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );

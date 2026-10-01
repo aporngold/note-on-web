@@ -232,6 +232,36 @@ class AuthController {
                     { name: 'งาน', color: '#3B82F6', userId: user.id },
                 ],
             });
+            // Record initial PDPA Consents (Terms of Service & Privacy Notice Acknowledgment)
+            try {
+                const ipAddress = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress || null;
+                const userAgent = req.headers['user-agent'] || null;
+                await database_1.prisma.userConsent.createMany({
+                    data: [
+                        {
+                            userId: user.id,
+                            consentType: 'TERMS_OF_SERVICE',
+                            version: '2569.1',
+                            isGranted: true,
+                            ipAddress,
+                            userAgent,
+                            grantedAt: new Date(),
+                        },
+                        {
+                            userId: user.id,
+                            consentType: 'PRIVACY_NOTICE_ACK',
+                            version: '2569.1',
+                            isGranted: true,
+                            ipAddress,
+                            userAgent,
+                            grantedAt: new Date(),
+                        },
+                    ],
+                });
+            }
+            catch (consentErr) {
+                console.warn('Could not record initial PDPA consents:', consentErr);
+            }
             const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });
             await database_1.prisma.session.create({
                 data: {
@@ -625,6 +655,62 @@ class AuthController {
         catch (error) {
             console.error('recoverMasterPassword error:', error);
             return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการกู้คืนรหัสผ่าน' });
+        }
+    }
+    // PDPA Right to Erasure: Self-Account Deletion
+    static async deleteMyAccount(req, res) {
+        try {
+            const userId = req.userId;
+            if (!userId) {
+                return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' });
+            }
+            const { password, confirmText } = req.body;
+            const user = await database_1.prisma.user.findUnique({
+                where: { id: userId },
+                select: { id: true, email: true, username: true, role: true, passwordHash: true, authProvider: true },
+            });
+            if (!user) {
+                return res.status(404).json({ error: 'ไม่พบบัญชีผู้ใช้ในระบบ' });
+            }
+            // If user is SUPER_ADMIN, ensure at least one other SUPER_ADMIN exists
+            if (user.role === 'SUPER_ADMIN') {
+                const superAdminCount = await database_1.prisma.user.count({
+                    where: { role: 'SUPER_ADMIN' },
+                });
+                if (superAdminCount <= 1) {
+                    return res.status(400).json({
+                        error: 'ไม่สามารถลบบัญชีได้ เนื่องจากระบบต้องมี Super Admin อย่างน้อย 1 คน กรุณาแต่งตั้งสิทธิ์ให้ผู้อื่นก่อน',
+                    });
+                }
+            }
+            // Verification: If user has local password, require current password
+            if (user.passwordHash) {
+                if (!password) {
+                    return res.status(400).json({ error: 'กรุณากรอกรหัสผ่านปัจจุบันเพื่อยืนยันการลบบัญชี' });
+                }
+                const isMatch = await bcryptjs_1.default.compare(password, user.passwordHash);
+                if (!isMatch) {
+                    return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+                }
+            }
+            else {
+                // OAuth user (Google) without local password -> require explicit confirmation text
+                if (confirmText !== 'DELETE_MY_ACCOUNT') {
+                    return res.status(400).json({ error: 'กรุณาพิมพ์ข้อความ DELETE_MY_ACCOUNT เพื่อยืนยัน' });
+                }
+            }
+            // Cascading delete user and all their personal data (Notes, Boards, Reminders, Sessions, Passkeys)
+            await database_1.prisma.user.delete({
+                where: { id: userId },
+            });
+            return res.json({
+                success: true,
+                message: 'ลบบัญชีและข้อมูลส่วนบุคคลทั้งหมดสำเร็จตามสิทธิ PDPA เรียบร้อยแล้ว',
+            });
+        }
+        catch (error) {
+            console.error('deleteMyAccount error:', error);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการลบบัญชี กรุณาลองใหม่อีกครั้ง' });
         }
     }
 }
