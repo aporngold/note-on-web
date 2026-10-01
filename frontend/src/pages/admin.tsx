@@ -363,33 +363,33 @@ export default function AdminDashboardPage() {
       </Head>
 
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
-        {/* Top Header Banner — Minimalist Monochrome (Apple / Linear / Vercel style) */}
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs p-6 sm:p-7">
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+        {/* Top Header Banner */}
+        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs p-6 sm:p-7 transition-all">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700">
+                <span className="p-2.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs">
                   <ShieldCheck size={22} />
                 </span>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                   แผงควบคุมระบบ (Admin Dashboard)
                 </h1>
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed">
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm max-w-xl leading-relaxed font-normal">
                 ศูนย์กลางการจัดการระบบ ตรวจสอบความปลอดภัย ดูกระดานโน้ต 56 แผ่น และดูแลฐานข้อมูล NoteAll
               </p>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               {/* Role Badge */}
               <div
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 border shadow-2xs ${
                   isSuperAdmin
-                    ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/50'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700'
                 }`}
               >
-                <Sparkles size={13} className={isSuperAdmin ? 'text-amber-500' : 'text-slate-500'} />
+                <Sparkles size={13} className={isSuperAdmin ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'} />
                 <span>{user.role}</span>
               </div>
 
@@ -397,18 +397,18 @@ export default function AdminDashboardPage() {
               <button
                 onClick={refreshCurrentTab}
                 disabled={isLoading}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs active:scale-95"
+                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 text-xs font-semibold flex items-center gap-2 transition-all shadow-xs active:scale-95 disabled:opacity-50"
                 title="รีเฟรชข้อมูล"
               >
-                <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
-                <span>รีเฟรช</span>
+                <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">รีเฟรช</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Tab Navigation (Segmented Pill Bar) */}
-        <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {[
             { id: 'overview' as const, label: 'ภาพรวม (Overview)', icon: Shield },
             { id: 'users' as const, label: `ผู้ใช้งาน & สิทธิ์ (${stats?.users.total || users.length})`, icon: Users },
@@ -422,10 +422,10 @@ export default function AdminDashboardPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all whitespace-nowrap ${
+                className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all duration-150 whitespace-nowrap ${
                   isActive
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs border border-slate-200/80 dark:border-slate-700/80'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-slate-800/40'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/80 dark:border-slate-700'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/40 dark:hover:bg-slate-800/40'
                 }`}
               >
                 <Icon size={15} className={isActive ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'} />
@@ -438,13 +438,13 @@ export default function AdminDashboardPage() {
         {/* ────────────── TAB 1: OVERVIEW ────────────── */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Stat Cards Grid (Clean Monochrome Metrics) */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+            {/* Stat Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Users Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">ผู้ใช้ทั้งหมด</span>
-                  <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">ผู้ใช้ทั้งหมด</span>
+                  <span className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                     <Users size={16} />
                   </span>
                 </div>
@@ -452,19 +452,19 @@ export default function AdminDashboardPage() {
                   <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {stats?.users.total ?? '-'}
                   </span>
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
-                    <span>Super Admin: <b className="text-slate-700 dark:text-slate-300 font-semibold">{stats?.users.superAdmins}</b></span>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span>Super Admin: <b className="text-slate-900 dark:text-white font-bold">{stats?.users.superAdmins}</b></span>
                     <span>•</span>
-                    <span>Admin: <b className="text-slate-700 dark:text-slate-300 font-semibold">{stats?.users.admins}</b></span>
+                    <span>Admin: <b className="text-slate-900 dark:text-white font-bold">{stats?.users.admins}</b></span>
                   </div>
                 </div>
               </div>
 
               {/* Notes Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">โน้ตทั้งหมด</span>
-                  <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">โน้ตทั้งหมด</span>
+                  <span className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                     <FileText size={16} />
                   </span>
                 </div>
@@ -472,19 +472,19 @@ export default function AdminDashboardPage() {
                   <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {stats?.notes.total ?? '-'}
                   </span>
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400">
-                    <span className="text-slate-600 dark:text-slate-300 font-medium">{stats?.notes.unlocked} ทั่วไป</span>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">{stats?.notes.unlocked} ทั่วไป</span>
                     <span>•</span>
-                    <span className="text-slate-600 dark:text-slate-300 font-medium">{stats?.notes.locked} ห้องนิรภัย</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">{stats?.notes.locked} ห้องนิรภัย</span>
                   </div>
                 </div>
               </div>
 
               {/* Boards Card (56 limit rule) */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">กระดาน (Boards)</span>
-                  <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">กระดาน (Boards)</span>
+                  <span className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                     <LayoutGrid size={16} />
                   </span>
                 </div>
@@ -492,24 +492,24 @@ export default function AdminDashboardPage() {
                   <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {stats?.boards.total ?? '-'}
                   </span>
-                  <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1.5">
+                  <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     <span>จำกัด 56 โน้ต/บอร์ด</span>
                     {stats?.boards.full ? (
-                      <span className="px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold border border-rose-200 dark:border-rose-900/50">
+                      <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold">
                         {stats.boards.full} บอร์ดเต็ม
                       </span>
                     ) : (
-                      <span className="text-slate-500 font-medium">ความจุเพียงพอ</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">ความจุเพียงพอ</span>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Reminders & Notifications Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">เตือนความจำ & พุช</span>
-                  <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">เตือนความจำ & พุช</span>
+                  <span className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                     <Bell size={16} />
                   </span>
                 </div>
@@ -517,19 +517,19 @@ export default function AdminDashboardPage() {
                   <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {stats?.reminders?.total ?? 0}
                   </span>
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-400 truncate">
-                    <span>รอส่ง: <b className="text-slate-700 dark:text-slate-300 font-semibold">{stats?.reminders?.scheduled ?? 0}</b></span>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                    <span>รอส่ง: <b className="text-slate-900 dark:text-white font-bold">{stats?.reminders?.scheduled ?? 0}</b></span>
                     <span>•</span>
-                    <span>พุช: <b className="text-slate-700 dark:text-slate-300 font-semibold">{stats?.pushSubscriptions?.total ?? 0}</b> เครื่อง</span>
+                    <span>พุช: <b className="text-slate-900 dark:text-white font-bold">{stats?.pushSubscriptions?.total ?? 0}</b> เครื่อง</span>
                   </div>
                 </div>
               </div>
 
               {/* Database & Backup Card */}
-              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                 <div className="flex items-center justify-between text-slate-500">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">ขนาดฐานข้อมูล</span>
-                  <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">ขนาดฐานข้อมูล</span>
+                  <span className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                     <Database size={16} />
                   </span>
                 </div>
@@ -537,9 +537,9 @@ export default function AdminDashboardPage() {
                   <span className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                     {stats?.database.sizeFormatted ?? '-'}
                   </span>
-                  <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
+                  <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate">
                     <span>สำรองล่าสุด:</span>
-                    <span className="text-slate-600 dark:text-slate-300 font-medium">
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">
                       {stats?.backup.lastBackupAt
                         ? new Date(stats.backup.lastBackupAt).toLocaleDateString('th-TH')
                         : 'ยังไม่เคยสำรอง'}
@@ -549,40 +549,42 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Quick Actions & Privacy Guarantee (Monochrome Minimalist) */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            {/* Quick Actions & Privacy Guarantee */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Privacy Notice Box */}
-              <div className="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-                    <Lock size={18} />
+              <div className="lg:col-span-2 p-6 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700">
+                      <Lock size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">การันตีความปลอดภัยและสิทธิส่วนบุคคล (Privacy & E2EE)</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Zero-Knowledge Architecture & Client-Side Encryption</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">การันตีความปลอดภัยและสิทธิส่วนบุคคล (Privacy & E2EE)</h3>
-                    <p className="text-xs text-slate-500">Zero-Knowledge Architecture & Client-Side Encryption</p>
-                  </div>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed mb-5">
+                    ระบบแอดมินถูกออกแบบภายใต้หลักสากล <b>Zero-Knowledge</b> — ผู้ดูแลระบบและเซิร์ฟเวอร์
+                    <b>ไม่สามารถเห็นรหัสผ่านจริง</b> และ <b>ไม่สามารถอ่านเนื้อหาโน้ตในห้องนิรภัย</b> ของผู้ใช้งานได้ 
+                    แอดมินสามารถดูเฉพาะตัวเลขสถิติภาพรวมและการจัดการระบบเท่านั้น
+                  </p>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed mb-4">
-                  ระบบแอดมินถูกออกแบบภายใต้หลักสากล <b>Zero-Knowledge</b> — ผู้ดูแลระบบและเซิร์ฟเวอร์
-                  <b>ไม่สามารถเห็นรหัสผ่านจริง</b> และ <b>ไม่สามารถอ่านเนื้อหาโน้ตในห้องนิรภัย</b> ของผู้ใช้งานได้ 
-                  แอดมินสามารถดูเฉพาะตัวเลขสถิติภาพรวมและการจัดการระบบเท่านั้น
-                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60">
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px] font-medium mb-1">โน้ตในห้องนิรภัย</span>
                     <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">{stats?.notes.locked ?? 0} ฉบับ (E2EE)</span>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60">
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px] font-medium mb-1">กุญแจ Passkeys ในระบบ</span>
                     <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">{stats?.passkeys.total ?? 0} บัญชีเปิดใช้</span>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60">
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px] font-medium mb-1">สมุดบันทึก & ป้ายกำกับ</span>
                     <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
                       {(stats?.notebooks.total || 0) + (stats?.labels.total || 0)} รายการ
                     </span>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60">
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80">
                     <span className="text-slate-500 dark:text-slate-400 block text-[11px] font-medium mb-1">แจ้งเตือนส่งแล้ว / พุช</span>
                     <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
                       {stats?.reminders?.sent ?? 0} ครั้ง ({stats?.pushSubscriptions?.total ?? 0} เครื่อง)
@@ -592,41 +594,41 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Quick Admin Actions Box */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+              <div className="p-6 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                 <div>
-                  <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">
                     คำสั่งด่วน (Quick Tools)
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     <button
                       onClick={() => setActiveTab('database')}
-                      className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium flex items-center justify-between transition-colors group"
+                      className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-between transition group"
                     >
                       <span className="flex items-center gap-2.5">
-                        <HardDrive size={15} className="text-slate-500" />
-                        <span>สำรองฐานข้อมูลทันที</span>
+                        <HardDrive size={15} className="text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                        สำรองฐานข้อมูลทันที
                       </span>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
                     </button>
                     <button
                       onClick={() => setActiveTab('users')}
-                      className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium flex items-center justify-between transition-colors group"
+                      className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-between transition group"
                     >
                       <span className="flex items-center gap-2.5">
-                        <Users size={15} className="text-slate-500" />
-                        <span>ดูรายชื่อผู้ใช้งานทั้งหมด</span>
+                        <Users size={15} className="text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                        ดูรายชื่อผู้ใช้งานทั้งหมด
                       </span>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
                     </button>
                     <button
                       onClick={() => setActiveTab('boards')}
-                      className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium flex items-center justify-between transition-colors group"
+                      className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold flex items-center justify-between transition group"
                     >
                       <span className="flex items-center gap-2.5">
-                        <LayoutGrid size={15} className="text-slate-500" />
-                        <span>ตรวจสอบความจุกระดาน (56 แผ่น)</span>
+                        <LayoutGrid size={15} className="text-slate-500 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                        ตรวจสอบความจุกระดาน (56 แผ่น)
                       </span>
-                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                      <ArrowUpRight size={14} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
                     </button>
                   </div>
                 </div>
@@ -647,7 +649,7 @@ export default function AdminDashboardPage() {
                   placeholder="ค้นหาด้วยอีเมล หรือ ชื่อผู้ใช้..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white"
+                  className="w-full pl-9 pr-4 py-2 rounded-xl text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400 text-slate-900 dark:text-white"
                 />
               </form>
 
@@ -659,7 +661,7 @@ export default function AdminDashboardPage() {
                     setUserRoleFilter(e.target.value);
                     loadUsers(1, userSearch, e.target.value);
                   }}
-                  className="px-3 py-2 rounded-xl text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 py-2 rounded-xl text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
                 >
                   <option value="">ทุกระดับสิทธิ์ (All Roles)</option>
                   <option value="SUPER_ADMIN">SUPER_ADMIN (สูงสุด)</option>
@@ -691,7 +693,7 @@ export default function AdminDashboardPage() {
                           <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
                             <span>{u.username}</span>
                             {isSelf && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500 font-bold">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold">
                                 บัญชีคุณ
                               </span>
                             )}
@@ -705,10 +707,10 @@ export default function AdminDashboardPage() {
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                               u.role === 'SUPER_ADMIN'
-                                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
+                                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30'
                                 : u.role === 'ADMIN'
-                                ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/30'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border border-transparent'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                             }`}
                           >
                             {u.role === 'SUPER_ADMIN' ? '👑 ' : ''}
@@ -894,7 +896,7 @@ export default function AdminDashboardPage() {
                                 ? 'bg-rose-500'
                                 : b.notesCount >= 45
                                 ? 'bg-amber-500'
-                                : 'bg-slate-900 dark:bg-slate-200'
+                                : 'bg-indigo-500'
                             }`}
                             style={{ width: `${percent}%` }}
                           />
@@ -922,9 +924,9 @@ export default function AdminDashboardPage() {
             {/* DB Status & Trigger Backup Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* SQLite Health Info */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-4">
+              <div className="p-6 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
                 <div className="flex items-center gap-3">
-                  <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                     <Database size={18} />
                   </span>
                   <div>
@@ -940,7 +942,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="flex items-center justify-between py-2">
                     <span className="text-slate-400">การตรวจสอบความสมบูรณ์:</span>
-                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 flex items-center gap-1">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                       <CheckCircle2 size={13} /> {dbInfo?.integrityCheck}
                     </span>
                   </div>
@@ -954,23 +956,23 @@ export default function AdminDashboardPage() {
 
                 {/* Table Row Counts */}
                 <div className="pt-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
                     จำนวนรายการในตาราง
                   </span>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
                       <span className="text-slate-500 block text-[11px]">ผู้ใช้</span>
                       <b className="text-slate-900 dark:text-white text-sm">{dbInfo?.tables.users}</b>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
                       <span className="text-slate-500 block text-[11px]">โน้ต</span>
                       <b className="text-slate-900 dark:text-white text-sm">{dbInfo?.tables.notes}</b>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
                       <span className="text-slate-500 block text-[11px]">กระดาน</span>
                       <b className="text-slate-900 dark:text-white text-sm">{dbInfo?.tables.boards}</b>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
                       <span className="text-slate-500 block text-[11px]">สมุดบันทึก</span>
                       <b className="text-slate-900 dark:text-white text-sm">{dbInfo?.tables.notebooks}</b>
                     </div>
@@ -979,10 +981,10 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Instant Backup Box */}
-              <div className="lg:col-span-2 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+              <div className="lg:col-span-2 p-6 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    <span className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
                       <Save size={18} />
                     </span>
                     <div>
@@ -993,8 +995,8 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 space-y-2">
-                    <label className="text-xs text-slate-700 dark:text-slate-300 font-medium block">
+                  <div className="mt-5 space-y-2">
+                    <label className="text-xs text-slate-700 dark:text-slate-300 font-semibold block">
                       หมายเหตุการสำรอง (Optional Note):
                     </label>
                     <input
@@ -1002,7 +1004,7 @@ export default function AdminDashboardPage() {
                       placeholder="เช่น: สำรองก่อนอัปเดตระบบ หรือ สำรองประจำสัปดาห์..."
                       value={backupNote}
                       onChange={(e) => setBackupNote(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-slate-900 dark:focus:ring-white"
+                      className="w-full px-4 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
                     />
                   </div>
                 </div>
@@ -1014,7 +1016,7 @@ export default function AdminDashboardPage() {
                   <button
                     onClick={handleTriggerBackup}
                     disabled={isBackingUp}
-                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xs transition-colors active:scale-95 disabled:opacity-50"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all active:scale-95 disabled:opacity-50"
                   >
                     <Save size={15} className={isBackingUp ? 'animate-spin' : ''} />
                     <span>{isBackingUp ? 'กำลังสำรองข้อมูล...' : 'กดสำรองข้อมูลเดี๋ยวนี้'}</span>
