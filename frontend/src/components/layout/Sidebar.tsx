@@ -22,6 +22,7 @@ import {
   Fingerprint,
   ShieldCheck,
   Bell,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
@@ -31,6 +32,7 @@ import LabelModal from '../modals/LabelModal';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
 import PasskeyModal from '../modals/PasskeyModal';
 import DeleteAccountModal from '../modals/DeleteAccountModal';
+import HelpModal from '../modals/HelpModal';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -68,6 +70,7 @@ export default function Sidebar({
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const reminderCount = notes.filter((n) => !n.isArchived && Boolean(remindersByNote[n.id])).length;
 
@@ -235,6 +238,15 @@ export default function Sidebar({
             title="จัดการ Passkey (สแกนนิ้ว/ใบหน้า)"
           >
             <Fingerprint size={18} />
+          </button>
+
+          {/* Help Guide */}
+          <button
+            onClick={() => setIsHelpModalOpen(true)}
+            className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition"
+            title="วิธีใช้งานและคำแนะนำ (Help)"
+          >
+            <HelpCircle size={18} />
           </button>
 
           {/* User Avatar */}
@@ -573,6 +585,15 @@ export default function Sidebar({
               <ShieldCheck size={16} />
             </Link>
 
+            {/* Help Guide */}
+            <button
+              onClick={() => setIsHelpModalOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition"
+              title="วิธีใช้งานและคำแนะนำ (Help)"
+            >
+              <HelpCircle size={16} />
+            </button>
+
             {/* Passkeys Management */}
             <button
               onClick={() => setIsPasskeyModalOpen(true)}
@@ -632,6 +653,10 @@ export default function Sidebar({
       <DeleteAccountModal
         isOpen={isDeleteAccountModalOpen}
         onClose={() => setIsDeleteAccountModalOpen(false)}
+      />
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
       />
     </aside>
   );

@@ -61,6 +61,7 @@ import {
   Smile,
   Bell,
   ClipboardPaste,
+  BookOpen,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
@@ -68,6 +69,7 @@ import SpeechToTextButton from './SpeechToTextButton';
 import ViewportPopover from '../ui/ViewportPopover';
 import { FONT_PRESETS, FontPreset, FONT_SIZE_PRESETS, FontSizePreset } from './editorExtensions';
 import Fluent3DEmojiPicker, { FluentEmojiItem } from './Fluent3DEmojiPicker';
+import HelpModal from '../modals/HelpModal';
 
 export const PASTEL_PALETTE = [
   { name: 'สีขาว', bg: '#FFFFFF', border: '#E2E8F0', text: '#0F172A' },
@@ -273,6 +275,7 @@ export default function NoteRichToolbar({
   const tableMenuBtnRef = useRef<HTMLButtonElement>(null);
   const toolsBtnRef = useRef<HTMLButtonElement>(null);
   const helpBtnRef = useRef<HTMLButtonElement>(null);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   const paragraphBtnRef = useRef<HTMLButtonElement>(null);
   const fontBtnRef = useRef<HTMLButtonElement>(null);
@@ -1824,6 +1827,19 @@ export default function NoteRichToolbar({
                 <span>บันทึก (Save):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+S</kbd>
               </p>
             </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMenu(null);
+                  setIsHelpModalOpen(true);
+                }}
+                className="w-full py-1.5 px-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 font-bold text-center flex items-center justify-center gap-1.5 transition active:scale-95"
+              >
+                <BookOpen size={13} />
+                <span>คู่มือวิธีใช้งานทั้งหมด 📖</span>
+              </button>
+            </div>
           </ViewportPopover>
         </div>
 
@@ -2998,6 +3014,12 @@ export default function NoteRichToolbar({
       </div>
         </>
       )}
+
+      {/* Full Help Guide Modal */}
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+      />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
   Check,
   ShieldCheck,
   Bell,
+  HelpCircle,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useNoteStore } from '@/store/noteStore';
@@ -32,6 +33,7 @@ import LabelModal from '../modals/LabelModal';
 import BackupModal from '../modals/BackupModal';
 import MasterPasswordModal from '../notes/MasterPasswordModal';
 import DeleteAccountModal from '../modals/DeleteAccountModal';
+import HelpModal from '../modals/HelpModal';
 import { sendTestWebPush } from '@/utils/webPush';
 import toast from 'react-hot-toast';
 
@@ -62,6 +64,7 @@ export default function MobileBottomNav() {
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isTestingPushMobile, setIsTestingPushMobile] = useState(false);
 
   const handleMobilePushTest = async () => {
@@ -579,6 +582,18 @@ export default function MobileBottomNav() {
               <span className="text-xs text-slate-400">{theme === 'dark' ? 'Dark' : 'Light'}</span>
             </button>
 
+            {/* Help & Guide */}
+            <button
+              onClick={() => {
+                setActiveSheet(null);
+                setIsHelpModalOpen(true);
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold transition"
+            >
+              <HelpCircle size={18} className="text-indigo-500" />
+              <span>วิธีใช้งานและคำแนะนำ (Help)</span>
+            </button>
+
             {/* Privacy Policy (PDPA) */}
             <button
               onClick={() => {
@@ -652,6 +667,10 @@ export default function MobileBottomNav() {
       <DeleteAccountModal
         isOpen={isDeleteAccountModalOpen}
         onClose={() => setIsDeleteAccountModalOpen(false)}
+      />
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
       />
     </>
   );
