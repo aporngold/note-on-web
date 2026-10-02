@@ -344,7 +344,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
               : router.pathname.startsWith('/notes/')
               ? 'flex flex-col min-h-0 overflow-hidden p-0 transition-all duration-300'
               : router.pathname.startsWith('/admin')
-              ? 'overflow-y-auto p-3 sm:px-6 sm:py-3.5 pb-20 lg:pb-4'
+              ? 'overflow-y-auto p-4 sm:p-6 lg:px-8 lg:py-5 pb-20 lg:pb-6'
               : 'overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8'
           }`}
         >
