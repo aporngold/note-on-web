@@ -1180,21 +1180,6 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
             </div>
           </div>
         </div>
-
-        {/* Discrete Exit Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (typeof document !== 'undefined' && document.fullscreenElement) {
-              document.exitFullscreen?.().catch(() => {});
-            }
-            onClose();
-          }}
-          className="absolute top-4 right-4 z-[999999] px-3.5 py-1.5 rounded-full text-xs font-medium text-amber-200/60 hover:text-amber-100 bg-black/40 hover:bg-black/80 border border-amber-500/20 hover:border-amber-500/50 backdrop-blur-md transition-all duration-300"
-          title="Exit Cinematic Easter Egg (ESC)"
-        >
-          ✕ ปิด (ESC)
-        </button>
       </div>
     </ViewportPortal>
   );
