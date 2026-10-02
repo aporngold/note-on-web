@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ViewportPortal from '../ui/ViewportPortal';
 
 interface CinematicEasterEggProps {
@@ -6,929 +6,1196 @@ interface CinematicEasterEggProps {
   onClose: () => void;
 }
 
-interface Star {
-  x: number;
-  y: number;
-  size: number;
-  alpha: number;
-  twinkleSpeed: number;
-  twinkleOffset: number;
-  vx: number;
-  vy: number;
-}
-
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  color: string;
-  alpha: number;
-  life: number;
-  maxLife: number;
-  rotation: number;
-  rotationVelocity: number;
-  drag: number;
-  gravity: number;
-  isSpiral?: boolean;
-  spiralAngle?: number;
-  spiralSpeed?: number;
-  spiralRadius?: number;
-}
-
-interface VortexFlake {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  rotation: number;
-  rotationVelocity: number;
-  mass: number;
-  color: string;
-  alpha: number;
-  orbitRadius: number;
-  angle: number;
-  angularVelocity: number;
-}
-
-interface Shockwave {
-  radius: number;
-  maxRadius: number;
-  alpha: number;
-  color: string;
-  lineWidth: number;
-}
-
 export default function CinematicEasterEgg({ isActive, onClose }: CinematicEasterEggProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animFrameIdRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const yinPieceRef = useRef<HTMLDivElement | null>(null);
+  const yangPieceRef = useRef<HTMLDivElement | null>(null);
+  const energyCoreRef = useRef<HTMLDivElement | null>(null);
+  const flashOverlayRef = useRef<HTMLDivElement | null>(null);
+  const filmGrainRef = useRef<HTMLDivElement | null>(null);
+  const anamorphicFlareRef = useRef<HTMLDivElement | null>(null);
+  const lightRaysRef = useRef<HTMLDivElement | null>(null);
+  const titleMainRef = useRef<SVGSVGElement | null>(null);
+  const titleSubRef = useRef<SVGSVGElement | null>(null);
+  const finalYinYangRef = useRef<HTMLDivElement | null>(null);
+  const letterboxTopRef = useRef<HTMLDivElement | null>(null);
+  const letterboxBottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Phase tracker for Typography & Interactions
-  const [phase, setPhase] = useState<'intro' | 'supernova' | 'title1' | 'title2' | 'final'>('intro');
-  const [heartbeatScale, setHeartbeatScale] = useState<number>(1);
-  const phaseRef = useRef<'intro' | 'supernova' | 'title1' | 'title2' | 'final'>('intro');
-
-  // Camera Shake
-  const cameraShakeRef = useRef<{ intensity: number; decay: number }>({ intensity: 0, decay: 0.92 });
-
-  // Procedural Data
-  const starsRef = useRef<Star[]>([]);
-  const particlesRef = useRef<Particle[]>([]);
-  const vortexFlakesRef = useRef<VortexFlake[]>([]);
-  const shockwavesRef = useRef<Shockwave[]>([]);
-  const streaksRef = useRef<{ x: number; y: number; length: number; color: string; alpha: number; speed: number }[]>([]);
-
-  // White flash state
-  const whiteFlashRef = useRef<number>(0);
-
-  // Final Interactive Yin-Yang Rotation
-  const finalRotationRef = useRef<number>(0);
-
-  // Sync ref
-  useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-
-  // Handle Escape Key to exit Easter Egg
   useEffect(() => {
     if (!isActive) return;
 
+    // Handle Escape Key to exit
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (document.fullscreenElement) {
+        if (typeof document !== 'undefined' && document.fullscreenElement) {
           document.exitFullscreen?.().catch(() => {});
         }
         onClose();
       }
     };
-
-    const handleFullscreenChange = () => {
-      // If user exits fullscreen via browser UI, Easter egg adapts without closing immediately
-      // But if they want to close, they can press Escape or click exit
-    };
-
     window.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, [isActive, onClose]);
 
-  // Heartbeat loop for Title 1 (80 BPM = 750ms per beat)
-  useEffect(() => {
-    if (phase !== 'title1') return;
+    const _canvas = canvasRef.current;
+    const _viewport = viewportRef.current;
+    const _yinPiece = yinPieceRef.current;
+    const _yangPiece = yangPieceRef.current;
+    const _energyCore = energyCoreRef.current;
+    const _flashOverlay = flashOverlayRef.current;
+    const _filmGrain = filmGrainRef.current;
+    const _anamorphicFlare = anamorphicFlareRef.current;
+    const _lightRays = lightRaysRef.current;
+    const _titleMain = titleMainRef.current;
+    const _titleSub = titleSubRef.current;
+    const _finalYinYang = finalYinYangRef.current;
+    const _letterboxTop = letterboxTopRef.current;
+    const _letterboxBottom = letterboxBottomRef.current;
 
-    let beatTimeout: NodeJS.Timeout;
-    const beatInterval = 750; // 80 BPM
-
-    const triggerBeat = () => {
-      setHeartbeatScale(1.22);
-      setTimeout(() => {
-        setHeartbeatScale(1.08);
-        setTimeout(() => {
-          setHeartbeatScale(1.18);
-          setTimeout(() => {
-            setHeartbeatScale(1.0);
-          }, 120);
-        }, 80);
-      }, 140);
-
-      beatTimeout = setTimeout(triggerBeat, beatInterval);
-    };
-
-    triggerBeat();
-    return () => clearTimeout(beatTimeout);
-  }, [phase]);
-
-  // Initialize procedural elements
-  const initProceduralStars = (width: number, height: number) => {
-    const starCount = Math.min(Math.floor((width * height) / 3800), 280);
-    const stars: Star[] = [];
-    for (let i = 0; i < starCount; i++) {
-      stars.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        size: Math.random() * 1.8 + 0.4,
-        alpha: Math.random() * 0.7 + 0.3,
-        twinkleSpeed: Math.random() * 0.04 + 0.015,
-        twinkleOffset: Math.random() * Math.PI * 2,
-        vx: (Math.random() - 0.5) * 0.15,
-        vy: (Math.random() - 0.5) * 0.15,
-      });
+    if (!_canvas || !_viewport || !_yinPiece || !_yangPiece || !_energyCore || !_flashOverlay || 
+        !_filmGrain || !_anamorphicFlare || !_lightRays || !_titleMain || !_titleSub || 
+        !_finalYinYang || !_letterboxTop || !_letterboxBottom) {
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-    starsRef.current = stars;
-  };
 
-  // Initialize 180 Gold Flakes for the Gravitational Vortex
-  const initVortexFlakes = (cx: number, cy: number) => {
-    const flakes: VortexFlake[] = [];
-    const goldPalette = ['#fff8db', '#ffd700', '#f5af19', '#9d6205', '#ffe066', '#d4af37'];
-
-    for (let i = 0; i < 180; i++) {
-      const orbit = Math.random() * 260 + 110;
-      const angle = Math.random() * Math.PI * 2;
-      flakes.push({
-        x: cx + Math.cos(angle) * orbit,
-        y: cy + Math.sin(angle) * orbit,
-        vx: 0,
-        vy: 0,
-        size: Math.random() * 2.8 + 1.2,
-        rotation: Math.random() * Math.PI * 2,
-        rotationVelocity: (Math.random() - 0.5) * 0.08,
-        mass: Math.random() * 0.8 + 0.4,
-        color: goldPalette[Math.floor(Math.random() * goldPalette.length)],
-        alpha: Math.random() * 0.65 + 0.35,
-        orbitRadius: orbit,
-        angle: angle,
-        angularVelocity: (0.012 + Math.random() * 0.018) * (Math.random() > 0.1 ? 1 : -1),
-      });
+    const _ctx = _canvas.getContext('2d');
+    if (!_ctx) {
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-    vortexFlakesRef.current = flakes;
-  };
 
-  // Trigger Gold Dust Particles (35 on click, 80 on double-click)
-  const spawnGoldDust = (cx: number, cy: number, count: number, is360: boolean) => {
-    const goldPalette = ['#ffffff', '#fff8db', '#ffd700', '#f5af19', '#9d6205'];
-    for (let i = 0; i < count; i++) {
-      const angle = is360 ? (i / count) * Math.PI * 2 + Math.random() * 0.2 : Math.random() * Math.PI * 2;
-      const speed = Math.random() * (is360 ? 9 : 6) + 3;
-      particlesRef.current.push({
-        x: cx,
-        y: cy,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        size: Math.random() * 3 + 1.5,
-        color: goldPalette[Math.floor(Math.random() * goldPalette.length)],
-        alpha: 1,
-        life: 0,
-        maxLife: Math.random() * 60 + 50,
-        rotation: Math.random() * Math.PI * 2,
-        rotationVelocity: (Math.random() - 0.5) * 0.2,
-        drag: 0.94,
-        gravity: 0.25,
-      });
-    }
-    // Subtle camera kick on interactive burst
-    cameraShakeRef.current.intensity = Math.max(cameraShakeRef.current.intensity, is360 ? 6 : 3);
-  };
-
-  // Main Canvas Render & Physics Loop
-  useEffect(() => {
-    if (!isActive) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) return;
+    const canvas: HTMLCanvasElement = _canvas;
+    const viewport: HTMLDivElement = _viewport;
+    const yinPiece: HTMLDivElement = _yinPiece;
+    const yangPiece: HTMLDivElement = _yangPiece;
+    const energyCore: HTMLDivElement = _energyCore;
+    const flashOverlay: HTMLDivElement = _flashOverlay;
+    const filmGrain: HTMLDivElement = _filmGrain;
+    const anamorphicFlare: HTMLDivElement = _anamorphicFlare;
+    const lightRays: HTMLDivElement = _lightRays;
+    const titleMain: SVGSVGElement = _titleMain;
+    const titleSub: SVGSVGElement = _titleSub;
+    const finalYinYang: HTMLDivElement = _finalYinYang;
+    const letterboxTop: HTMLDivElement = _letterboxTop;
+    const letterboxBottom: HTMLDivElement = _letterboxBottom;
+    const ctx: CanvasRenderingContext2D = _ctx;
 
     let width = window.innerWidth;
     let height = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-    const resizeCanvas = () => {
+    function resizeCanvas() {
       width = window.innerWidth;
       height = window.innerHeight;
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (canvas) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
-      initProceduralStars(width, height);
-      if (vortexFlakesRef.current.length === 0) {
-        initVortexFlakes(width / 2, height / 2);
+    const stars: Array<{
+      x: number;
+      y: number;
+      radius: number;
+      baseAlpha: number;
+      twinkleSpeed: number;
+      phase: number;
+    }> = [];
+
+    const particles: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      radius: number;
+      color: string;
+      alpha: number;
+      decay: number;
+    }> = [];
+
+    const goldFlakes: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      rotation: number;
+      vRot: number;
+      alpha: number;
+      color: string;
+      isDust: boolean;
+    }> = [];
+
+    const shockwaves: Array<{
+      x: number;
+      y: number;
+      radius: number;
+      maxRadius: number;
+      alpha: number;
+      growthRate: number;
+    }> = [];
+
+    let bgStarOpacity = 1.0;
+    let gravityCenter1 = { x: width / 2, y: height / 2, mass: 1.0 };
+    let gravityCenter2 = { x: width / 2, y: height / 2, mass: 1.0 };
+    let vortexActive = false;
+
+    // ดวงดาวฉากหลัง (220 ดวง)
+    const NUM_STARS = 220;
+    for (let i = 0; i < NUM_STARS; i++) {
+      stars.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        radius: Math.random() * 1.5 + 0.3,
+        baseAlpha: Math.random() * 0.7 + 0.3,
+        twinkleSpeed: Math.random() * 0.04 + 0.01,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+
+    // สร้างเศษทองคำเริ่มต้น (180 ชิ้น)
+    const BASE_GOLD_FLAKES = 180;
+    function createGoldFlake(initialRandomPos = false) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = initialRandomPos
+        ? Math.random() * (Math.min(width, height) * 0.6) + 40
+        : Math.max(width, height) * 0.5 + Math.random() * 100;
+      return {
+        x: width / 2 + Math.cos(angle) * dist,
+        y: height / 2 + Math.sin(angle) * dist,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5,
+        size: Math.random() * 5.5 + 2.5,
+        rotation: Math.random() * Math.PI * 2,
+        vRot: (Math.random() - 0.5) * 0.08,
+        alpha: Math.random() * 0.6 + 0.4,
+        color: Math.random() > 0.3 ? '#ffd700' : '#fff199',
+        isDust: false
+      };
+    }
+
+    for (let i = 0; i < BASE_GOLD_FLAKES; i++) {
+      goldFlakes.push(createGoldFlake(true));
+    }
+
+    // ฟังก์ชันพ่นผงทองเมื่อคลิกที่หยินหยาง (Emitter)
+    function spawnGoldDust(count: number, burstForce: number) {
+      const cx = width / 2;
+      const cy = height / 2;
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * burstForce + 2.5;
+        const isFineDust = Math.random() > 0.4;
+        goldFlakes.push({
+          x: cx + Math.cos(angle) * (Math.random() * 70 + 20),
+          y: cy + Math.sin(angle) * (Math.random() * 70 + 20),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: isFineDust ? Math.random() * 2.2 + 1.2 : Math.random() * 4.5 + 2.5,
+          rotation: Math.random() * Math.PI * 2,
+          vRot: (Math.random() - 0.5) * 0.15,
+          alpha: Math.random() * 0.5 + 0.5,
+          color: Math.random() > 0.25 ? '#ffd700' : (Math.random() > 0.5 ? '#fff8b3' : '#ffae00'),
+          isDust: true
+        });
+      }
+    }
+
+    let shakeIntensity = 0;
+    const shakeDecay = 0.95;
+
+    function easeInOutSine(x: number) {
+      return -(Math.cos(Math.PI * x) - 1) / 2;
+    }
+    function easeOutQuad(x: number) {
+      return 1 - (1 - x) * (1 - x);
+    }
+
+    // Interaction handlers on final Yin-Yang
+    let yinyangClickTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleYinYangPointerDown = (e: MouseEvent | TouchEvent) => {
+      e.stopPropagation();
+    };
+
+    const handleYinYangClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      if (yinyangClickTimer === null) {
+        yinyangClickTimer = setTimeout(() => {
+          spawnGoldDust(35, 6.5);
+          yinyangClickTimer = null;
+        }, 220);
       }
     };
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    const handleYinYangDblClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      if (yinyangClickTimer !== null) {
+        clearTimeout(yinyangClickTimer);
+        yinyangClickTimer = null;
+      }
+      spawnGoldDust(80, 12.0);
+      shakeIntensity = 6;
+      spawnShockwave(0);
+    };
 
-    startTimeRef.current = performance.now();
-    let lastTime = performance.now();
+    finalYinYang.addEventListener('pointerdown', handleYinYangPointerDown);
+    finalYinYang.addEventListener('click', handleYinYangClick);
+    finalYinYang.addEventListener('dblclick', handleYinYangDblClick);
 
-    // Spawn Supernova Explosion (300+ particles, Shockwaves, Streaks)
-    let supernovaTriggered = false;
-    const triggerSupernova = (cx: number, cy: number) => {
-      supernovaTriggered = true;
-      whiteFlashRef.current = 1.0;
-      cameraShakeRef.current.intensity = 18; // Trauma shake
+    const activeTimeouts: ReturnType<typeof setTimeout>[] = [];
+    function safeSetTimeout(fn: () => void, ms: number) {
+      const t = setTimeout(fn, ms);
+      activeTimeouts.push(t);
+      return t;
+    }
 
-      // 3 Shockwaves
-      shockwavesRef.current = [
-        { radius: 10, maxRadius: Math.max(width, height) * 0.85, alpha: 1, color: '#ffffff', lineWidth: 6 },
-        { radius: 5, maxRadius: Math.max(width, height) * 0.75, alpha: 0.9, color: '#ffd700', lineWidth: 4 },
-        { radius: 2, maxRadius: Math.max(width, height) * 0.65, alpha: 0.8, color: '#60a5fa', lineWidth: 3 },
-      ];
+    function spawnShockwave(delayMs: number) {
+      safeSetTimeout(() => {
+        shockwaves.push({
+          x: width / 2,
+          y: height / 2,
+          radius: 10,
+          maxRadius: Math.max(width, height) * 0.85,
+          alpha: 1.0,
+          growthRate: 22
+        });
+      }, delayMs);
+    }
 
-      // Horizontal Anamorphic Streaks (Gold & Blue)
-      streaksRef.current = [
-        { x: -width * 0.5, y: cy, length: width * 2, color: 'rgba(255, 215, 0, 0.9)', alpha: 1, speed: 28 },
-        { x: -width * 0.5, y: cy - 2, length: width * 2, color: 'rgba(96, 165, 250, 0.85)', alpha: 1, speed: 32 },
-        { x: -width * 0.5, y: cy + 3, length: width * 2, color: 'rgba(255, 248, 219, 0.95)', alpha: 1, speed: 24 },
-      ];
+    function createOrbitalSpark(x: number, y: number, color: string) {
+      particles.push({
+        x: x + (Math.random() - 0.5) * 20,
+        y: y + (Math.random() - 0.5) * 20,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: (Math.random() - 0.5) * 1.5,
+        radius: Math.random() * 2.8 + 0.8,
+        color: color,
+        alpha: 0.8,
+        decay: Math.random() * 0.03 + 0.02
+      });
+    }
 
-      // 300+ Procedural Particles
-      const particleCount = 340;
-      const palette = ['#ffffff', '#fff8db', '#ffd700', '#f5af19', '#9d6205', '#60a5fa', '#3b82f6', '#0a0a18'];
-      const newParticles: Particle[] = [];
+    function triggerImpactExplosion() {
+      const cx = width / 2;
+      const cy = height / 2;
 
-      for (let i = 0; i < particleCount; i++) {
-        const isSpiral = i % 3 === 0;
+      spawnShockwave(0);
+      spawnShockwave(200);
+      spawnShockwave(400);
+
+      const colors = ['#ffffff', '#ffd700', '#ffae00', '#ffd54f'];
+      for (let i = 0; i < 180; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = Math.random() * 16 + 2;
-
-        newParticles.push({
+        particles.push({
           x: cx,
           y: cy,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          size: Math.random() * 3.5 + 1,
-          color: palette[Math.floor(Math.random() * palette.length)],
-          alpha: 1,
-          life: 0,
-          maxLife: Math.random() * 90 + 60,
-          rotation: Math.random() * Math.PI * 2,
-          rotationVelocity: (Math.random() - 0.5) * 0.25,
-          drag: 0.965,
-          gravity: 0.05,
-          isSpiral: isSpiral,
-          spiralAngle: angle,
-          spiralSpeed: (Math.random() - 0.5) * 0.08,
-          spiralRadius: speed * 8,
+          radius: Math.random() * 3.5 + 1.2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1.0,
+          decay: Math.random() * 0.015 + 0.008
         });
       }
-      particlesRef.current = newParticles;
-    };
 
-    // Render loop
-    const render = (now: number) => {
-      const elapsed = (now - startTimeRef.current) / 1000;
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-
-      const cx = width / 2;
-      const cy = height / 2;
-
-      // Update Phase transitions
-      if (elapsed < 3.9) {
-        if (phaseRef.current !== 'intro') setPhase('intro');
-      } else if (elapsed >= 3.9 && elapsed < 5.5) {
-        if (!supernovaTriggered) {
-          triggerSupernova(cx, cy);
-        }
-        if (phaseRef.current !== 'supernova') setPhase('supernova');
-      } else if (elapsed >= 5.5 && elapsed < 11.0) {
-        if (phaseRef.current !== 'title1') setPhase('title1');
-      } else if (elapsed >= 11.0 && elapsed < 12.0) {
-        // 1 second dramatic breath
-        if (phaseRef.current !== 'supernova') setPhase('supernova');
-      } else if (elapsed >= 12.0 && elapsed < 16.5) {
-        if (phaseRef.current !== 'title2') setPhase('title2');
-      } else {
-        if (phaseRef.current !== 'final') setPhase('final');
+      for (let i = 0; i < 60; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 12 + 1;
+        particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 3 + 1,
+          color: '#ffffff',
+          alpha: 1.0,
+          decay: Math.random() * 0.015 + 0.01
+        });
+      }
+      for (let i = 0; i < 60; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 12 + 1;
+        particles.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 3 + 1,
+          color: '#0a0a18',
+          alpha: 0.9,
+          decay: Math.random() * 0.015 + 0.01
+        });
       }
 
-      // Camera Shake computation
-      let shakeX = 0;
-      let shakeY = 0;
-      if (cameraShakeRef.current.intensity > 0.05) {
-        shakeX = (Math.random() - 0.5) * cameraShakeRef.current.intensity;
-        shakeY = (Math.random() - 0.5) * cameraShakeRef.current.intensity;
-        cameraShakeRef.current.intensity *= cameraShakeRef.current.decay;
+      for (let i = 0; i < 240; i++) {
+        const armAngle = (i / 240) * Math.PI * 8;
+        const dist = Math.random() * 80 + 10;
+        const speed = Math.random() * 8 + 3;
+        particles.push({
+          x: cx + Math.cos(armAngle) * dist,
+          y: cy + Math.sin(armAngle) * dist,
+          vx: Math.cos(armAngle + Math.PI / 2) * speed + (Math.random() - 0.5) * 2,
+          vy: Math.sin(armAngle + Math.PI / 2) * speed + (Math.random() - 0.5) * 2,
+          radius: Math.random() * 2.5 + 1,
+          color: i % 2 === 0 ? '#ffd700' : '#ff8c00',
+          alpha: 1.0,
+          decay: Math.random() * 0.012 + 0.007
+        });
       }
+    }
 
-      // Clear Screen with deep cosmic #000000
-      ctx.save();
+    let sequenceStartTime = performance.now();
+    let sequencePhase = 1;
+    vortexActive = true;
+    letterboxTop.classList.add('active');
+    letterboxBottom.classList.add('active');
+
+    function executeTitleSequence() {
+      // 1. APORN 💛 SURIYA แสดง 5.5 วินาที
+      titleMain.style.display = 'block';
+      titleMain.animate([
+        { opacity: 0, transform: 'scale(0.94)' },
+        { opacity: 1, transform: 'scale(1.0)', offset: 0.12 },
+        { opacity: 1, transform: 'scale(1.02)', offset: 0.88 },
+        { opacity: 0, transform: 'scale(1.05)', offset: 1.0 }
+      ], {
+        duration: 5500,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'forwards'
+      });
+
+      // พักช่วง 1.0 วินาที
+      safeSetTimeout(() => {
+        titleMain.style.display = 'none';
+
+        // 2. ETERNAL แสดง 4.5 วินาที
+        titleSub.style.display = 'block';
+        titleSub.animate([
+          { opacity: 0, transform: 'scale(1.08)' },
+          { opacity: 1, transform: 'scale(1.0)', offset: 0.14 },
+          { opacity: 1, transform: 'scale(0.98)', offset: 0.86 },
+          { opacity: 0, transform: 'scale(0.94)', offset: 1.0 }
+        ], {
+          duration: 4500,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          fill: 'forwards'
+        });
+
+        safeSetTimeout(() => {
+          titleSub.style.display = 'none';
+        }, 4500);
+
+      }, 5500 + 1000);
+    }
+
+    let animationFrameId: number;
+
+    function renderLoop(currentTime: number) {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
-      // Apply camera shake transform
-      ctx.translate(shakeX, shakeY);
-
-      // ── 1. PROCEDURAL TWINKLING STARS ──
-      const stars = starsRef.current;
-      for (let i = 0; i < stars.length; i++) {
-        const s = stars[i];
-        s.x += s.vx;
-        s.y += s.vy;
-        if (s.x < 0) s.x = width;
-        if (s.x > width) s.x = 0;
-        if (s.y < 0) s.y = height;
-        if (s.y > height) s.y = 0;
-
-        const twinkle = Math.sin(now * s.twinkleSpeed * 0.05 + s.twinkleOffset) * 0.35 + 0.65;
-        const currentAlpha = s.alpha * twinkle;
-
-        ctx.fillStyle = `rgba(255, 255, 255, ${currentAlpha})`;
+      // 1. ดวงดาวพื้นหลัง
+      ctx.save();
+      for (const s of stars) {
+        s.phase += s.twinkleSpeed;
+        const currentAlpha = (s.baseAlpha + Math.sin(s.phase) * 0.3) * bgStarOpacity;
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, currentAlpha)})`;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
         ctx.fill();
       }
+      ctx.restore();
 
-      // ── 2. TIMELINE: 0.0s - 3.9s YIN & YANG ORBIT ──
-      if (elapsed < 3.9) {
-        const orbitDuration = 3.0; // 0.5s to 3.5s
-        let progress = 0;
-        let orbitRadius = 500;
-        let scale = 0.85;
-        let opacity = 1;
+      // 2. การจำลองแรงโน้มถ่วงและการหมุนวนของเศษและผงทองคำ (Gravitational Vortex)
+      const cx = width / 2;
+      const cy = height / 2;
 
-        if (elapsed < 0.5) {
-          // 0.0s - 0.5s: Fade In
-          opacity = elapsed / 0.5;
-          orbitRadius = 500;
-          scale = 0.85;
-        } else if (elapsed <= 3.5) {
-          // 0.5s - 3.5s: Deep Orbit (4 rounds = 8*PI radians) with easeInOutSine
-          const t = (elapsed - 0.5) / orbitDuration;
-          const easeProgress = -(Math.cos(Math.PI * t) - 1) / 2; // easeInOutSine
-          progress = easeProgress * 4; // 4 full orbits
+      for (let i = goldFlakes.length - 1; i >= 0; i--) {
+        const gf = goldFlakes[i];
 
-          orbitRadius = 500 * (1 - easeProgress);
-          scale = 0.85 + 0.3 * easeProgress;
-          opacity = 1;
+        if (vortexActive) {
+          const d1x = gravityCenter1.x - gf.x;
+          const d1y = gravityCenter1.y - gf.y;
+          const dist1 = Math.sqrt(d1x * d1x + d1y * d1y) + 40;
 
-          // Spawn star & gold trail particles during orbit
-          if (Math.random() < 0.65) {
-            const angleYang = progress * Math.PI * 2;
-            const angleYin = angleYang + Math.PI;
-            const yangX = cx + Math.cos(angleYang) * orbitRadius;
-            const yangY = cy + Math.sin(angleYang) * orbitRadius;
-            const yinX = cx + Math.cos(angleYin) * orbitRadius;
-            const yinY = cy + Math.sin(angleYin) * orbitRadius;
+          const d2x = gravityCenter2.x - gf.x;
+          const d2y = gravityCenter2.y - gf.y;
+          const dist2 = Math.sqrt(d2x * d2x + d2y * d2y) + 40;
 
-            particlesRef.current.push({
-              x: yangX + (Math.random() - 0.5) * 16,
-              y: yangY + (Math.random() - 0.5) * 16,
-              vx: (Math.random() - 0.5) * 2,
-              vy: (Math.random() - 0.5) * 2,
-              size: Math.random() * 2.2 + 0.8,
-              color: '#ffd700',
-              alpha: 0.85,
-              life: 0,
-              maxLife: 35,
-              rotation: 0,
-              rotationVelocity: 0,
-              drag: 0.95,
-              gravity: 0,
-            });
+          const gForce1 = 1350 / (dist1 * dist1);
+          const gForce2 = 1350 / (dist2 * dist2);
 
-            particlesRef.current.push({
-              x: yinX + (Math.random() - 0.5) * 16,
-              y: yinY + (Math.random() - 0.5) * 16,
-              vx: (Math.random() - 0.5) * 2,
-              vy: (Math.random() - 0.5) * 2,
-              size: Math.random() * 2.2 + 0.8,
-              color: '#60a5fa',
-              alpha: 0.8,
-              life: 0,
-              maxLife: 35,
-              rotation: 0,
-              rotationVelocity: 0,
-              drag: 0.95,
-              gravity: 0,
-            });
-          }
+          gf.vx += (d1x / dist1) * gForce1 + (d2x / dist2) * gForce2;
+          gf.vy += (d1y / dist1) * gForce1 + (d2y / dist2) * gForce2;
+
+          const toCenterX = gf.x - cx;
+          const toCenterY = gf.y - cy;
+          const distCenter = Math.sqrt(toCenterX * toCenterX + toCenterY * toCenterY) + 30;
+
+          const tangentX = -toCenterY / distCenter;
+          const tangentY = toCenterX / distCenter;
+
+          const orbitalSpeed = Math.min(5.0, 500 / distCenter);
+          gf.vx += tangentX * orbitalSpeed * 0.085;
+          gf.vy += tangentY * orbitalSpeed * 0.085;
+
+          gf.vx *= 0.985;
+          gf.vy *= 0.985;
         } else {
-          // 3.5s - 3.9s: Dramatic pause, lock together at center, 200ms camera shake
-          orbitRadius = 0;
-          scale = 1.15;
-          opacity = 1;
-          if (elapsed < 3.7) {
-            cameraShakeRef.current.intensity = Math.max(cameraShakeRef.current.intensity, 4);
+          gf.vx *= 0.99;
+          gf.vy *= 0.99;
+        }
+
+        gf.x += gf.vx;
+        gf.y += gf.vy;
+        gf.rotation += gf.vRot;
+
+        const distOffscreen = Math.hypot(gf.x - cx, gf.y - cy);
+        if (distOffscreen > Math.max(width, height) * 0.75) {
+          if (gf.isDust && goldFlakes.length > BASE_GOLD_FLAKES + 120) {
+            goldFlakes.splice(i, 1);
+            continue;
+          } else {
+            const resetAngle = Math.random() * Math.PI * 2;
+            const resetDist = Math.random() * 220 + 130;
+            gf.x = cx + Math.cos(resetAngle) * resetDist;
+            gf.y = cy + Math.sin(resetAngle) * resetDist;
+            gf.vx = (Math.random() - 0.5) * 2;
+            gf.vy = (Math.random() - 0.5) * 2;
           }
         }
 
-        const angle = (progress * Math.PI * 2);
-        const yangX = cx + Math.cos(angle) * orbitRadius;
-        const yangY = cy + Math.sin(angle) * orbitRadius;
-        const yinX = cx + Math.cos(angle + Math.PI) * orbitRadius;
-        const yinY = cy + Math.sin(angle + Math.PI) * orbitRadius;
-
-        // Draw Yang (Glowing White with Hollywood Gold Rim)
         ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.translate(yangX, yangY);
-        ctx.scale(scale * 0.45, scale * 0.45);
+        ctx.translate(gf.x, gf.y);
+        ctx.rotate(gf.rotation);
+        ctx.globalAlpha = gf.alpha;
+        ctx.fillStyle = gf.color;
         ctx.shadowColor = '#ffd700';
-        ctx.shadowBlur = 24;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(0, 0, 75, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#f5af19';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-        ctx.restore();
+        ctx.shadowBlur = gf.isDust ? 5 : 8;
 
-        // Draw Yin (Mystic Cosmic Indigo-Black with Blue-Gold Rim)
+        if (gf.isDust && gf.size < 2.5) {
+          ctx.beginPath();
+          ctx.arc(0, 0, gf.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(0, -gf.size);
+          ctx.lineTo(gf.size * 0.85, gf.size * 0.65);
+          ctx.lineTo(-gf.size * 0.75, gf.size * 0.45);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 3. Shockwaves
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        sw.radius += sw.growthRate;
+        sw.alpha -= 0.022;
+
+        if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+          shockwaves.splice(i, 1);
+          continue;
+        }
+
         ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.translate(yinX, yinY);
-        ctx.scale(scale * 0.45, scale * 0.45);
-        ctx.shadowColor = '#3b82f6';
-        ctx.shadowBlur = 24;
-        ctx.fillStyle = '#0a0a18';
+        ctx.strokeStyle = `rgba(255, 255, 255, ${sw.alpha})`;
+        ctx.lineWidth = Math.max(1, 14 * sw.alpha);
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 30;
         ctx.beginPath();
-        ctx.arc(0, 0, 75, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#9d6205';
-        ctx.lineWidth = 4;
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
       }
 
-      // ── 3. SUPERNOVA SHOCKWAVES & ENERGY CORE (3.9s+) ──
-      if (elapsed >= 3.9) {
-        // Shockwaves expansion
-        for (let i = shockwavesRef.current.length - 1; i >= 0; i--) {
-          const sw = shockwavesRef.current[i];
-          sw.radius += 18;
-          sw.alpha *= 0.95;
-
-          if (sw.alpha > 0.02 && sw.radius < sw.maxRadius) {
-            ctx.save();
-            ctx.globalAlpha = sw.alpha;
-            ctx.strokeStyle = sw.color;
-            ctx.lineWidth = sw.lineWidth;
-            ctx.shadowColor = sw.color;
-            ctx.shadowBlur = 18;
-            ctx.beginPath();
-            ctx.arc(cx, cy, sw.radius, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.restore();
-          } else {
-            shockwavesRef.current.splice(i, 1);
-          }
-        }
-
-        // Anamorphic Streaks (Horizontal light beams)
-        for (let i = streaksRef.current.length - 1; i >= 0; i--) {
-          const str = streaksRef.current[i];
-          str.alpha *= 0.96;
-          if (str.alpha > 0.02) {
-            ctx.save();
-            ctx.globalAlpha = str.alpha;
-            ctx.fillStyle = str.color;
-            ctx.shadowColor = str.color;
-            ctx.shadowBlur = 25;
-            ctx.fillRect(0, str.y - 1.5, width, 3);
-            ctx.restore();
-          } else {
-            streaksRef.current.splice(i, 1);
-          }
-        }
-
-        // Rotating Light Rays during Supernova (3.9s - 6.0s)
-        if (elapsed < 6.5) {
-          const rayAlpha = Math.max(0, 1 - (elapsed - 3.9) / 2.6) * 0.35;
-          ctx.save();
-          ctx.globalAlpha = rayAlpha;
-          ctx.translate(cx, cy);
-          ctx.rotate(elapsed * 0.7);
-
-          const rays = 12;
-          for (let r = 0; r < rays; r++) {
-            ctx.rotate((Math.PI * 2) / rays);
-            const rayGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, Math.max(width, height) * 0.7);
-            rayGrad.addColorStop(0, 'rgba(255, 215, 0, 0.4)');
-            rayGrad.addColorStop(0.5, 'rgba(245, 175, 25, 0.15)');
-            rayGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = rayGrad;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.arc(0, 0, Math.max(width, height) * 0.7, -0.06, 0.06);
-            ctx.closePath();
-            ctx.fill();
-          }
-          ctx.restore();
-        }
-      }
-
-      // ── 4. PARTICLE PHYSICS ENGINE ──
-      const particles = particlesRef.current;
+      // 4. Particles ระเบิด
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.life++;
-        p.alpha = Math.max(0, 1 - p.life / p.maxLife);
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.96;
+        p.vy *= 0.96;
+        p.alpha -= p.decay;
 
-        if (p.isSpiral && p.spiralAngle !== undefined && p.spiralRadius !== undefined) {
-          p.spiralAngle += p.spiralSpeed || 0.05;
-          p.spiralRadius *= 0.99;
-          p.x = cx + Math.cos(p.spiralAngle) * p.spiralRadius;
-          p.y = cy + Math.sin(p.spiralAngle) * p.spiralRadius;
-        } else {
-          // Gravitational pull towards center + tangential drag
-          const dx = cx - p.x;
-          const dy = cy - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
 
-          if (dist > 15) {
-            const force = (p.gravity * 80) / (dist + 50);
-            p.vx += (dx / dist) * force;
-            p.vy += (dy / dist) * force;
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        if (p.color !== '#0a0a18') {
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 10;
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 5. กล้องสั่น
+      if (shakeIntensity > 0.1) {
+        const offsetX = (Math.random() - 0.5) * shakeIntensity * 2;
+        const offsetY = (Math.random() - 0.5) * shakeIntensity * 2;
+        viewport.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+        shakeIntensity *= shakeDecay;
+      } else {
+        viewport.style.transform = 'translate(0px, 0px)';
+        shakeIntensity = 0;
+      }
+
+      // 6. ไทม์ไลน์ควบคุมลำดับเหตุการณ์
+      if (sequencePhase > 0) {
+        const elapsed = (currentTime - sequenceStartTime) / 1000;
+        const initialRadius = Math.max(width * 0.35, 400);
+
+        // Step 1: Fade In (0.0s - 0.5s)
+        if (elapsed < 0.5) {
+          sequencePhase = 1;
+          const p = elapsed / 0.5;
+          const opacity = easeOutQuad(p);
+          const startR = initialRadius;
+          const scale = 0.85;
+
+          const angleYin = -Math.PI / 2;
+          const angleYang = Math.PI / 2;
+
+          const yinX = Math.cos(angleYin) * startR;
+          const yinY = Math.sin(angleYin) * startR;
+          const yangX = Math.cos(angleYang) * startR;
+          const yangY = Math.sin(angleYang) * startR;
+
+          gravityCenter1.x = cx + yinX;
+          gravityCenter1.y = cy + yinY;
+          gravityCenter2.x = cx + yangX;
+          gravityCenter2.y = cy + yangY;
+
+          yinPiece.style.opacity = opacity.toString();
+          yangPiece.style.opacity = opacity.toString();
+          yinPiece.style.transform = `translate(${yinX}px, ${yinY}px) scale(${scale})`;
+          yangPiece.style.transform = `translate(${yangX}px, ${yangY}px) scale(${scale})`;
+        }
+        // Step 2: โคจร 4 รอบ (0.5s - 3.5s)
+        else if (elapsed >= 0.5 && elapsed < 3.5) {
+          sequencePhase = 2;
+          const progress = (elapsed - 0.5) / 3.0;
+          const easedProgress = easeInOutSine(progress);
+          const currentRotation = easedProgress * (Math.PI * 8);
+          const r = Math.max(0, 500 * (1 - progress));
+          const currentScale = 0.85 + (1.15 - 0.85) * progress;
+
+          const angleYin = -Math.PI / 2 + currentRotation;
+          const angleYang = angleYin + Math.PI;
+
+          const yinX = Math.cos(angleYin) * r;
+          const yinY = Math.sin(angleYin) * r;
+          const yangX = Math.cos(angleYang) * r;
+          const yangY = Math.sin(angleYang) * r;
+
+          gravityCenter1.x = cx + yinX;
+          gravityCenter1.y = cy + yinY;
+          gravityCenter2.x = cx + yangX;
+          gravityCenter2.y = cy + yangY;
+
+          yinPiece.style.opacity = '1';
+          yangPiece.style.opacity = '1';
+          yinPiece.style.transform = `translate(${yinX}px, ${yinY}px) scale(${currentScale})`;
+          yangPiece.style.transform = `translate(${yangX}px, ${yangY}px) scale(${currentScale})`;
+
+          createOrbitalSpark(width / 2 + yinX, height / 2 + yinY, '#ffd700');
+          createOrbitalSpark(width / 2 + yangX, height / 2 + yangY, '#ffffff');
+        }
+        // Step 3: Dramatic Pause (3.5s - 3.9s)
+        else if (elapsed >= 3.5 && elapsed < 3.9) {
+          sequencePhase = 3;
+          yinPiece.style.transform = `translate(0px, 0px) scale(1.15)`;
+          yangPiece.style.transform = `translate(0px, 0px) scale(1.15)`;
+
+          gravityCenter1.x = cx;
+          gravityCenter1.y = cy;
+          gravityCenter2.x = cx;
+          gravityCenter2.y = cy;
+
+          if (elapsed - 3.5 < 0.2) {
+            shakeIntensity = 5;
+          }
+        }
+        // Step 4: IMPACT (3.9s - 5.5s)
+        else if (elapsed >= 3.9 && elapsed < 5.5) {
+          if (sequencePhase !== 4) {
+            sequencePhase = 4;
+            yinPiece.style.opacity = '0';
+            yangPiece.style.opacity = '0';
+
+            shakeIntensity = 28;
+            triggerImpactExplosion();
+
+            anamorphicFlare.style.opacity = '1';
+            anamorphicFlare.style.transform = 'translateY(-50%) scaleX(1)';
+            safeSetTimeout(() => {
+              if (anamorphicFlare) {
+                anamorphicFlare.style.opacity = '0';
+                anamorphicFlare.style.transform = 'translateY(-50%) scaleX(0.2)';
+              }
+            }, 650);
+
+            filmGrain.style.opacity = '0.75';
+            safeSetTimeout(() => {
+              if (filmGrain) {
+                filmGrain.style.transition = 'opacity 0.8s ease';
+                filmGrain.style.opacity = '0';
+              }
+            }, 1200);
+
+            energyCore.style.opacity = '1';
+            energyCore.style.transition = 'transform 1.2s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 1.2s ease-out';
+            energyCore.style.transform = 'scale(100)';
+            safeSetTimeout(() => {
+              if (energyCore) {
+                energyCore.style.opacity = '0';
+              }
+            }, 800);
+
+            lightRays.style.opacity = '1';
+            lightRays.style.transition = 'transform 2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.8s ease-out';
+            lightRays.style.transform = 'scale(1.2) rotate(360deg)';
+            safeSetTimeout(() => {
+              if (lightRays) {
+                lightRays.style.opacity = '0';
+              }
+            }, 1600);
           }
 
-          p.vx *= p.drag;
-          p.vy *= p.drag;
-          p.x += p.vx;
-          p.y += p.vy;
+          const impactElapsed = elapsed - 3.9;
+          if (impactElapsed < 0.7) {
+            const fp = impactElapsed / 0.7;
+            const flashVal = fp < 0.15 ? fp / 0.15 : fp < 0.5 ? 1 - ((fp - 0.15) / 0.35) * 0.3 : 0.7 * (1 - (fp - 0.5) / 0.5);
+            flashOverlay.style.opacity = flashVal.toString();
+          } else {
+            flashOverlay.style.opacity = '0';
+          }
         }
-
-        p.rotation += p.rotationVelocity;
-
-        if (p.alpha <= 0.01) {
-          particles.splice(i, 1);
-        } else {
-          ctx.save();
-          ctx.globalAlpha = p.alpha;
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.rotation);
-          ctx.fillStyle = p.color;
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-          ctx.restore();
+        // Step 5: Cinematic Title Sequence (เริ่มที่ 5.5s)
+        else if (elapsed >= 5.5 && elapsed < 16.5) {
+          if (sequencePhase !== 5) {
+            sequencePhase = 5;
+            executeTitleSequence();
+          }
         }
-      }
+        // Step 7: หยินหยางหมุนไม่สิ้นสุด (16.5s เป็นต้นไป)
+        else if (elapsed >= 16.5) {
+          if (sequencePhase !== 7) {
+            sequencePhase = 7;
+            bgStarOpacity = 0.3;
+            vortexActive = true;
+            gravityCenter1.x = cx;
+            gravityCenter1.y = cy;
+            gravityCenter2.x = cx;
+            gravityCenter2.y = cy;
 
-      // ── 5. GRAVITATIONAL VORTEX (180 Gold Flakes) ──
-      if (elapsed >= 5.5) {
-        const flakes = vortexFlakesRef.current;
-        for (let i = 0; i < flakes.length; i++) {
-          const f = flakes[i];
-          f.angle += f.angularVelocity;
-          f.rotation += f.rotationVelocity;
-
-          // Tangential & gentle orbital drift
-          f.x = cx + Math.cos(f.angle) * f.orbitRadius;
-          f.y = cy + Math.sin(f.angle) * f.orbitRadius;
-
-          ctx.save();
-          ctx.globalAlpha = f.alpha;
-          ctx.translate(f.x, f.y);
-          ctx.rotate(f.rotation);
-          ctx.fillStyle = f.color;
-          ctx.shadowColor = '#ffd700';
-          ctx.shadowBlur = 8;
-          ctx.fillRect(-f.size / 2, -f.size / 2, f.size, f.size * 1.4);
-          ctx.restore();
+            finalYinYang.style.opacity = '1';
+            finalYinYang.style.transform = 'scale(1)';
+            finalYinYang.classList.add('interactive');
+          }
         }
       }
 
-      // ── 6. FINAL YIN-YANG RENDERING ON CANVAS (AFTER TITLES) ──
-      if (elapsed >= 16.5) {
-        finalRotationRef.current += (Math.PI * 2) / (3.0 * 60); // 1 round per 3 seconds at 60fps
+      animationFrameId = requestAnimationFrame(renderLoop);
+    }
 
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(finalRotationRef.current);
-        ctx.scale(0.85, 0.85); // 260px diameter (radius ~130)
-
-        // Subtle Hollywood Gold Glow Rim
-        ctx.shadowColor = '#ffd700';
-        ctx.shadowBlur = 32;
-
-        // Draw Outer Gold Border
-        ctx.beginPath();
-        ctx.arc(0, 0, 150, 0, Math.PI * 2);
-        ctx.strokeStyle = '#f5af19';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        // White Yang S-curve
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(0, -75, 75, -Math.PI / 2, Math.PI / 2, false);
-        ctx.arc(0, 75, 75, -Math.PI / 2, Math.PI / 2, true);
-        ctx.arc(0, 0, 150, Math.PI / 2, -Math.PI / 2, true);
-        ctx.closePath();
-        ctx.fill();
-
-        // Dark Yin S-curve
-        ctx.fillStyle = '#0a0a18';
-        ctx.beginPath();
-        ctx.arc(0, -75, 75, -Math.PI / 2, Math.PI / 2, false);
-        ctx.arc(0, 75, 75, -Math.PI / 2, Math.PI / 2, true);
-        ctx.arc(0, 0, 150, Math.PI / 2, -Math.PI / 2, false);
-        ctx.closePath();
-        ctx.fill();
-
-        // Yang Eye (Black dot at 0, -75, diameter 15% of R = 22.5px -> radius ~11.25)
-        ctx.fillStyle = '#0a0a18';
-        ctx.beginPath();
-        ctx.arc(0, -75, 12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#ffd700';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Yin Eye (White dot at 0, 75)
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(0, 75, 12, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#f5af19';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        ctx.restore();
-      }
-
-      ctx.restore(); // Restore camera shake
-
-      // ── 7. WHITE FLASH EFFECT ──
-      if (whiteFlashRef.current > 0.01) {
-        ctx.save();
-        ctx.fillStyle = `rgba(255, 255, 255, ${whiteFlashRef.current})`;
-        ctx.fillRect(0, 0, width, height);
-        ctx.restore();
-        whiteFlashRef.current *= 0.88; // Flash decay
-      }
-
-      // ── 8. VIGNETTE (85% Dark Edge) ──
-      ctx.save();
-      const vignetteGrad = ctx.createRadialGradient(
-        cx,
-        cy,
-        Math.min(width, height) * 0.35,
-        cx,
-        cy,
-        Math.max(width, height) * 0.75
-      );
-      vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-      vignetteGrad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
-      ctx.fillStyle = vignetteGrad;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
-
-      // ── 9. CINEMATIC LETTERBOX 2.39:1 ──
-      const cinemaHeight = width / 2.39;
-      if (height > cinemaHeight) {
-        const barHeight = (height - cinemaHeight) / 2;
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, barHeight);
-        ctx.fillRect(0, height - barHeight, width, barHeight);
-      }
-
-      // ── 10. PROCEDURAL 35MM FILM GRAIN ──
-      ctx.save();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
-      const grainCount = Math.floor((width * height) / 12000);
-      for (let g = 0; g < grainCount; g++) {
-        const gx = Math.random() * width;
-        const gy = Math.random() * height;
-        ctx.fillRect(gx, gy, 1, 1);
-      }
-      ctx.restore();
-
-      animFrameIdRef.current = requestAnimationFrame(render);
-    };
-
-    animFrameIdRef.current = requestAnimationFrame(render);
+    animationFrameId = requestAnimationFrame(renderLoop);
 
     return () => {
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-      }
+      window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
+      activeTimeouts.forEach(clearTimeout);
+      if (yinyangClickTimer !== null) clearTimeout(yinyangClickTimer);
+      if (finalYinYang) {
+        finalYinYang.removeEventListener('pointerdown', handleYinYangPointerDown);
+        finalYinYang.removeEventListener('click', handleYinYangClick);
+        finalYinYang.removeEventListener('dblclick', handleYinYangDblClick);
+      }
     };
-  }, [isActive]);
-
-  // Handle Interactive Yin-Yang Click & Double-click
-  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (phase !== 'final') return;
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
-
-    // If clicked near center Yin-Yang (radius 150px)
-    if (dist <= 160) {
-      spawnGoldDust(cx, cy, 35, false);
-    }
-  };
-
-  const handleCanvasDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (phase !== 'final') return;
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
-
-    // If double-clicked on Yin-Yang
-    if (dist <= 160) {
-      spawnGoldDust(cx, cy, 80, true);
-    }
-  };
+  }, [isActive, onClose]);
 
   if (!isActive) return null;
 
   return (
     <ViewportPortal>
       <div
-        className="fixed inset-0 select-none bg-black cursor-pointer overflow-hidden z-[999999]"
-        style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}
-        onClick={handleCanvasClick}
-        onDoubleClick={handleCanvasDoubleClick}
+        ref={containerRef}
+        className="fixed inset-0 z-[999999] overflow-hidden bg-black select-none"
+        style={{
+          fontFamily: '"Cinzel", "Trajan Pro", "Times New Roman", Georgia, serif',
+          cursor: 'pointer'
+        }}
       >
-        {/* Fullscreen Canvas for Stars, Supernova, Particles, and Letterbox */}
-        <canvas ref={canvasRef} className="block w-full h-full" />
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&display=swap');
 
-        {/* ── CINEMATIC TYPOGRAPHY OVERLAY (SVG-BASED RENDERING) ── */}
+          .easter-egg-viewport {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            transform-origin: center center;
+          }
 
-        {/* FIRST TITLE: APORN 💛 SURIYA (Duration 5.5s) */}
-        {phase === 'title1' && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 animate-fade-in">
-            <svg
-              viewBox="0 0 1000 240"
-              className="w-full max-w-4xl max-h-[38vh] drop-shadow-[0_0_35px_rgba(255,215,0,0.6)]"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                {/* Pure Hollywood Gold Multi-Stop Gradient */}
-                <linearGradient id="hollywoodGold" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fff8db" />
-                  <stop offset="28%" stopColor="#ffd700" />
-                  <stop offset="65%" stopColor="#f5af19" />
-                  <stop offset="100%" stopColor="#9d6205" />
-                </linearGradient>
+          .easter-egg-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+            pointer-events: none;
+          }
 
-                <linearGradient id="heartGold" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#fff8db" />
-                  <stop offset="40%" stopColor="#ffd700" />
-                  <stop offset="85%" stopColor="#f5af19" />
-                  <stop offset="100%" stopColor="#784704" />
-                </linearGradient>
+          .vignette {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            pointer-events: none;
+            background: radial-gradient(circle at center, transparent 32%, rgba(2, 2, 8, 0.94) 100%);
+            opacity: 0.85;
+            mix-blend-mode: multiply;
+          }
 
-                <filter id="goldBevel" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000000" floodOpacity="0.8" />
-                  <feDropShadow dx="0" dy="0" stdDeviation="8" floodColor="#ffd700" floodOpacity="0.5" />
-                </filter>
-              </defs>
+          .letterbox {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 0;
+            background: #000;
+            z-index: 30;
+            pointer-events: none;
+            transition: height 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+          }
+          .letterbox-top { top: 0; }
+          .letterbox-bottom { bottom: 0; }
+          .letterbox.active { height: 7.5vh; }
 
-              {/* APORN Text */}
-              <text
-                x="240"
-                y="145"
-                textAnchor="middle"
-                fill="url(#hollywoodGold)"
-                stroke="#ffeaa7"
+          .film-grain {
+            position: absolute;
+            inset: -50%;
+            width: 200%;
+            height: 200%;
+            z-index: 35;
+            pointer-events: none;
+            opacity: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.12'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+          }
+
+          .anamorphic-flare {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            transform: translateY(-50%) scaleX(0);
+            background: linear-gradient(90deg, 
+              transparent 0%, 
+              rgba(255, 215, 0, 0.3) 25%, 
+              rgba(255, 255, 255, 0.95) 50%, 
+              rgba(255, 215, 0, 0.3) 75%, 
+              transparent 100%);
+            box-shadow: 0 0 25px 6px #ffd700, 0 0 60px 15px rgba(255, 170, 0, 0.7);
+            z-index: 25;
+            pointer-events: none;
+            opacity: 0;
+            transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+          }
+
+          .flash-overlay {
+            position: absolute;
+            inset: 0;
+            background: #ffffff;
+            opacity: 0;
+            z-index: 28;
+            pointer-events: none;
+          }
+
+          .light-rays {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1300px;
+            height: 1300px;
+            margin-left: -650px;
+            margin-top: -650px;
+            border-radius: 50%;
+            background: conic-gradient(
+              from 0deg,
+              transparent 0deg,
+              rgba(255, 240, 180, 0.18) 15deg,
+              transparent 30deg,
+              rgba(255, 215, 0, 0.22) 55deg,
+              transparent 80deg,
+              rgba(255, 160, 0, 0.18) 120deg,
+              transparent 160deg,
+              rgba(255, 255, 255, 0.2) 195deg,
+              transparent 230deg,
+              rgba(255, 215, 0, 0.22) 280deg,
+              transparent 320deg,
+              rgba(255, 240, 180, 0.18) 360deg
+            );
+            -webkit-mask-image: radial-gradient(circle, rgba(0,0,0,1) 12%, transparent 68%);
+            mask-image: radial-gradient(circle, rgba(0,0,0,1) 12%, transparent 68%);
+            z-index: 8;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.4) rotate(0deg);
+          }
+
+          .energy-core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            margin-left: -2px;
+            margin-top: -2px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffffff 0%, #ffd700 35%, #ff8c00 70%, transparent 100%);
+            box-shadow: 
+              0 0 40px 15px #ffffff,
+              0 0 100px 40px #ffd700,
+              0 0 180px 70px #ff8c00;
+            z-index: 15;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(1);
+          }
+
+          .piece-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            margin-left: -150px;
+            margin-top: -150px;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+            will-change: transform, opacity;
+            filter: drop-shadow(0 0 24px rgba(255, 215, 0, 0.45));
+          }
+
+          .piece-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            overflow: visible;
+          }
+
+          .title-stage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 26;
+            width: 90vw;
+            max-width: 1200px;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+
+          .title-svg {
+            width: 100%;
+            height: auto;
+            max-height: 52vh;
+            overflow: visible;
+            opacity: 0;
+            display: none;
+            will-change: transform, opacity;
+          }
+
+          @keyframes goldenHeartbeat {
+            0% { transform: scale(1); filter: drop-shadow(0 0 14px #ffd700) drop-shadow(0 0 30px #ff9100); }
+            14% { transform: scale(1.22); filter: drop-shadow(0 0 26px #fff2a3) drop-shadow(0 0 55px #ffd700); }
+            28% { transform: scale(1.05); filter: drop-shadow(0 0 18px #ffd700); }
+            42% { transform: scale(1.28); filter: drop-shadow(0 0 30px #fff2a3) drop-shadow(0 0 65px #ffd700); }
+            70% { transform: scale(1); filter: drop-shadow(0 0 14px #ffd700) drop-shadow(0 0 30px #ff9100); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 14px #ffd700) drop-shadow(0 0 30px #ff9100); }
+          }
+
+          .heart-element {
+            transform-origin: 500px 115px;
+            animation: goldenHeartbeat 1.1s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+          }
+
+          .final-yinyang-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 260px;
+            height: 260px;
+            margin-left: -130px;
+            margin-top: -130px;
+            z-index: 20;
+            opacity: 0;
+            transform: scale(0.6);
+            pointer-events: none;
+            transition: opacity 1.8s cubic-bezier(0.16, 1, 0.3, 1), transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+          }
+
+          .final-yinyang-container.interactive {
+            pointer-events: auto;
+          }
+
+          .yinyang-disk {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(90deg, #0a0a18 0%, #0a0a18 50%, #ffffff 50%, #ffffff 100%);
+            box-shadow: 
+              0 0 35px 5px rgba(255, 255, 255, 0.65),
+              0 0 80px 18px rgba(255, 215, 0, 0.6),
+              0 0 140px 30px rgba(255, 140, 0, 0.45);
+            animation: perpetualSpin 3s linear infinite;
+            transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
+          }
+
+          .final-yinyang-container:active .yinyang-disk {
+            transform: scale(0.94);
+          }
+
+          .yinyang-disk::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;
+            height: 130px;
+            background: #0a0a18;
+            border-radius: 50%;
+            z-index: 1;
+          }
+
+          .yinyang-disk::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 130px;
+            height: 130px;
+            background: #ffffff;
+            border-radius: 50%;
+            z-index: 1;
+          }
+
+          .yinyang-dot-white {
+            position: absolute;
+            top: 17.5%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 39px;
+            height: 39px;
+            border-radius: 50%;
+            background: #ffffff;
+            z-index: 2;
+          }
+
+          .yinyang-dot-black {
+            position: absolute;
+            bottom: 17.5%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            width: 39px;
+            height: 39px;
+            border-radius: 50%;
+            background: #0a0a18;
+            z-index: 2;
+          }
+
+          @keyframes perpetualSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+
+        {/* Global SVG Definitions for Hollywood Gold Gradient & Glow */}
+        <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }}>
+          <defs>
+            <linearGradient id="richGold" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#fff8db" />
+              <stop offset="16%" stopColor="#ffd700" />
+              <stop offset="35%" stopColor="#f5af19" />
+              <stop offset="50%" stopColor="#9d6205" />
+              <stop offset="55%" stopColor="#d89e13" />
+              <stop offset="80%" stopColor="#ffe885" />
+              <stop offset="100%" stopColor="#8a5300" />
+            </linearGradient>
+
+            <linearGradient id="goldEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="40%" stopColor="#ffd700" />
+              <stop offset="70%" stopColor="#8a5300" />
+              <stop offset="100%" stopColor="#fff5b3" />
+            </linearGradient>
+
+            <radialGradient id="goldHeartGrad" cx="35%" cy="30%" r="72%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="25%" stopColor="#ffe66d" />
+              <stop offset="55%" stopColor="#ffd700" />
+              <stop offset="80%" stopColor="#d48800" />
+              <stop offset="100%" stopColor="#593200" />
+            </radialGradient>
+
+            <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="10" floodColor="#ffd700" floodOpacity="0.65" />
+              <feDropShadow dx="0" dy="0" stdDeviation="28" floodColor="#ff9100" floodOpacity="0.38" />
+            </filter>
+          </defs>
+        </svg>
+
+        {/* Viewport Frame */}
+        <div id="viewport" ref={viewportRef} className="easter-egg-viewport">
+          <canvas id="fx-canvas" ref={canvasRef} className="easter-egg-canvas" />
+
+          <div className="vignette" />
+          <div className="film-grain" id="filmGrain" ref={filmGrainRef} />
+          <div className="anamorphic-flare" id="anamorphicFlare" ref={anamorphicFlareRef} />
+          <div className="flash-overlay" id="flashOverlay" ref={flashOverlayRef} />
+          <div className="light-rays" id="lightRays" ref={lightRaysRef} />
+          <div className="energy-core" id="energyCore" ref={energyCoreRef} />
+
+          <div className="letterbox letterbox-top" id="letterboxTop" ref={letterboxTopRef} />
+          <div className="letterbox letterbox-bottom" id="letterboxBottom" ref={letterboxBottomRef} />
+
+          {/* ชิ้นส่วนซีก Yin และ Yang */}
+          <div className="piece-wrapper" id="yinPiece" ref={yinPieceRef}>
+            <svg className="piece-svg" viewBox="-150 -150 300 300">
+              <path
+                d="M 0,-150 A 150,150 0 0,0 0,150 A 75,75 0 0,1 0,0 A 75,75 0 0,0 0,-150 Z"
+                fill="#0a0a18"
+                stroke="#14142a"
                 strokeWidth="1.2"
-                filter="url(#goldBevel)"
-                className="font-serif font-black tracking-[0.22em]"
-                style={{ fontSize: '78px', letterSpacing: '0.18em' }}
-              >
-                APORN
-              </text>
+              />
+              <circle cx="0" cy="-75" r="22.5" fill="#ffffff" />
+            </svg>
+          </div>
 
-              {/* 3D Gold Heart with 80 BPM Heartbeat */}
-              <g
-                transform={`translate(500, 120) scale(${heartbeatScale}) translate(-500, -120)`}
-                style={{ transition: 'transform 0.12s ease-out' }}
-              >
-                <path
-                  d="M500,90 C480,55 435,55 435,100 C435,135 500,165 500,175 C500,165 565,135 565,100 C565,55 520,55 500,90 Z"
-                  fill="url(#heartGold)"
-                  stroke="#fff8db"
-                  strokeWidth="2.5"
-                  filter="url(#goldBevel)"
-                />
+          <div className="piece-wrapper" id="yangPiece" ref={yangPieceRef}>
+            <svg className="piece-svg" viewBox="-150 -150 300 300">
+              <path
+                d="M 0,150 A 150,150 0 0,0 0,-150 A 75,75 0 0,1 0,0 A 75,75 0 0,0 0,150 Z"
+                fill="#ffffff"
+                stroke="#e0e0e0"
+                strokeWidth="1"
+              />
+              <circle cx="0" cy="75" r="22.5" fill="#0a0a18" />
+            </svg>
+          </div>
+
+          {/* ข้อความไตเติลสีทองคำแท้ */}
+          <div className="title-stage">
+            <svg className="title-svg" id="titleMain" ref={titleMainRef} viewBox="0 0 1000 240">
+              <g filter="url(#goldGlow)">
+                <text
+                  x="360"
+                  y="145"
+                  textAnchor="end"
+                  fill="url(#richGold)"
+                  stroke="url(#goldEdge)"
+                  strokeWidth="1.2"
+                  fontSize="64"
+                  fontWeight="700"
+                  letterSpacing="14"
+                >
+                  APORN
+                </text>
+
+                <text
+                  x="640"
+                  y="145"
+                  textAnchor="start"
+                  fill="url(#richGold)"
+                  stroke="url(#goldEdge)"
+                  strokeWidth="1.2"
+                  fontSize="64"
+                  fontWeight="700"
+                  letterSpacing="14"
+                >
+                  SURIYA
+                </text>
               </g>
 
-              {/* SURIYA Text */}
-              <text
-                x="760"
-                y="145"
-                textAnchor="middle"
-                fill="url(#hollywoodGold)"
-                stroke="#ffeaa7"
-                strokeWidth="1.2"
-                filter="url(#goldBevel)"
-                className="font-serif font-black tracking-[0.22em]"
-                style={{ fontSize: '78px', letterSpacing: '0.18em' }}
-              >
-                SURIYA
-              </text>
+              {/* หัวใจสีทองคำ 3D */}
+              <g className="heart-element">
+                <path
+                  d="M 500,140 C 500,140 455,108 455,85 C 455,67 470,54 487,54 C 496,54 500,60 500,60 C 500,60 504,54 513,54 C 530,54 545,67 545,85 C 545,108 500,140 500,140 Z"
+                  fill="url(#goldHeartGrad)"
+                  stroke="url(#goldEdge)"
+                  strokeWidth="1.6"
+                />
+                <ellipse cx="482" cy="74" rx="7" ry="4" transform="rotate(-30 482 74)" fill="#ffffff" opacity="0.8" />
+              </g>
+            </svg>
+
+            <svg className="title-svg" id="titleSub" ref={titleSubRef} viewBox="0 0 1000 240">
+              <g filter="url(#goldGlow)">
+                <text
+                  x="500"
+                  y="145"
+                  textAnchor="middle"
+                  fill="url(#richGold)"
+                  stroke="url(#goldEdge)"
+                  strokeWidth="1.4"
+                  fontSize="82"
+                  fontWeight="600"
+                  letterSpacing="34"
+                >
+                  ETERNAL
+                </text>
+              </g>
             </svg>
           </div>
-        )}
 
-        {/* SECOND TITLE: ETERNAL (Dolly Zoom in effect, duration 4.5s) */}
-        {phase === 'title2' && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 animate-fade-in">
-            <svg
-              viewBox="0 0 1000 200"
-              className="w-full max-w-3xl max-h-[30vh] drop-shadow-[0_0_40px_rgba(255,215,0,0.55)] transition-transform duration-[4500ms] ease-out scale-100 hover:scale-110"
-              xmlns="http://www.w3.org/2000/svg"
-              style={{ animation: 'dollyIn 4.5s ease-out forwards' }}
-            >
-              <defs>
-                <linearGradient id="eternalGold" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#fff8db" />
-                  <stop offset="30%" stopColor="#ffd700" />
-                  <stop offset="70%" stopColor="#f5af19" />
-                  <stop offset="100%" stopColor="#784704" />
-                </linearGradient>
-
-                <filter id="engravedGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#000000" floodOpacity="0.9" />
-                  <feDropShadow dx="0" dy="0" stdDeviation="12" floodColor="#ffd700" floodOpacity="0.6" />
-                </filter>
-              </defs>
-
-              <text
-                x="500"
-                y="135"
-                textAnchor="middle"
-                fill="url(#eternalGold)"
-                stroke="#fff8db"
-                strokeWidth="1.5"
-                filter="url(#engravedGlow)"
-                className="font-serif font-black tracking-[0.45em]"
-                style={{ fontSize: '84px', letterSpacing: '0.38em' }}
-              >
-                ETERNAL
-              </text>
-            </svg>
+          {/* หยิน-หยางตัวใหญ่หมุนไม่สิ้นสุด (คลิก/ดับเบิลคลิกพ่นผงทองได้) */}
+          <div className="final-yinyang-container" id="finalYinYang" ref={finalYinYangRef}>
+            <div className="yinyang-disk">
+              <div className="yinyang-dot-white" />
+              <div className="yinyang-dot-black" />
+            </div>
           </div>
-        )}
-
-        {/* Subtle Escape Hint (Hidden/Minimal for user safety) */}
-        <div className="absolute bottom-4 right-6 text-[11px] text-slate-600/60 hover:text-slate-400 transition pointer-events-auto">
-          <button
-            onClick={() => {
-              if (document.fullscreenElement) {
-                document.exitFullscreen?.().catch(() => {});
-              }
-              onClose();
-            }}
-            className="px-2.5 py-1 rounded bg-black/40 border border-slate-800/50 hover:border-slate-700"
-          >
-            กด Esc เพื่อออก
-          </button>
         </div>
-      </div>
 
-      <style jsx global>{`
-        @keyframes dollyIn {
-          0% {
-            transform: scale(0.88);
-            opacity: 0;
-          }
-          15% {
-            opacity: 1;
-          }
-          85% {
-            opacity: 1;
-          }
-          100% {
-            transform: scale(1.08);
-            opacity: 0;
-          }
-        }
-      `}</style>
+        {/* Discrete Exit Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (typeof document !== 'undefined' && document.fullscreenElement) {
+              document.exitFullscreen?.().catch(() => {});
+            }
+            onClose();
+          }}
+          className="absolute top-4 right-4 z-[999999] px-3.5 py-1.5 rounded-full text-xs font-medium text-amber-200/60 hover:text-amber-100 bg-black/40 hover:bg-black/80 border border-amber-500/20 hover:border-amber-500/50 backdrop-blur-md transition-all duration-300"
+          title="Exit Cinematic Easter Egg (ESC)"
+        >
+          ✕ ปิด (ESC)
+        </button>
+      </div>
     </ViewportPortal>
   );
 }
