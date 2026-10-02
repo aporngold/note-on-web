@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useTheme } from 'next-themes';
@@ -33,6 +33,7 @@ import MasterPasswordModal from '../notes/MasterPasswordModal';
 import PasskeyModal from '../modals/PasskeyModal';
 import DeleteAccountModal from '../modals/DeleteAccountModal';
 import HelpModal from '../modals/HelpModal';
+import CinematicEasterEgg from '../easter-egg/CinematicEasterEgg';
 
 interface SidebarProps {
   onCloseMobile?: () => void;
@@ -71,6 +72,27 @@ export default function Sidebar({
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isEasterEggActive, setIsEasterEggActive] = useState(false);
+  const clickCountRef = useRef(0);
+  const lastClickTimeRef = useRef(0);
+
+  const handleLogoPointerDown = (e: React.PointerEvent) => {
+    const now = Date.now();
+    if (now - lastClickTimeRef.current > 2500) {
+      clickCountRef.current = 1;
+    } else {
+      clickCountRef.current += 1;
+    }
+    lastClickTimeRef.current = now;
+
+    if (clickCountRef.current >= 9) {
+      clickCountRef.current = 0;
+      if (typeof document !== 'undefined' && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      }
+      setIsEasterEggActive(true);
+    }
+  };
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const reminderCount = notes.filter((n) => !n.isArchived && Boolean(remindersByNote[n.id])).length;
 
@@ -115,8 +137,11 @@ export default function Sidebar({
         <div className="flex flex-col items-center gap-4 w-full">
           {/* App Icon / Logo */}
           <Link href="/dashboard" className="p-1 group" title="NoteAll Dashboard">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900">
-              <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover" />
+            <div
+              onPointerDown={handleLogoPointerDown}
+              className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900 cursor-pointer"
+            >
+              <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover select-none pointer-events-none" />
             </div>
           </Link>
 
@@ -266,6 +291,12 @@ export default function Sidebar({
             <LogOut size={16} />
           </button>
         </div>
+
+        {/* Cinematic Easter Egg */}
+        <CinematicEasterEgg
+          isActive={isEasterEggActive}
+          onClose={() => setIsEasterEggActive(false)}
+        />
       </aside>
     );
   }
@@ -277,8 +308,11 @@ export default function Sidebar({
         {/* Logo, Collapse Button & Close on mobile */}
         <div className="flex items-center justify-between pt-1 px-3.5">
           <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900">
-              <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover" />
+            <div
+              onPointerDown={handleLogoPointerDown}
+              className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900 cursor-pointer"
+            >
+              <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover select-none pointer-events-none" />
             </div>
             <div>
               <h1 className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight leading-none">
@@ -657,6 +691,10 @@ export default function Sidebar({
       <HelpModal
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
+      />
+      <CinematicEasterEgg
+        isActive={isEasterEggActive}
+        onClose={() => setIsEasterEggActive(false)}
       />
     </aside>
   );
