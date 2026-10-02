@@ -97,6 +97,304 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
+    // ────────────── WEB AUDIO SYNTHESIZER ENGINE ──────────────
+    let audioCtx: AudioContext | null = null;
+    let masterGain: GainNode | null = null;
+
+    try {
+      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      audioCtx = new AudioCtxClass();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(0.75, audioCtx.currentTime);
+      masterGain.connect(audioCtx.destination);
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+    } catch {
+      // AudioContext unavailable or blocked
+    }
+
+    let droneOsc1: OscillatorNode | null = null;
+    let droneOsc2: OscillatorNode | null = null;
+    let droneGain: GainNode | null = null;
+
+    function startCosmicDrone() {
+      if (!audioCtx || !masterGain || audioCtx.state === 'closed') return;
+      try {
+        const now = audioCtx.currentTime;
+        droneGain = audioCtx.createGain();
+        droneGain.gain.setValueAtTime(0.001, now);
+        droneGain.gain.linearRampToValueAtTime(0.28, now + 1.2);
+        droneGain.connect(masterGain);
+
+        droneOsc1 = audioCtx.createOscillator();
+        droneOsc1.type = 'sine';
+        droneOsc1.frequency.setValueAtTime(55, now);
+        droneOsc1.frequency.exponentialRampToValueAtTime(110, now + 3.5);
+
+        droneOsc2 = audioCtx.createOscillator();
+        droneOsc2.type = 'triangle';
+        droneOsc2.frequency.setValueAtTime(110, now);
+        droneOsc2.frequency.exponentialRampToValueAtTime(220, now + 3.5);
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(180, now);
+        filter.frequency.linearRampToValueAtTime(480, now + 3.5);
+
+        droneOsc1.connect(filter);
+        droneOsc2.connect(filter);
+        filter.connect(droneGain);
+
+        droneOsc1.start(now);
+        droneOsc2.start(now);
+      } catch {}
+    }
+
+    function stopCosmicDrone() {
+      if (!audioCtx || !droneGain || audioCtx.state === 'closed') return;
+      try {
+        const now = audioCtx.currentTime;
+        droneGain.gain.setValueAtTime(droneGain.gain.value, now);
+        droneGain.gain.linearRampToValueAtTime(0.0001, now + 0.25);
+        safeSetTimeout(() => {
+          try {
+            droneOsc1?.stop();
+            droneOsc2?.stop();
+            droneOsc1?.disconnect();
+            droneOsc2?.disconnect();
+          } catch {}
+        }, 300);
+      } catch {}
+    }
+
+    function playAnticipationSuction() {
+      if (!audioCtx || !masterGain || audioCtx.state === 'closed') return;
+      try {
+        const now = audioCtx.currentTime;
+        const dur = 0.38;
+        const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.18;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(180, now);
+        filter.frequency.exponentialRampToValueAtTime(1800, now + dur);
+        filter.Q.value = 3.5;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(0.35, now + dur - 0.05);
+        gain.gain.linearRampToValueAtTime(0.0001, now + dur);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+
+        noise.start(now);
+      } catch {}
+    }
+
+    function playSupernovaImpact() {
+      if (!audioCtx || !masterGain || audioCtx.state === 'closed') return;
+      try {
+        const now = audioCtx.currentTime;
+
+        // Sub-bass heavy impact boom
+        const subOsc = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(180, now);
+        subOsc.frequency.exponentialRampToValueAtTime(26, now + 1.8);
+
+        subGain.gain.setValueAtTime(0.95, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
+
+        subOsc.connect(subGain);
+        subGain.connect(masterGain);
+        subOsc.start(now);
+        subOsc.stop(now + 2.0);
+
+        // Explosion rumble with dynamic lowpass sweep
+        const noiseDur = 3.2;
+        const bufferSize = Math.floor(audioCtx.sampleRate * noiseDur);
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.75;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2400, now);
+        filter.frequency.exponentialRampToValueAtTime(55, now + noiseDur);
+        filter.Q.value = 2.8;
+
+        const noiseGain = audioCtx.createGain();
+        noiseGain.gain.setValueAtTime(0.8, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseDur);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(masterGain);
+
+        noise.start(now);
+      } catch {}
+    }
+
+    function playCelestialChime(isMajor = true) {
+      if (!audioCtx || !masterGain || audioCtx.state === 'closed') return;
+      try {
+        const freqs = isMajor ? [528, 660, 792, 1056, 1320, 1584] : [440, 554.37, 659.25, 880, 1108.73, 1318.51];
+        freqs.forEach((freq, idx) => {
+          if (!audioCtx || !masterGain) return;
+          const noteTime = audioCtx.currentTime + idx * 0.085;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, noteTime);
+
+          gain.gain.setValueAtTime(0.001, noteTime);
+          gain.gain.linearRampToValueAtTime(0.14, noteTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 2.4);
+
+          osc.connect(gain);
+          gain.connect(masterGain);
+
+          osc.start(noteTime);
+          osc.stop(noteTime + 2.5);
+        });
+      } catch {}
+    }
+
+    function playHeartbeat() {
+      if (!audioCtx || !masterGain || audioCtx.state === 'closed') return;
+      try {
+        const now = audioCtx.currentTime;
+
+        // 1st beat (lub)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(65, now);
+        osc1.frequency.exponentialRampToValueAtTime(34, now + 0.12);
+
+        gain1.gain.setValueAtTime(0.35, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc1.connect(gain1);
+        gain1.connect(masterGain);
+        osc1.start(now);
+        osc1.stop(now + 0.13);
+
+        // 2nd beat (dub)
+        const now2 = now + 0.16;
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(80, now2);
+        osc2.frequency.exponentialRampToValueAtTime(38, now2 + 0.15);
+
+        gain2.gain.setValueAtTime(0.4, now2);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now2 + 0.15);
+
+        osc2.connect(gain2);
+        gain2.connect(masterGain);
+        osc2.start(now2);
+        osc2.stop(now2 + 0.16);
+      } catch {}
+    }
+
+    function playGoldDustPop() {
+      if (!audioCtx || !masterGain || audioCtx.state === 'closed') return;
+      try {
+        const now = audioCtx.currentTime;
+        const freqs = [1760, 2200, 2640];
+        freqs.forEach((freq, idx) => {
+          if (!audioCtx || !masterGain) return;
+          const t = now + idx * 0.035;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+
+          gain.gain.setValueAtTime(0.001, t);
+          gain.gain.linearRampToValueAtTime(0.16, t + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
+
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(t);
+          osc.stop(t + 0.7);
+        });
+      } catch {}
+    }
+
+    function playDoubleTapBurst() {
+      if (!audioCtx || !masterGain || audioCtx.state === 'closed') return;
+      try {
+        const now = audioCtx.currentTime;
+
+        // Resonating golden gong bell
+        const oscGong = audioCtx.createOscillator();
+        const gainGong = audioCtx.createGain();
+        oscGong.type = 'sine';
+        oscGong.frequency.setValueAtTime(432, now);
+
+        gainGong.gain.setValueAtTime(0.45, now);
+        gainGong.gain.exponentialRampToValueAtTime(0.0001, now + 1.9);
+
+        oscGong.connect(gainGong);
+        gainGong.connect(masterGain);
+        oscGong.start(now);
+        oscGong.stop(now + 2.0);
+
+        // Low bass punch
+        const oscBass = audioCtx.createOscillator();
+        const gainBass = audioCtx.createGain();
+        oscBass.type = 'triangle';
+        oscBass.frequency.setValueAtTime(115, now);
+        oscBass.frequency.exponentialRampToValueAtTime(32, now + 0.42);
+
+        gainBass.gain.setValueAtTime(0.55, now);
+        gainBass.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        oscBass.connect(gainBass);
+        gainBass.connect(masterGain);
+        oscBass.start(now);
+        oscBass.stop(now + 0.5);
+
+        // Flurry of golden high chimes
+        const freqs = [1056, 1320, 1584, 2112, 2640];
+        freqs.forEach((freq, idx) => {
+          if (!audioCtx || !masterGain) return;
+          const t = now + idx * 0.04;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t);
+
+          gain.gain.setValueAtTime(0.001, t);
+          gain.gain.linearRampToValueAtTime(0.14, t + 0.01);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(t);
+          osc.stop(t + 0.9);
+        });
+      } catch {}
+    }
+
     const stars: Array<{
       x: number;
       y: number;
@@ -227,6 +525,7 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
       if (yinyangClickTimer === null) {
         yinyangClickTimer = setTimeout(() => {
           spawnGoldDust(35, 6.5);
+          playGoldDustPop();
           yinyangClickTimer = null;
         }, 220);
       }
@@ -241,6 +540,7 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
       spawnGoldDust(80, 12.0);
       shakeIntensity = 6;
       spawnShockwave(0);
+      playDoubleTapBurst();
     };
 
     finalYinYang.addEventListener('pointerdown', handleYinYangPointerDown);
@@ -355,8 +655,17 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
     vortexActive = true;
     letterboxTop.classList.add('active');
     letterboxBottom.classList.add('active');
+    startCosmicDrone();
 
     function executeTitleSequence() {
+      playCelestialChime(true);
+      // Play rhythmic heartbeats matching the 1.1s pulse animation
+      for (let i = 0; i < 5; i++) {
+        safeSetTimeout(() => {
+          playHeartbeat();
+        }, Math.round((0.3 + i * 1.1) * 1000));
+      }
+
       // 1. APORN 💛 SURIYA แสดง 5.5 วินาที
       titleMain.style.display = 'block';
       titleMain.animate([
@@ -376,6 +685,7 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
 
         // 2. ETERNAL แสดง 4.5 วินาที
         titleSub.style.display = 'block';
+        playCelestialChime(false);
         titleSub.animate([
           { opacity: 0, transform: 'scale(1.08)' },
           { opacity: 1, transform: 'scale(1.0)', offset: 0.14 },
@@ -617,7 +927,11 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
         }
         // Step 3: Dramatic Pause (3.5s - 3.9s)
         else if (elapsed >= 3.5 && elapsed < 3.9) {
-          sequencePhase = 3;
+          if (sequencePhase !== 3) {
+            sequencePhase = 3;
+            stopCosmicDrone();
+            playAnticipationSuction();
+          }
           yinPiece.style.transform = `translate(0px, 0px) scale(1.15)`;
           yangPiece.style.transform = `translate(0px, 0px) scale(1.15)`;
 
@@ -634,6 +948,7 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
         else if (elapsed >= 3.9 && elapsed < 5.5) {
           if (sequencePhase !== 4) {
             sequencePhase = 4;
+            playSupernovaImpact();
             yinPiece.style.opacity = '0';
             yangPiece.style.opacity = '0';
 
@@ -726,6 +1041,19 @@ export default function CinematicEasterEgg({ isActive, onClose }: CinematicEaste
         finalYinYang.removeEventListener('click', handleYinYangClick);
         finalYinYang.removeEventListener('dblclick', handleYinYangDblClick);
       }
+      try {
+        if (audioCtx && audioCtx.state !== 'closed') {
+          if (masterGain) {
+            masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+            masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+          }
+          setTimeout(() => {
+            try {
+              audioCtx?.close().catch(() => {});
+            } catch {}
+          }, 60);
+        }
+      } catch {}
     };
   }, [isActive, onClose]);
 
