@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Smartphone
 } from 'lucide-react';
+import ViewportPortal from '../ui/ViewportPortal';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -390,12 +391,16 @@ export default function HelpModal({ isOpen, onClose, initialTab = 'all' }: HelpM
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <ViewportPortal>
       <div 
-        className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in overflow-y-auto"
+        onClick={onClose}
       >
-        {/* Header */}
+        <div 
+          className="w-full max-w-4xl max-h-[85vh] my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all relative"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
         <div className="p-4 sm:px-6 sm:py-4.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-50/60 via-purple-50/30 to-transparent dark:from-slate-800/60 dark:via-indigo-950/20 dark:to-transparent">
           <div className="flex items-center gap-3">
             <span className="p-2.5 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-500/25">
@@ -548,5 +553,6 @@ export default function HelpModal({ isOpen, onClose, initialTab = 'all' }: HelpM
         </div>
       </div>
     </div>
+    </ViewportPortal>
   );
 }

@@ -1784,64 +1784,18 @@ export default function NoteRichToolbar({
           </ViewportPopover>
         </div>
 
-        {/* Help Menu */}
-        <div className="relative">
-          <button
-            ref={helpBtnRef}
-            type="button"
-            onClick={() => setActiveMenu((prev) => (prev === 'help' ? null : 'help'))}
-            className={`px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition ${
-              activeMenu === 'help' ? 'bg-slate-200 dark:bg-slate-700' : ''
-            }`}
-            title="ช่วยเหลือและคีย์ลัด (Help)"
-          >
-            Help
-          </button>
-          <ViewportPopover
-            triggerRef={helpBtnRef}
-            isOpen={activeMenu === 'help'}
-            onClose={() => setActiveMenu(null)}
-            className="w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-3 text-xs space-y-1.5"
-          >
-            <p className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <HelpCircle size={14} className="text-indigo-600" />
-              <span>คีย์ลัดที่รองรับ</span>
-            </p>
-            <div className="space-y-1 text-[11px] text-slate-600 dark:text-slate-300">
-              <p className="flex justify-between">
-                <span>ตัวหนา (Bold):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+B</kbd>
-              </p>
-              <p className="flex justify-between">
-                <span>ตัวเอียง (Italic):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+I</kbd>
-              </p>
-              <p className="flex justify-between">
-                <span>ขีดเส้นใต้ (Underline):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+U</kbd>
-              </p>
-              <p className="flex justify-between">
-                <span>เลิกทำ (Undo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+Z</kbd>
-              </p>
-              <p className="flex justify-between">
-                <span>ทำซ้ำ (Redo):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+Y</kbd>
-              </p>
-              <p className="flex justify-between">
-                <span>บันทึก (Save):</span> <kbd className="font-mono bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 px-1 rounded">Ctrl+S</kbd>
-              </p>
-            </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveMenu(null);
-                  setIsHelpModalOpen(true);
-                }}
-                className="w-full py-1.5 px-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 font-bold text-center flex items-center justify-center gap-1.5 transition active:scale-95"
-              >
-                <BookOpen size={13} />
-                <span>คู่มือวิธีใช้งานทั้งหมด 📖</span>
-              </button>
-            </div>
-          </ViewportPopover>
-        </div>
+        {/* Help Button - Direct Trigger */}
+        <button
+          type="button"
+          onClick={() => {
+            setActiveMenu(null);
+            setIsHelpModalOpen(true);
+          }}
+          className="px-2.5 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition text-slate-700 dark:text-slate-200 font-medium"
+          title="วิธีใช้งานและคำแนะนำ (Help Guide)"
+        >
+          Help
+        </button>
 
         </div>
 
