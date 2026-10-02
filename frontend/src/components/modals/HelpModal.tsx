@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   X,
   Search,
@@ -15,6 +15,7 @@ import {
   HelpCircle,
   AlertTriangle,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   ExternalLink,
   Keyboard,
@@ -46,6 +47,25 @@ export default function HelpModal({ isOpen, onClose, initialTab = 'all' }: HelpM
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(initialTab);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleCategoryClick = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    setSelectedCategory(id);
+    e.currentTarget.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    });
+  };
+
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (categoryScrollRef.current) {
+      categoryScrollRef.current.scrollBy({
+        left: direction === 'left' ? -200 : 200,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   const categories = [
     { id: 'all', label: 'ทั้งหมด', icon: BookOpen },
@@ -397,7 +417,7 @@ export default function HelpModal({ isOpen, onClose, initialTab = 'all' }: HelpM
         onClick={onClose}
       >
         <div 
-          className="w-full max-w-4xl max-h-[85vh] my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all relative"
+          className="w-full max-w-4xl h-[82vh] min-h-[560px] max-h-[760px] my-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col relative"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -446,26 +466,51 @@ export default function HelpModal({ isOpen, onClose, initialTab = 'all' }: HelpM
             )}
           </div>
 
-          {/* Category Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            {categories.map((cat) => {
-              const Icon = cat.icon;
-              const isActive = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all whitespace-nowrap ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                  }`}
-                >
-                  <Icon size={13} />
-                  <span>{cat.label}</span>
-                </button>
-              );
-            })}
+          {/* Category Pills with Horizontal Auto-Scroll */}
+          <div className="relative flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => scrollCategories('left')}
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs shrink-0 transition"
+              title="เลื่อนไปฝั่งหัว (ซ้าย)"
+              aria-label="เลื่อนแถบไปทางซ้าย"
+            >
+              <ChevronLeft size={15} />
+            </button>
+
+            <div 
+              ref={categoryScrollRef}
+              className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-0.5"
+            >
+              {categories.map((cat) => {
+                const Icon = cat.icon;
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={(e) => handleCategoryClick(cat.id, e)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                    }`}
+                  >
+                    <Icon size={13} />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollCategories('right')}
+              className="p-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-2xs shrink-0 transition"
+              title="เลื่อนไปฝั่งท้าย (ขวา)"
+              aria-label="เลื่อนแถบไปทางขวา"
+            >
+              <ChevronRight size={15} />
+            </button>
           </div>
         </div>
 
