@@ -54,7 +54,7 @@ export class EmailService {
     to,
     username,
     resetUrl,
-  }: SendPasswordResetParams): Promise<{ success: boolean; previewUrl?: string }> {
+  }: SendPasswordResetParams): Promise<{ success: boolean; previewUrl?: string; details?: string }> {
     dotenv.config();
     const fromAddress = process.env.EMAIL_FROM || '"NoteAll Security" <no-reply@noteonweb.com>';
     const isConfigured = Boolean(
@@ -140,26 +140,29 @@ export class EmailService {
       };
 
       if (!isConfigured) {
+        const missing = [
+          !process.env.SMTP_HOST && 'SMTP_HOST',
+          !process.env.SMTP_USER && 'SMTP_USER',
+          !process.env.SMTP_PASS && 'SMTP_PASS',
+        ].filter(Boolean).join(', ');
+        const devDetail = `Development Mode: Missing ${missing}. Simulated reset URL.`;
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('📧 [EmailService: Local Development Mode]');
+        console.log(`📧 [EmailService: ${devDetail}]`);
         console.log(`To: ${to}`);
         console.log(`Username: ${username}`);
         console.log(`Reset URL: ${resetUrl}`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        return { success: true };
+        return { success: false, details: devDetail };
       }
 
       const sendResult = await transporter.sendMail(mailOptions);
-      console.log(`✅ [EmailService] Password reset email sent to ${to}: ${sendResult.response || sendResult.messageId}`);
-      return { success: true };
-    } catch (err) {
+      const successDetail = `Sent successfully via SMTP: ${sendResult.response || sendResult.messageId}`;
+      console.log(`✅ [EmailService] ${successDetail}`);
+      return { success: true, details: successDetail };
+    } catch (err: any) {
+      const errMessage = err?.message || String(err);
       console.error('EmailService error:', err);
-      // In development mode, don't crash
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('⚠️ SMTP failed in dev mode, fallback resetUrl:', resetUrl);
-        return { success: true };
-      }
-      return { success: false };
+      return { success: false, details: `SMTP Error: ${errMessage}` };
     }
   }
 }

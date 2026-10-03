@@ -536,7 +536,7 @@ export class AuthController {
       const resetUrl = `${targetFrontend}/reset-password?token=${rawToken}`;
 
       // Send email via EmailService
-      await EmailService.sendPasswordResetEmail({
+      const emailResult = await EmailService.sendPasswordResetEmail({
         to: user.email,
         username: user.username,
         resetUrl,
@@ -549,9 +549,9 @@ export class AuthController {
           data: {
             action: 'PASSWORD_RESET_REQUESTED',
             target: user.email,
-            details: 'Password reset email requested',
+            details: emailResult.details || 'Password reset email requested',
             ipAddress: clientIp,
-            result: 'SUCCESS',
+            result: emailResult.success ? 'SUCCESS' : 'FAILED',
           },
         });
       } catch (logErr) {
