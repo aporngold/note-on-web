@@ -29,6 +29,9 @@ export class EmailService {
           user,
           pass,
         },
+        tls: {
+          rejectUnauthorized: false,
+        },
       });
     } else {
       // In development mode without SMTP credentials, create a stream/json or fallback transporter
