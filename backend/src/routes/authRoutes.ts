@@ -2,7 +2,14 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/authController';
 import { PasskeyController } from '../controllers/passkeyController';
 import { authenticate } from '../middleware/auth';
-import { registerLimiter, loginLimiter, googleAuthLimiter } from '../middleware/rateLimiter';
+import {
+  registerLimiter,
+  loginLimiter,
+  googleAuthLimiter,
+  forgotPasswordLimiter,
+  resetPasswordLimiter,
+  changePasswordLimiter,
+} from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -10,7 +17,9 @@ router.post('/register', registerLimiter, AuthController.register);
 router.post('/login', loginLimiter, AuthController.login);
 router.post('/logout', authenticate, AuthController.logout);
 router.get('/me', authenticate, AuthController.me);
-router.post('/change-password', authenticate, AuthController.changePassword);
+router.post('/forgot-password', forgotPasswordLimiter, AuthController.forgotPassword);
+router.post('/reset-password', resetPasswordLimiter, AuthController.resetPassword);
+router.post('/change-password', authenticate, changePasswordLimiter, AuthController.changePassword);
 router.delete('/me', authenticate, AuthController.deleteMyAccount);
 
 // Master Password & E2EE Routes

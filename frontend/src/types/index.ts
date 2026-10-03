@@ -6,6 +6,7 @@ export interface User {
   googleId?: string | null;
   hasMasterPassword?: boolean;
   masterPasswordSalt?: string | null;
+  hasPassword?: boolean;
   role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
   createdAt: string;
 }

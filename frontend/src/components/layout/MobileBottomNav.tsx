@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Bell,
   HelpCircle,
+  KeyRound,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useNoteStore } from '@/store/noteStore';
@@ -604,6 +605,18 @@ export default function MobileBottomNav() {
             >
               <ShieldCheck size={18} className="text-emerald-500" />
               <span>นโยบายความเป็นส่วนตัว (PDPA)</span>
+            </button>
+
+            {/* Security & Password Settings */}
+            <button
+              onClick={() => {
+                setActiveSheet(null);
+                router.push('/settings/security');
+              }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold transition"
+            >
+              <KeyRound size={18} className="text-teal-500" />
+              <span>ความปลอดภัย & เปลี่ยนรหัสผ่าน</span>
             </button>
 
             {/* Delete Account (PDPA Right to Erasure) */}

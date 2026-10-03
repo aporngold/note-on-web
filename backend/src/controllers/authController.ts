@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { prisma } from '../utils/database';
 import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth';
+import { EmailService } from '../services/emailService';
 
 // Cloudflare Turnstile Verification Helper
 async function verifyTurnstile(token: string, remoteIp?: string): Promise<{ success: boolean; error?: string }> {
@@ -98,11 +100,31 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email('รูปแบบอีเมลไม่ถูกต้อง').min(1, 'กรุณากรอกอีเมล'),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'ไม่พบ Token สำหรับรีเซ็ตรหัสผ่าน'),
+  password: z
+    .string()
+    .min(13, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล')
+    .regex(/[a-z]/, 'ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว')
+    .regex(/[A-Z]/, 'ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว')
+    .regex(/[0-9]/, 'ต้องมีตัวเลขอย่างน้อย 1 ตัว')
+    .regex(/[^A-Za-z0-9]/, 'ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (!@#$%^&*...)'),
+});
+
 const changePasswordSchema = z.object({
-  oldPassword: z.string().min(1),
+  oldPassword: z.string().min(1, 'กรุณากรอกรหัสผ่านปัจจุบัน'),
   newPassword: z
     .string()
-    .min(13, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล'),
+    .min(13, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล')
+    .regex(/[a-z]/, 'ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว')
+    .regex(/[A-Z]/, 'ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว')
+    .regex(/[0-9]/, 'ต้องมีตัวเลขอย่างน้อย 1 ตัว')
+    .regex(/[^A-Za-z0-9]/, 'ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (!@#$%^&*...)'),
+  revokeOtherSessions: z.boolean().optional().default(true),
 });
 
 export class AuthController {
@@ -429,6 +451,8 @@ export class AuthController {
           hasMasterPassword: true,
           masterPasswordSalt: true,
           role: true,
+          authProvider: true,
+          passwordHash: true,
           createdAt: true,
         },
       });
@@ -437,33 +461,243 @@ export class AuthController {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      return res.json(user);
+      return res.json({
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        hasMasterPassword: user.hasMasterPassword,
+        masterPasswordSalt: user.masterPasswordSalt,
+        role: user.role,
+        authProvider: user.authProvider,
+        hasPassword: Boolean(user.passwordHash),
+        createdAt: user.createdAt,
+      });
     } catch (error) {
       return res.status(500).json({ error: 'Failed to get user profile' });
     }
   }
 
+  // Request Password Reset Link (Forgot Password Flow - Account Enumeration Protected)
+  static async forgotPassword(req: Request, res: Response) {
+    try {
+      const parsed = forgotPasswordSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || 'กรุณาระบุอีเมลที่ถูกต้อง' });
+      }
+
+      const { email } = parsed.data;
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Standard message returned regardless of whether the email exists (Account Enumeration Defense)
+      const neutralSuccessResponse = {
+        message: 'หากอีเมลนี้มีบัญชีอยู่ในระบบ ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ',
+      };
+
+      const user = await prisma.user.findUnique({
+        where: { email: normalizedEmail },
+      });
+
+      if (!user) {
+        // Return neutral success message immediately
+        return res.json(neutralSuccessResponse);
+      }
+
+      // Generate cryptographically secure random token (32 bytes)
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      // Store only SHA-256 hash in database
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lifetime
+
+      // Invalidate any existing unused reset tokens for this user
+      await prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id },
+      });
+
+      // Save new hashed token
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+        },
+      });
+
+      // Construct reset URL
+      let targetFrontend = (req.headers.origin as string) || (req.headers.referer as string);
+      if (!targetFrontend || targetFrontend.includes('onrender.com')) {
+        targetFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+      }
+      try {
+        targetFrontend = new URL(targetFrontend).origin;
+      } catch (e) {
+        targetFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+      }
+
+      const resetUrl = `${targetFrontend}/reset-password?token=${rawToken}`;
+
+      // Send email via EmailService
+      await EmailService.sendPasswordResetEmail({
+        to: user.email,
+        username: user.username,
+        resetUrl,
+      });
+
+      // Security Audit Log (Never log tokens or passwords)
+      try {
+        const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || null;
+        await prisma.auditLog.create({
+          data: {
+            action: 'PASSWORD_RESET_REQUESTED',
+            target: user.email,
+            details: 'Password reset email requested',
+            ipAddress: clientIp,
+            result: 'SUCCESS',
+          },
+        });
+      } catch (logErr) {
+        console.warn('AuditLog record error:', logErr);
+      }
+
+      return res.json(neutralSuccessResponse);
+    } catch (error) {
+      console.error('forgotPassword error:', error);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการประมวลผลคำขอรีเซ็ตรหัสผ่าน' });
+    }
+  }
+
+  // Reset Password using One-Time Token
+  static async resetPassword(req: Request, res: Response) {
+    try {
+      const parsed = resetPasswordSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || 'ข้อมูลไม่ถูกต้องตามนโยบายความปลอดภัย' });
+      }
+
+      const { token, password: newPassword } = parsed.data;
+      const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+
+      // Look up token
+      const resetRecord = await prisma.passwordResetToken.findUnique({
+        where: { tokenHash },
+        include: { user: true },
+      });
+
+      if (!resetRecord || resetRecord.usedAt !== null || resetRecord.expiresAt < new Date()) {
+        try {
+          const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || null;
+          await prisma.auditLog.create({
+            data: {
+              action: 'PASSWORD_RESET_FAILED',
+              target: resetRecord?.user?.email || 'UNKNOWN',
+              details: 'Invalid, used, or expired reset token submitted',
+              ipAddress: clientIp,
+              result: 'FAILED',
+            },
+          });
+        } catch (e) {}
+
+        return res.status(400).json({
+          error: 'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้อง หรือหมดอายุแล้ว กรุณาส่งคำขอใหม่อีกครั้ง',
+        });
+      }
+
+      // Check if new password is identical to old password (if user already had a password)
+      if (resetRecord.user.passwordHash) {
+        const isIdentical = await bcrypt.compare(newPassword, resetRecord.user.passwordHash);
+        if (isIdentical) {
+          return res.status(400).json({
+            error: 'รหัสผ่านใหม่ต้องไม่เหมือนกับรหัสผ่านเดิม กรุณาตั้งรหัสผ่านใหม่ที่แตกต่าง',
+          });
+        }
+      }
+
+      // Hash new password with bcrypt
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(newPassword, salt);
+
+      // Update user password
+      await prisma.user.update({
+        where: { id: resetRecord.userId },
+        data: { passwordHash },
+      });
+
+      // Mark token as used and clean up all reset tokens for this user
+      await prisma.passwordResetToken.deleteMany({
+        where: { userId: resetRecord.userId },
+      });
+
+      // Security Policy: Invalidate ALL active sessions across all devices for this account
+      await prisma.session.deleteMany({
+        where: { userId: resetRecord.userId },
+      });
+
+      // Security Audit Log
+      try {
+        const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || null;
+        await prisma.auditLog.create({
+          data: {
+            action: 'PASSWORD_RESET_COMPLETED',
+            target: resetRecord.user.email,
+            details: 'Password reset successfully. All active sessions invalidated.',
+            ipAddress: clientIp,
+            result: 'SUCCESS',
+          },
+        });
+      } catch (logErr) {
+        console.warn('AuditLog record error:', logErr);
+      }
+
+      return res.json({
+        message: 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่',
+      });
+    } catch (error) {
+      console.error('resetPassword error:', error);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการตั้งรหัสผ่านใหม่' });
+    }
+  }
+
+  // Change Password for Authenticated Users
   static async changePassword(req: AuthRequest, res: Response) {
     try {
       const userId = req.userId!;
       const parsed = changePasswordSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Invalid input' });
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || 'ข้อมูลไม่ถูกต้อง' });
       }
 
-      const { oldPassword, newPassword } = parsed.data;
+      const { oldPassword, newPassword, revokeOtherSessions } = parsed.data;
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(404).json({ error: 'ไม่พบบัญชีผู้ใช้ในระบบ' });
       }
 
       if (!user.passwordHash) {
-        return res.status(400).json({ error: 'บัญชีนี้เข้าใช้งานด้วย Google ยังไม่ได้ตั้งรหัสผ่าน' });
+        return res.status(400).json({
+          error: 'บัญชีนี้เข้าสู่ระบบด้วย Google จึงไม่มีรหัสผ่านของ Note on Web สำหรับเปลี่ยนที่นี่',
+        });
       }
 
       const isValid = await bcrypt.compare(oldPassword, user.passwordHash);
       if (!isValid) {
-        return res.status(400).json({ error: 'รหัสผ่านเดิมไม่ถูกต้อง' });
+        try {
+          const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || null;
+          await prisma.auditLog.create({
+            data: {
+              action: 'PASSWORD_CHANGE_FAILED',
+              target: user.email,
+              details: 'Incorrect old password provided',
+              ipAddress: clientIp,
+              result: 'FAILED',
+            },
+          });
+        } catch (e) {}
+
+        return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+      }
+
+      const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
+      if (isSamePassword) {
+        return res.status(400).json({ error: 'รหัสผ่านใหม่ต้องไม่เหมือนกับรหัสผ่านเดิม' });
       }
 
       const salt = await bcrypt.genSalt(10);
@@ -474,9 +708,41 @@ export class AuthController {
         data: { passwordHash },
       });
 
-      return res.json({ message: 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อย' });
+      // Manage sessions: revoke other devices if requested
+      if (revokeOtherSessions && req.sessionId) {
+        await prisma.session.deleteMany({
+          where: {
+            userId,
+            id: { not: req.sessionId },
+          },
+        });
+      }
+
+      // Security Audit Log
+      try {
+        const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || null;
+        await prisma.auditLog.create({
+          data: {
+            action: 'PASSWORD_CHANGED',
+            target: user.email,
+            details: revokeOtherSessions
+              ? 'Password changed successfully. Other active sessions revoked.'
+              : 'Password changed successfully.',
+            ipAddress: clientIp,
+            result: 'SUCCESS',
+          },
+        });
+      } catch (logErr) {
+        console.warn('AuditLog record error:', logErr);
+      }
+
+      return res.json({
+        message: 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อย',
+        revokedOtherSessions: Boolean(revokeOtherSessions),
+      });
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to change password' });
+      console.error('changePassword error:', error);
+      return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน' });
     }
   }
 

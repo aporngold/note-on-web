@@ -256,6 +256,15 @@ export default function Sidebar({
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
           </button>
 
+          {/* Security & Password Settings */}
+          <Link
+            href="/settings/security"
+            className="p-2 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-950/30 transition flex items-center justify-center"
+            title="ความปลอดภัยและเปลี่ยนรหัสผ่าน"
+          >
+            <KeyRound size={18} />
+          </Link>
+
           {/* Passkey Management */}
           <button
             onClick={() => setIsPasskeyModalOpen(true)}
@@ -627,6 +636,15 @@ export default function Sidebar({
             >
               <HelpCircle size={16} />
             </button>
+
+            {/* Security & Password Settings */}
+            <Link
+              href="/settings/security"
+              className="p-1.5 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 transition flex items-center justify-center"
+              title="ความปลอดภัยและเปลี่ยนรหัสผ่าน"
+            >
+              <KeyRound size={16} />
+            </Link>
 
             {/* Passkeys Management */}
             <button

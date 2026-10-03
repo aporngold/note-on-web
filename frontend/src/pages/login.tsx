@@ -178,6 +178,12 @@ export default function LoginPage() {
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
                 รหัสผ่าน
               </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-teal-600 hover:text-sky-600 hover:underline transition-colors"
+              >
+                ลืมรหัสผ่าน?
+              </Link>
             </div>
             <div className="relative">
               <input
