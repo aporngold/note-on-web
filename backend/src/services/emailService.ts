@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 interface SendPasswordResetParams {
   to: string;
@@ -11,6 +14,7 @@ export class EmailService {
   private static transporter: Transporter | null = null;
 
   private static getTransporter(): Transporter {
+    dotenv.config(); // Reload env variables if updated
     if (this.transporter) {
       return this.transporter;
     }
@@ -51,6 +55,7 @@ export class EmailService {
     username,
     resetUrl,
   }: SendPasswordResetParams): Promise<{ success: boolean; previewUrl?: string }> {
+    dotenv.config();
     const fromAddress = process.env.EMAIL_FROM || '"NoteAll Security" <no-reply@noteonweb.com>';
     const isConfigured = Boolean(
       process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
@@ -144,7 +149,8 @@ export class EmailService {
         return { success: true };
       }
 
-      await transporter.sendMail(mailOptions);
+      const sendResult = await transporter.sendMail(mailOptions);
+      console.log(`✅ [EmailService] Password reset email sent to ${to}: ${sendResult.response || sendResult.messageId}`);
       return { success: true };
     } catch (err) {
       console.error('EmailService error:', err);
