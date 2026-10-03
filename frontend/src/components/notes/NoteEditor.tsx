@@ -57,7 +57,7 @@ import { useNoteStore } from '@/store/noteStore';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import MasterPasswordModal from './MasterPasswordModal';
-import api from '@/utils/api';
+import api, { getResolvedBackendUrl } from '@/utils/api';
 import NoteRichToolbar from './NoteRichToolbar';
 import MobileEditorToolbar from './MobileEditorToolbar';
 import BottomSheet from '../ui/BottomSheet';
@@ -802,7 +802,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
 
   const handleInsertAttachmentIntoEditor = (att: FileAttachment) => {
     if (!editor) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    const apiUrl = getResolvedBackendUrl();
     const fullUrl = att.url.startsWith('http') ? att.url : `${apiUrl}${att.url}`;
 
     if (att.mimeType.startsWith('image/')) {
@@ -1631,7 +1631,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         noteId={noteIdRef.current}
         onAudioSaved={(audioUrl, originalName) => {
           if (editor) {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+            const apiUrl = getResolvedBackendUrl();
             const fullUrl = audioUrl.startsWith('http') ? audioUrl : `${apiUrl}${audioUrl}`;
             editor.chain().focus().insertContent(`<p><audio controls src="${fullUrl}"></audio></p>`).run();
           }

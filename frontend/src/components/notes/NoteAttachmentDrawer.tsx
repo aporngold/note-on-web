@@ -16,6 +16,7 @@ import {
 import { FileAttachment } from '@/types';
 import ViewportPortal from '@/components/ui/ViewportPortal';
 import toast from 'react-hot-toast';
+import { getResolvedBackendUrl } from '@/utils/api';
 
 interface NoteAttachmentDrawerProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export default function NoteAttachmentDrawer({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  const apiUrl = getResolvedBackendUrl();
 
   const formatFileSize = (bytes: number) => {
     if (!bytes || bytes === 0) return '0 B';

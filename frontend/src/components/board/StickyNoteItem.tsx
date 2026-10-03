@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Note, FileAttachment } from '@/types';
 import { useNoteStore } from '@/store/noteStore';
+import { getResolvedBackendUrl } from '@/utils/api';
 import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import toast from 'react-hot-toast';
@@ -1721,7 +1722,7 @@ export default function StickyNoteItem({
               const isImg = att.mimeType.startsWith('image/');
               const isPdf = att.mimeType.includes('pdf');
               const isAudio = att.mimeType.startsWith('audio/') || /\.(webm|mp3|wav|m4a|aac|ogg)$/i.test(att.originalName || att.filename);
-              const host = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000` : 'http://localhost:5000';
+              const host = getResolvedBackendUrl();
               const fileUrl = `${host}${att.url}`;
 
               return (

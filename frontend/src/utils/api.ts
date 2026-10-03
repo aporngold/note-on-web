@@ -33,6 +33,14 @@ export const getResolvedApiUrl = (): string => {
 };
 
 /**
+ * Robust Root Backend URL resolver (e.g. https://note-on-web.onrender.com or http://localhost:5000)
+ * Safely strips trailing /api so uploads/audio/static files resolve correctly on Vercel
+ */
+export const getResolvedBackendUrl = (): string => {
+  return getResolvedApiUrl().replace(/\/api\/?$/, '');
+};
+
+/**
  * Robust WebSocket URL resolver with fail-safe fallbacks:
  */
 export const getResolvedWsUrl = (): string => {

@@ -31,7 +31,7 @@ function getExpectedOrigin(req: Request): string {
       // fallback
     }
   }
-  return process.env.FRONTEND_URL || 'http://localhost:3000';
+  return process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://note-on-web.vercel.app' : 'http://localhost:3000');
 }
 
 export class PasskeyController {

@@ -57,6 +57,7 @@ import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper'
 import { stopGlobalSpeechToText } from './SpeechToTextButton';
 import NoteReminderModal from './NoteReminderModal';
 import { useReminderStore } from '@/store/reminderStore';
+import { getResolvedBackendUrl } from '@/utils/api';
 
 interface FullscreenNoteModalProps {
   note: Note | null;
@@ -548,10 +549,7 @@ export default function FullscreenNoteModal({
 
   const activeFontPreset = FONT_PRESETS.find((f) => f.id === fontFamily) || FONT_PRESETS[0];
 
-  const apiHost =
-    typeof window !== 'undefined'
-      ? `${window.location.protocol}//${window.location.hostname}:5000`
-      : 'http://localhost:5000';
+  const apiHost = getResolvedBackendUrl();
 
   const attachments = note.attachments || [];
   const wordCount = editor
@@ -864,7 +862,7 @@ export default function FullscreenNoteModal({
         noteId={note.id}
         onAudioSaved={(audioUrl, originalName) => {
           if (editor) {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+            const apiUrl = getResolvedBackendUrl();
             const fullUrl = audioUrl.startsWith('http') ? audioUrl : `${apiUrl}${audioUrl}`;
             editor.chain().focus().insertContent(`<p><audio controls src="${fullUrl}"></audio></p>`).run();
           }

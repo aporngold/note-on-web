@@ -522,15 +522,19 @@ export class AuthController {
         },
       });
 
-      // Construct reset URL
+      // Construct reset URL (Always prioritize note-on-web.vercel.app on public production)
       let targetFrontend = (req.headers.origin as string) || (req.headers.referer as string);
       if (!targetFrontend || targetFrontend.includes('onrender.com')) {
-        targetFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+        targetFrontend = process.env.FRONTEND_URL || 'https://note-on-web.vercel.app';
       }
       try {
         targetFrontend = new URL(targetFrontend).origin;
       } catch (e) {
-        targetFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+        targetFrontend = process.env.FRONTEND_URL || 'https://note-on-web.vercel.app';
+      }
+
+      if (targetFrontend.includes('localhost') && process.env.NODE_ENV === 'production') {
+        targetFrontend = 'https://note-on-web.vercel.app';
       }
 
       const resetUrl = `${targetFrontend}/reset-password?token=${rawToken}`;

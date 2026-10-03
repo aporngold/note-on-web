@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, Download, Trash2 } from 'lucide-react';
+import { getResolvedBackendUrl } from '@/utils/api';
 
 interface AudioPlayerCardProps {
   src: string;
@@ -13,8 +14,8 @@ export default function AudioPlayerCard({ src, title = 'ไฟล์เสีย
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Full URL resolution if relative
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  // Full URL resolution if relative (automatically adapts to Render on Vercel)
+  const apiUrl = getResolvedBackendUrl();
   const resolvedSrc = src.startsWith('http') || src.startsWith('data:') ? src : `${apiUrl}${src}`;
 
   const togglePlay = () => {

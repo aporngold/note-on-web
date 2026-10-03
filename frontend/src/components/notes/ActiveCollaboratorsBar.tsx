@@ -3,6 +3,7 @@ import { Users } from 'lucide-react';
 import { ActiveCollaborator } from '@/types';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/authStore';
+import { getResolvedWsUrl } from '@/utils/api';
 
 interface ActiveCollaboratorsBarProps {
   noteId?: string;
@@ -15,7 +16,7 @@ export default function ActiveCollaboratorsBar({ noteId }: ActiveCollaboratorsBa
   useEffect(() => {
     if (!noteId || !user) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:5000';
+    const wsUrl = getResolvedWsUrl();
     const socket: Socket = io(wsUrl, {
       transports: ['websocket', 'polling'],
     });
