@@ -1,6 +1,0 @@
-
----
-
-## 🔧 ข้อกำหนดทางเทคนิค (Technical Stack)
-
-### Frontend
