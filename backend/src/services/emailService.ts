@@ -156,16 +156,16 @@ export class EmailService {
           return { success: true, details: detail };
         } else {
           console.warn('⚠️ [EmailService] Resend API error:', resData);
-          // If Resend returns error, capture it and try SMTP fallback
           const resendErrorMsg = resData?.message || resData?.name || 'Resend API failed';
-          // If no SMTP configured, return the Resend error directly
-          if (!isConfigured) {
+          const hasFurtherFallback = Boolean(process.env.BREVO_API_KEY || isConfigured);
+          if (!hasFurtherFallback) {
             return { success: false, details: `Resend Error: ${resendErrorMsg}` };
           }
         }
       } catch (resendErr: any) {
         console.error('⚠️ [EmailService] Resend network error:', resendErr);
-        if (!isConfigured) {
+        const hasFurtherFallback = Boolean(process.env.BREVO_API_KEY || isConfigured);
+        if (!hasFurtherFallback) {
           return { success: false, details: `Resend Network Error: ${resendErr.message}` };
         }
       }
