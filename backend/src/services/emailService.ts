@@ -129,7 +129,37 @@ export class EmailService {
 </html>
 `;
 
-    // 1. Priority 1: Resend HTTPS API (Port 443 - Bypasses Render SMTP Blocking)
+    // 1. Priority 1: Google Apps Script Webhook (Port 443 - Native Gmail, No Domain/SMS Required, Sends to Anyone)
+    const googleScriptUrl = process.env.GMAIL_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbzNMipifZWLHLxLJ7r0yU-vEYz7R5eqBdpMlxk49JIj63Ujri6C6zwNgvtwFlU0irc1dw/exec';
+    if (googleScriptUrl && googleScriptUrl.trim().length > 0) {
+      try {
+        const scriptRes = await fetch(googleScriptUrl.trim(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify({
+            to,
+            subject: '[NoteAll] คำขอตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ',
+            html: htmlContent,
+          }),
+          redirect: 'follow',
+        });
+
+        const scriptData: any = await scriptRes.json().catch(() => null);
+        if (scriptRes.ok && scriptData?.success) {
+          const detail = `Sent successfully via Gmail Webhook to ${to}`;
+          console.log(`✅ [EmailService] ${detail}`);
+          return { success: true, details: detail };
+        } else {
+          console.warn('⚠️ [EmailService] Gmail Webhook error:', scriptData);
+        }
+      } catch (scriptErr: any) {
+        console.error('⚠️ [EmailService] Gmail Webhook network error:', scriptErr);
+      }
+    }
+
+    // 2. Priority 2: Resend HTTPS API (Port 443 - Bypasses Render SMTP Blocking)
     const resendApiKey = process.env.RESEND_API_KEY;
     if (resendApiKey && resendApiKey.trim().length > 0) {
       try {
