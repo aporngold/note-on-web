@@ -6,8 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = __importDefault(require("crypto"));
 const database_1 = require("../utils/database");
 const zod_1 = require("zod");
+const emailService_1 = require("../services/emailService");
 // Cloudflare Turnstile Verification Helper
 async function verifyTurnstile(token, remoteIp) {
     // Allow Cloudflare dummy test keys in development / local testing
@@ -83,11 +85,29 @@ const loginSchema = zod_1.z.object({
     email: zod_1.z.string().min(1, 'Email or username is required'),
     password: zod_1.z.string().min(1, 'Password is required'),
 });
+const forgotPasswordSchema = zod_1.z.object({
+    email: zod_1.z.string().email('รูปแบบอีเมลไม่ถูกต้อง').min(1, 'กรุณากรอกอีเมล'),
+});
+const resetPasswordSchema = zod_1.z.object({
+    token: zod_1.z.string().min(1, 'ไม่พบ Token สำหรับรีเซ็ตรหัสผ่าน'),
+    password: zod_1.z
+        .string()
+        .min(13, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล')
+        .regex(/[a-z]/, 'ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว')
+        .regex(/[A-Z]/, 'ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว')
+        .regex(/[0-9]/, 'ต้องมีตัวเลขอย่างน้อย 1 ตัว')
+        .regex(/[^A-Za-z0-9]/, 'ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (!@#$%^&*...)'),
+});
 const changePasswordSchema = zod_1.z.object({
-    oldPassword: zod_1.z.string().min(1),
+    oldPassword: zod_1.z.string().min(1, 'กรุณากรอกรหัสผ่านปัจจุบัน'),
     newPassword: zod_1.z
         .string()
-        .min(13, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล'),
+        .min(13, 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 13 ตัวอักษร ตามมาตรฐานความปลอดภัยสากล')
+        .regex(/[a-z]/, 'ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว')
+        .regex(/[A-Z]/, 'ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว')
+        .regex(/[0-9]/, 'ต้องมีตัวเลขอย่างน้อย 1 ตัว')
+        .regex(/[^A-Za-z0-9]/, 'ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (!@#$%^&*...)'),
+    revokeOtherSessions: zod_1.z.boolean().optional().default(true),
 });
 class AuthController {
     // Step 1: Verify Google Identity for Registration & Issue Registration Token
@@ -368,36 +388,231 @@ class AuthController {
                     hasMasterPassword: true,
                     masterPasswordSalt: true,
                     role: true,
+                    authProvider: true,
+                    passwordHash: true,
                     createdAt: true,
                 },
             });
             if (!user) {
                 return res.status(404).json({ error: 'User not found' });
             }
-            return res.json(user);
+            return res.json({
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                hasMasterPassword: user.hasMasterPassword,
+                masterPasswordSalt: user.masterPasswordSalt,
+                role: user.role,
+                authProvider: user.authProvider,
+                hasPassword: Boolean(user.passwordHash),
+                createdAt: user.createdAt,
+            });
         }
         catch (error) {
             return res.status(500).json({ error: 'Failed to get user profile' });
         }
     }
+    // Request Password Reset Link (Forgot Password Flow - Account Enumeration Protected)
+    static async forgotPassword(req, res) {
+        try {
+            const parsed = forgotPasswordSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0]?.message || 'กรุณาระบุอีเมลที่ถูกต้อง' });
+            }
+            const { email } = parsed.data;
+            const normalizedEmail = email.toLowerCase().trim();
+            // Standard message returned regardless of whether the email exists (Account Enumeration Defense)
+            const neutralSuccessResponse = {
+                message: 'หากอีเมลนี้มีบัญชีอยู่ในระบบ ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณ',
+            };
+            const user = await database_1.prisma.user.findUnique({
+                where: { email: normalizedEmail },
+            });
+            if (!user) {
+                // Return neutral success message immediately
+                return res.json(neutralSuccessResponse);
+            }
+            // Generate cryptographically secure random token (32 bytes)
+            const rawToken = crypto_1.default.randomBytes(32).toString('hex');
+            // Store only SHA-256 hash in database
+            const tokenHash = crypto_1.default.createHash('sha256').update(rawToken).digest('hex');
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes lifetime
+            // Invalidate any existing unused reset tokens for this user
+            await database_1.prisma.passwordResetToken.deleteMany({
+                where: { userId: user.id },
+            });
+            // Save new hashed token
+            await database_1.prisma.passwordResetToken.create({
+                data: {
+                    userId: user.id,
+                    tokenHash,
+                    expiresAt,
+                },
+            });
+            // Construct reset URL (Always prioritize note-on-web.vercel.app on public production)
+            let targetFrontend = req.headers.origin || req.headers.referer;
+            if (!targetFrontend || targetFrontend.includes('onrender.com')) {
+                targetFrontend = process.env.FRONTEND_URL || 'https://note-on-web.vercel.app';
+            }
+            try {
+                targetFrontend = new URL(targetFrontend).origin;
+            }
+            catch (e) {
+                targetFrontend = process.env.FRONTEND_URL || 'https://note-on-web.vercel.app';
+            }
+            if (targetFrontend.includes('localhost') && process.env.NODE_ENV === 'production') {
+                targetFrontend = 'https://note-on-web.vercel.app';
+            }
+            const resetUrl = `${targetFrontend}/reset-password?token=${rawToken}`;
+            // Send email via EmailService
+            const emailResult = await emailService_1.EmailService.sendPasswordResetEmail({
+                to: user.email,
+                username: user.username,
+                resetUrl,
+            });
+            // Security Audit Log (Never log tokens or passwords)
+            try {
+                const clientIp = req.headers['x-forwarded-for'] || req.ip || null;
+                await database_1.prisma.auditLog.create({
+                    data: {
+                        action: 'PASSWORD_RESET_REQUESTED',
+                        target: user.email,
+                        details: emailResult.details || 'Password reset email requested',
+                        ipAddress: clientIp,
+                        result: emailResult.success ? 'SUCCESS' : 'FAILED',
+                    },
+                });
+            }
+            catch (logErr) {
+                console.warn('AuditLog record error:', logErr);
+            }
+            return res.json(neutralSuccessResponse);
+        }
+        catch (error) {
+            console.error('forgotPassword error:', error);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการประมวลผลคำขอรีเซ็ตรหัสผ่าน' });
+        }
+    }
+    // Reset Password using One-Time Token
+    static async resetPassword(req, res) {
+        try {
+            const parsed = resetPasswordSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ error: parsed.error.errors[0]?.message || 'ข้อมูลไม่ถูกต้องตามนโยบายความปลอดภัย' });
+            }
+            const { token, password: newPassword } = parsed.data;
+            const tokenHash = crypto_1.default.createHash('sha256').update(token.trim()).digest('hex');
+            // Look up token
+            const resetRecord = await database_1.prisma.passwordResetToken.findUnique({
+                where: { tokenHash },
+                include: { user: true },
+            });
+            if (!resetRecord || resetRecord.usedAt !== null || resetRecord.expiresAt < new Date()) {
+                try {
+                    const clientIp = req.headers['x-forwarded-for'] || req.ip || null;
+                    await database_1.prisma.auditLog.create({
+                        data: {
+                            action: 'PASSWORD_RESET_FAILED',
+                            target: resetRecord?.user?.email || 'UNKNOWN',
+                            details: 'Invalid, used, or expired reset token submitted',
+                            ipAddress: clientIp,
+                            result: 'FAILED',
+                        },
+                    });
+                }
+                catch (e) { }
+                return res.status(400).json({
+                    error: 'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้อง หรือหมดอายุแล้ว กรุณาส่งคำขอใหม่อีกครั้ง',
+                });
+            }
+            // Check if new password is identical to old password (if user already had a password)
+            if (resetRecord.user.passwordHash) {
+                const isIdentical = await bcryptjs_1.default.compare(newPassword, resetRecord.user.passwordHash);
+                if (isIdentical) {
+                    return res.status(400).json({
+                        error: 'รหัสผ่านใหม่ต้องไม่เหมือนกับรหัสผ่านเดิม กรุณาตั้งรหัสผ่านใหม่ที่แตกต่าง',
+                    });
+                }
+            }
+            // Hash new password with bcrypt
+            const salt = await bcryptjs_1.default.genSalt(10);
+            const passwordHash = await bcryptjs_1.default.hash(newPassword, salt);
+            // Update user password
+            await database_1.prisma.user.update({
+                where: { id: resetRecord.userId },
+                data: { passwordHash },
+            });
+            // Mark token as used and clean up all reset tokens for this user
+            await database_1.prisma.passwordResetToken.deleteMany({
+                where: { userId: resetRecord.userId },
+            });
+            // Security Policy: Invalidate ALL active sessions across all devices for this account
+            await database_1.prisma.session.deleteMany({
+                where: { userId: resetRecord.userId },
+            });
+            // Security Audit Log
+            try {
+                const clientIp = req.headers['x-forwarded-for'] || req.ip || null;
+                await database_1.prisma.auditLog.create({
+                    data: {
+                        action: 'PASSWORD_RESET_COMPLETED',
+                        target: resetRecord.user.email,
+                        details: 'Password reset successfully. All active sessions invalidated.',
+                        ipAddress: clientIp,
+                        result: 'SUCCESS',
+                    },
+                });
+            }
+            catch (logErr) {
+                console.warn('AuditLog record error:', logErr);
+            }
+            return res.json({
+                message: 'ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่',
+            });
+        }
+        catch (error) {
+            console.error('resetPassword error:', error);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการตั้งรหัสผ่านใหม่' });
+        }
+    }
+    // Change Password for Authenticated Users
     static async changePassword(req, res) {
         try {
             const userId = req.userId;
             const parsed = changePasswordSchema.safeParse(req.body);
             if (!parsed.success) {
-                return res.status(400).json({ error: parsed.error.errors[0]?.message || 'Invalid input' });
+                return res.status(400).json({ error: parsed.error.errors[0]?.message || 'ข้อมูลไม่ถูกต้อง' });
             }
-            const { oldPassword, newPassword } = parsed.data;
+            const { oldPassword, newPassword, revokeOtherSessions } = parsed.data;
             const user = await database_1.prisma.user.findUnique({ where: { id: userId } });
             if (!user) {
-                return res.status(404).json({ error: 'User not found' });
+                return res.status(404).json({ error: 'ไม่พบบัญชีผู้ใช้ในระบบ' });
             }
             if (!user.passwordHash) {
-                return res.status(400).json({ error: 'บัญชีนี้เข้าใช้งานด้วย Google ยังไม่ได้ตั้งรหัสผ่าน' });
+                return res.status(400).json({
+                    error: 'บัญชีนี้เข้าสู่ระบบด้วย Google จึงไม่มีรหัสผ่านของ Note on Web สำหรับเปลี่ยนที่นี่',
+                });
             }
             const isValid = await bcryptjs_1.default.compare(oldPassword, user.passwordHash);
             if (!isValid) {
-                return res.status(400).json({ error: 'รหัสผ่านเดิมไม่ถูกต้อง' });
+                try {
+                    const clientIp = req.headers['x-forwarded-for'] || req.ip || null;
+                    await database_1.prisma.auditLog.create({
+                        data: {
+                            action: 'PASSWORD_CHANGE_FAILED',
+                            target: user.email,
+                            details: 'Incorrect old password provided',
+                            ipAddress: clientIp,
+                            result: 'FAILED',
+                        },
+                    });
+                }
+                catch (e) { }
+                return res.status(400).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+            }
+            const isSamePassword = await bcryptjs_1.default.compare(newPassword, user.passwordHash);
+            if (isSamePassword) {
+                return res.status(400).json({ error: 'รหัสผ่านใหม่ต้องไม่เหมือนกับรหัสผ่านเดิม' });
             }
             const salt = await bcryptjs_1.default.genSalt(10);
             const passwordHash = await bcryptjs_1.default.hash(newPassword, salt);
@@ -405,16 +620,54 @@ class AuthController {
                 where: { id: userId },
                 data: { passwordHash },
             });
-            return res.json({ message: 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อย' });
+            // Manage sessions: revoke other devices if requested
+            if (revokeOtherSessions && req.sessionId) {
+                await database_1.prisma.session.deleteMany({
+                    where: {
+                        userId,
+                        id: { not: req.sessionId },
+                    },
+                });
+            }
+            // Security Audit Log
+            try {
+                const clientIp = req.headers['x-forwarded-for'] || req.ip || null;
+                await database_1.prisma.auditLog.create({
+                    data: {
+                        action: 'PASSWORD_CHANGED',
+                        target: user.email,
+                        details: revokeOtherSessions
+                            ? 'Password changed successfully. Other active sessions revoked.'
+                            : 'Password changed successfully.',
+                        ipAddress: clientIp,
+                        result: 'SUCCESS',
+                    },
+                });
+            }
+            catch (logErr) {
+                console.warn('AuditLog record error:', logErr);
+            }
+            return res.json({
+                message: 'เปลี่ยนรหัสผ่านสำเร็จเรียบร้อย',
+                revokedOtherSessions: Boolean(revokeOtherSessions),
+            });
         }
         catch (error) {
-            return res.status(500).json({ error: 'Failed to change password' });
+            console.error('changePassword error:', error);
+            return res.status(500).json({ error: 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน' });
         }
     }
     static async googleAuth(req, res) {
         try {
+            const isProd = process.env.NODE_ENV === 'production';
+            const defaultCallback = isProd
+                ? 'https://note-on-web.onrender.com/api/auth/google/callback'
+                : 'http://localhost:5000/api/auth/google/callback';
+            const defaultFrontend = isProd
+                ? 'https://note-on-web.vercel.app'
+                : 'http://localhost:3000';
             const clientId = process.env.GOOGLE_CLIENT_ID;
-            const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+            const callbackUrl = process.env.GOOGLE_CALLBACK_URL || defaultCallback;
             // Determine the originating frontend URL
             let targetFrontend = req.query.origin || req.query.frontend;
             if (!targetFrontend && req.headers.referer) {
@@ -424,10 +677,10 @@ class AuthController {
                 catch (e) { }
             }
             if (!targetFrontend) {
-                targetFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+                targetFrontend = process.env.FRONTEND_URL || defaultFrontend;
             }
-            // If pointing to render backend domain by mistake, fallback to vercel app
-            if (targetFrontend.includes('note-on-web.onrender.com')) {
+            // If pointing to render backend domain by mistake or localhost on prod, fallback to vercel app
+            if (targetFrontend.includes('note-on-web.onrender.com') || (isProd && targetFrontend.includes('localhost'))) {
                 targetFrontend = 'https://note-on-web.vercel.app';
             }
             if (!clientId || clientId.trim() === '') {
@@ -446,13 +699,19 @@ class AuthController {
         }
         catch (error) {
             console.error('Google auth error:', error);
-            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            const isProd = process.env.NODE_ENV === 'production';
+            const defaultFrontend = isProd ? 'https://note-on-web.vercel.app' : 'http://localhost:3000';
+            const frontendUrl = process.env.FRONTEND_URL || defaultFrontend;
             const safeFrontend = frontendUrl.includes('note-on-web.onrender.com') ? 'https://note-on-web.vercel.app' : frontendUrl;
             return res.redirect(`${safeFrontend}/login?error=google_auth_failed`);
         }
     }
     static async googleCallback(req, res) {
-        let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const isProd = process.env.NODE_ENV === 'production';
+        const defaultFrontend = isProd
+            ? 'https://note-on-web.vercel.app'
+            : 'http://localhost:3000';
+        let frontendUrl = process.env.FRONTEND_URL || defaultFrontend;
         // Parse state returned by Google
         const stateUrl = typeof req.query.state === 'string' ? req.query.state : '';
         if (stateUrl) {
@@ -468,8 +727,8 @@ class AuthController {
             }
             catch (e) { }
         }
-        // Safety fallback: if frontendUrl points to the backend on Render, redirect to Vercel frontend
-        if (frontendUrl.includes('note-on-web.onrender.com')) {
+        // Safety fallback: if frontendUrl points to the backend on Render or localhost on prod, redirect to Vercel frontend
+        if (frontendUrl.includes('note-on-web.onrender.com') || (isProd && frontendUrl.includes('localhost'))) {
             frontendUrl = 'https://note-on-web.vercel.app';
         }
         try {
@@ -477,9 +736,12 @@ class AuthController {
             if (error || !code) {
                 return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(String(error || 'authorization_denied'))}`);
             }
+            const defaultCallback = isProd
+                ? 'https://note-on-web.onrender.com/api/auth/google/callback'
+                : 'http://localhost:5000/api/auth/google/callback';
             const clientId = process.env.GOOGLE_CLIENT_ID;
             const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-            const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+            const callbackUrl = process.env.GOOGLE_CALLBACK_URL || defaultCallback;
             if (!clientId || !clientSecret || clientId.trim() === '' || clientSecret.trim() === '') {
                 return res.redirect(`${frontendUrl}/login?error=google_oauth_not_configured`);
             }

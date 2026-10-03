@@ -35,7 +35,10 @@ const app = (0, express_1.default)();
 exports.app = app;
 // Trust reverse proxies (Nginx, Caddy, Cloudflare, Vercel) for secure cookies and HTTPS headers
 app.set('trust proxy', 1);
-const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+const defaultFrontend = process.env.NODE_ENV === 'production'
+    ? 'https://note-on-web.vercel.app'
+    : 'http://localhost:3000';
+const frontendOrigin = process.env.FRONTEND_URL || defaultFrontend;
 // Check if SSL certificates are configured for direct HTTPS
 const sslKeyPath = process.env.SSL_KEY_PATH || path_1.default.join(__dirname, '../ssl/server.key');
 const sslCertPath = process.env.SSL_CERT_PATH || path_1.default.join(__dirname, '../ssl/server.crt');
@@ -56,7 +59,12 @@ const io = new socket_io_1.Server(serverInstance, {
     cors: {
         origin: (origin, callback) => {
             // Allow both http:// and https:// origins
-            if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === frontendOrigin) {
+            if (!origin ||
+                origin.includes('localhost') ||
+                origin.includes('127.0.0.1') ||
+                origin === frontendOrigin ||
+                origin === 'https://note-on-web.vercel.app' ||
+                origin.endsWith('.vercel.app')) {
                 callback(null, true);
             }
             else {
@@ -92,7 +100,12 @@ app.use((0, helmet_1.default)({
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps, curl, postman) or matching frontend
-        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === frontendOrigin) {
+        if (!origin ||
+            origin.includes('localhost') ||
+            origin.includes('127.0.0.1') ||
+            origin === frontendOrigin ||
+            origin === 'https://note-on-web.vercel.app' ||
+            origin.endsWith('.vercel.app')) {
             callback(null, true);
         }
         else {

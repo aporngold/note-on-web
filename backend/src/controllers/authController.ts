@@ -752,8 +752,16 @@ export class AuthController {
 
   static async googleAuth(req: Request, res: Response) {
     try {
+      const isProd = process.env.NODE_ENV === 'production';
+      const defaultCallback = isProd
+        ? 'https://note-on-web.onrender.com/api/auth/google/callback'
+        : 'http://localhost:5000/api/auth/google/callback';
+      const defaultFrontend = isProd
+        ? 'https://note-on-web.vercel.app'
+        : 'http://localhost:3000';
+
       const clientId = process.env.GOOGLE_CLIENT_ID;
-      const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+      const callbackUrl = process.env.GOOGLE_CALLBACK_URL || defaultCallback;
 
       // Determine the originating frontend URL
       let targetFrontend = (req.query.origin as string) || (req.query.frontend as string);
@@ -763,11 +771,11 @@ export class AuthController {
         } catch (e) {}
       }
       if (!targetFrontend) {
-        targetFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+        targetFrontend = process.env.FRONTEND_URL || defaultFrontend;
       }
 
-      // If pointing to render backend domain by mistake, fallback to vercel app
-      if (targetFrontend.includes('note-on-web.onrender.com')) {
+      // If pointing to render backend domain by mistake or localhost on prod, fallback to vercel app
+      if (targetFrontend.includes('note-on-web.onrender.com') || (isProd && targetFrontend.includes('localhost'))) {
         targetFrontend = 'https://note-on-web.vercel.app';
       }
 
@@ -788,14 +796,20 @@ export class AuthController {
       return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
     } catch (error) {
       console.error('Google auth error:', error);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const isProd = process.env.NODE_ENV === 'production';
+      const defaultFrontend = isProd ? 'https://note-on-web.vercel.app' : 'http://localhost:3000';
+      const frontendUrl = process.env.FRONTEND_URL || defaultFrontend;
       const safeFrontend = frontendUrl.includes('note-on-web.onrender.com') ? 'https://note-on-web.vercel.app' : frontendUrl;
       return res.redirect(`${safeFrontend}/login?error=google_auth_failed`);
     }
   }
 
   static async googleCallback(req: Request, res: Response) {
-    let frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const isProd = process.env.NODE_ENV === 'production';
+    const defaultFrontend = isProd
+      ? 'https://note-on-web.vercel.app'
+      : 'http://localhost:3000';
+    let frontendUrl = process.env.FRONTEND_URL || defaultFrontend;
 
     // Parse state returned by Google
     const stateUrl = typeof req.query.state === 'string' ? req.query.state : '';
@@ -814,8 +828,8 @@ export class AuthController {
       } catch (e) {}
     }
 
-    // Safety fallback: if frontendUrl points to the backend on Render, redirect to Vercel frontend
-    if (frontendUrl.includes('note-on-web.onrender.com')) {
+    // Safety fallback: if frontendUrl points to the backend on Render or localhost on prod, redirect to Vercel frontend
+    if (frontendUrl.includes('note-on-web.onrender.com') || (isProd && frontendUrl.includes('localhost'))) {
       frontendUrl = 'https://note-on-web.vercel.app';
     }
 
@@ -826,9 +840,13 @@ export class AuthController {
         return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(String(error || 'authorization_denied'))}`);
       }
 
+      const defaultCallback = isProd
+        ? 'https://note-on-web.onrender.com/api/auth/google/callback'
+        : 'http://localhost:5000/api/auth/google/callback';
+
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      const callbackUrl = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback';
+      const callbackUrl = process.env.GOOGLE_CALLBACK_URL || defaultCallback;
 
       if (!clientId || !clientSecret || clientId.trim() === '' || clientSecret.trim() === '') {
         return res.redirect(`${frontendUrl}/login?error=google_oauth_not_configured`);

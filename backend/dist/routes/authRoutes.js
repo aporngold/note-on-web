@@ -10,7 +10,9 @@ router.post('/register', rateLimiter_1.registerLimiter, authController_1.AuthCon
 router.post('/login', rateLimiter_1.loginLimiter, authController_1.AuthController.login);
 router.post('/logout', auth_1.authenticate, authController_1.AuthController.logout);
 router.get('/me', auth_1.authenticate, authController_1.AuthController.me);
-router.post('/change-password', auth_1.authenticate, authController_1.AuthController.changePassword);
+router.post('/forgot-password', rateLimiter_1.forgotPasswordLimiter, authController_1.AuthController.forgotPassword);
+router.post('/reset-password', rateLimiter_1.resetPasswordLimiter, authController_1.AuthController.resetPassword);
+router.post('/change-password', auth_1.authenticate, rateLimiter_1.changePasswordLimiter, authController_1.AuthController.changePassword);
 router.delete('/me', auth_1.authenticate, authController_1.AuthController.deleteMyAccount);
 // Master Password & E2EE Routes
 router.post('/master-password/setup', auth_1.authenticate, authController_1.AuthController.setupMasterPassword);

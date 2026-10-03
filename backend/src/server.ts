@@ -32,7 +32,10 @@ const app = express();
 // Trust reverse proxies (Nginx, Caddy, Cloudflare, Vercel) for secure cookies and HTTPS headers
 app.set('trust proxy', 1);
 
-const frontendOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+const defaultFrontend = process.env.NODE_ENV === 'production'
+  ? 'https://note-on-web.vercel.app'
+  : 'http://localhost:3000';
+const frontendOrigin = process.env.FRONTEND_URL || defaultFrontend;
 
 // Check if SSL certificates are configured for direct HTTPS
 const sslKeyPath = process.env.SSL_KEY_PATH || path.join(__dirname, '../ssl/server.key');
@@ -56,7 +59,14 @@ const io = new Server(serverInstance, {
   cors: {
     origin: (origin, callback) => {
       // Allow both http:// and https:// origins
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === frontendOrigin) {
+      if (
+        !origin ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin === frontendOrigin ||
+        origin === 'https://note-on-web.vercel.app' ||
+        origin.endsWith('.vercel.app')
+      ) {
         callback(null, true);
       } else {
         callback(null, true);
@@ -97,7 +107,14 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, postman) or matching frontend
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1') || origin === frontendOrigin) {
+      if (
+        !origin ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin === frontendOrigin ||
+        origin === 'https://note-on-web.vercel.app' ||
+        origin.endsWith('.vercel.app')
+      ) {
         callback(null, true);
       } else {
         callback(null, true); // Permissive for local dev
