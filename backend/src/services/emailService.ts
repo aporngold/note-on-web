@@ -129,6 +129,91 @@ export class EmailService {
 </html>
 `;
 
+    // 1. Priority 1: Resend HTTPS API (Port 443 - Bypasses Render SMTP Blocking)
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey && resendApiKey.trim().length > 0) {
+      try {
+        const fromEmail = process.env.RESEND_FROM || 'NoteAll Security <onboarding@resend.dev>';
+        const resendRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendApiKey.trim()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [to],
+            subject: '[NoteAll] คำขอตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ',
+            html: htmlContent,
+            text: `สวัสดีคุณ ${username},\n\nระบบ NoteAll ได้รับคำขอตั้งรหัสผ่านใหม่ กรุณากดลิงก์ต่อไปนี้เพื่อดำเนินการ (มีอายุ 15 นาที):\n${resetUrl}\n\nหากคุณไม่ได้เป็นผู้ขอ สามารถละเว้นข้อความนี้ได้อย่างปลอดภัย`,
+          }),
+        });
+
+        const resData: any = await resendRes.json();
+        if (resendRes.ok) {
+          const detail = `Sent successfully via Resend HTTPS API (id: ${resData.id})`;
+          console.log(`✅ [EmailService] ${detail}`);
+          return { success: true, details: detail };
+        } else {
+          console.warn('⚠️ [EmailService] Resend API error:', resData);
+          // If Resend returns error, capture it and try SMTP fallback
+          const resendErrorMsg = resData?.message || resData?.name || 'Resend API failed';
+          // If no SMTP configured, return the Resend error directly
+          if (!isConfigured) {
+            return { success: false, details: `Resend Error: ${resendErrorMsg}` };
+          }
+        }
+      } catch (resendErr: any) {
+        console.error('⚠️ [EmailService] Resend network error:', resendErr);
+        if (!isConfigured) {
+          return { success: false, details: `Resend Network Error: ${resendErr.message}` };
+        }
+      }
+    }
+
+    // 2. Priority 2: Brevo HTTPS API (Port 443 - No domain verification required)
+    const brevoApiKey = process.env.BREVO_API_KEY;
+    if (brevoApiKey && brevoApiKey.trim().length > 0) {
+      try {
+        const brevoSenderEmail = process.env.BREVO_SENDER || process.env.SMTP_USER || 'aporngold@gmail.com';
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevoApiKey.trim(),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: {
+              name: 'NoteAll Security',
+              email: brevoSenderEmail,
+            },
+            to: [{ email: to, name: username }],
+            subject: '[NoteAll] คำขอตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ',
+            htmlContent: htmlContent,
+          }),
+        });
+
+        const brevoData: any = await brevoRes.json();
+        if (brevoRes.ok) {
+          const detail = `Sent successfully via Brevo HTTPS API (id: ${brevoData.messageId})`;
+          console.log(`✅ [EmailService] ${detail}`);
+          return { success: true, details: detail };
+        } else {
+          console.warn('⚠️ [EmailService] Brevo API error:', brevoData);
+          if (!isConfigured) {
+            return { success: false, details: `Brevo Error: ${brevoData.message || JSON.stringify(brevoData)}` };
+          }
+        }
+      } catch (brevoErr: any) {
+        console.error('⚠️ [EmailService] Brevo network error:', brevoErr);
+        if (!isConfigured) {
+          return { success: false, details: `Brevo Network Error: ${brevoErr.message}` };
+        }
+      }
+    }
+
+    // 3. Priority 3: Standard SMTP (Nodemailer)
     try {
       const transporter = this.getTransporter();
       const mailOptions = {
