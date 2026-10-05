@@ -536,7 +536,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           sessionStorage.setItem('secure_note_focus_note_id', noteIdRef.current);
         }
         hasUnsavedChangesRef.current = false;
-        toast.success('บันทึกการเปลี่ยนแปลงแล้ว');
+        toast.success('บันทึกการเปลี่ยนแปลงแล้ว', { id: 'note-save', duration: 3000 });
       } else {
         const slot = calculateInitialSlot(boardId || activeBoardId);
 
@@ -563,7 +563,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           sessionStorage.setItem('secure_note_focus_note_id', created.id);
         }
         hasUnsavedChangesRef.current = false;
-        toast.success('สร้างโน้ตใหม่สำเร็จ');
+        toast.success('สร้างโน้ตใหม่สำเร็จ', { id: 'note-save', duration: 3000 });
         if (!isClosing) {
           router.replace(`/notes/${created.id}`);
         }
@@ -571,7 +571,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       setLastSaved(new Date().toLocaleTimeString('th-TH'));
       return true;
     } catch (error: any) {
-      toast.error(error.response?.data?.error || error.message || 'บันทึกไม่สำเร็จ');
+      toast.error(error.response?.data?.error || error.message || 'บันทึกไม่สำเร็จ', { id: 'note-save', duration: 5000 });
       return false;
     } finally {
       setIsSaving(false);

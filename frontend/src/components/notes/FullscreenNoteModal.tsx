@@ -399,7 +399,7 @@ export default function FullscreenNoteModal({
     if (typeof document !== 'undefined' && document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
-    toast.success('บันทึกเรียบร้อย');
+    toast.success('บันทึกเรียบร้อย', { id: 'fullscreen-note-save', duration: 3000 });
     onClose();
   };
 

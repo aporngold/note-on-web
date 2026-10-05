@@ -152,12 +152,12 @@ export default function NotificationCenter() {
       const res = await subscribeToWebPush();
       if (res.success) {
         setHasPushPermission(true);
-        toast.success('เชื่อมต่ออุปกรณ์นี้เข้ากับระบบแจ้งเตือนสำเร็จแล้ว!', { icon: '🔔' });
+        toast.success('เชื่อมต่ออุปกรณ์นี้เข้ากับระบบแจ้งเตือนสำเร็จแล้ว!', { id: 'push-center-connect', icon: '🔔', duration: 3000 });
       } else {
-        toast.error(res.error || 'ไม่สามารถเปิดการแจ้งเตือนได้ กรุณาตรวจสอบการตั้งค่าเบราว์เซอร์');
+        toast.error(res.error || 'ไม่สามารถเปิดการแจ้งเตือนได้ กรุณาตรวจสอบการตั้งค่าเบราว์เซอร์', { id: 'push-center-connect', duration: 5000 });
       }
     } catch (e: any) {
-      toast.error(e?.message || 'เกิดข้อผิดพลาดในการเปิดการแจ้งเตือน');
+      toast.error(e?.message || 'เกิดข้อผิดพลาดในการเปิดการแจ้งเตือน', { id: 'push-center-connect', duration: 5000 });
     } finally {
       setIsPushLoading(false);
     }
@@ -174,7 +174,7 @@ export default function NotificationCenter() {
           res.devicesCount && res.devicesCount > 0
             ? `ส่งสัญญาณแจ้งเตือนสำเร็จ (${res.devicesCount} เครื่อง)! สังเกตที่แถบแจ้งเตือนของเครื่องคุณ`
             : 'ส่งสัญญาณแจ้งเตือนสำเร็จ! สังเกตที่แถบแจ้งเตือนของเครื่องคุณ',
-          { id: 'push-center-test', duration: 5000, icon: '🔔' }
+          { id: 'push-center-test', duration: 3000, icon: '🔔' }
         );
       } else {
         toast.error(res.error || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ กรุณาตรวจสอบสิทธิ์', { id: 'push-center-test', duration: 5000 });
@@ -300,7 +300,7 @@ export default function NotificationCenter() {
             </div>
           </div>
         ),
-        { duration: 10000, position: 'top-right' }
+        { id: `inapp-notif-${notif.id}`, duration: 5000, position: 'top-right' }
       );
     };
 

@@ -1,7 +1,8 @@
 import type { AppProps } from 'next/app';
 import Head from 'next/head';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
+import AppToaster from '@/components/ui/AppToaster';
+import { toast } from 'react-hot-toast';
 import { ThemeProvider } from 'next-themes';
 import GlobalTooltip from '@/components/ui/GlobalTooltip';
 import '@/styles/globals.css';
@@ -37,6 +38,8 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     const handleRouteChange = () => {
       stopGlobalSpeechToText(false);
+      // Clean up existing page toasts when navigating so old status messages don't linger
+      toast.dismiss();
     };
 
     router.events.on('routeChangeStart', handleRouteChange);
@@ -59,19 +62,7 @@ export default function App({ Component, pageProps }: AppProps) {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <Component {...pageProps} />
           <GlobalTooltip />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3500,
-              style: {
-                borderRadius: '12px',
-                background: '#1e293b',
-                color: '#f8fafc',
-                fontSize: '13px',
-                fontWeight: 500,
-              },
-            }}
-          />
+          <AppToaster position="top-right" maxToasts={3} />
         </ThemeProvider>
       </QueryClientProvider>
     </>

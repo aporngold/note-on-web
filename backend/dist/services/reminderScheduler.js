@@ -110,7 +110,7 @@ async function processDueReminders() {
             // Title & Message Preparation (Protect privacy: do not expose locked note title/content on lock screens)
             const isLocked = Boolean(reminder.note?.isLocked);
             const noteTitle = isLocked ? 'บันทึกลับที่ได้รับการป้องกัน' : (reminder.title || reminder.note?.title || 'โน้ตเตือนความจำ');
-            const notificationTitle = `🔔 เตือนความจำ: ${noteTitle}`;
+            const notificationTitle = `เตือนความจำ: ${noteTitle}`;
             const notificationBody = `ถึงเวลาแจ้งเตือนโน้ตของคุณแล้ว`;
             const targetUrl = reminder.noteId ? `/notes/${reminder.noteId}` : '/dashboard';
             // 4. Create In-App Notification record
@@ -135,7 +135,6 @@ async function processDueReminders() {
                 ioInstance.to(`user:${reminder.userId}`).emit('notification:new', notification);
                 // Broadcast note updated (pinned to top) so dashboard updates immediately
                 if (reminder.noteId) {
-                    ioInstance.to(`note:${reminder.noteId}`).emit('notification:new', notification);
                     ioInstance.to(`user:${reminder.userId}`).emit('note:updated', { id: reminder.noteId, isPinned: true });
                 }
             }

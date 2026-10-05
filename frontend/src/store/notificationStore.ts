@@ -72,7 +72,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }));
 
       await api.post('/notifications/read-all');
-      toast.success('อ่านการแจ้งเตือนทั้งหมดแล้ว');
+      toast.success('อ่านการแจ้งเตือนทั้งหมดแล้ว', { id: 'notif-read-all', duration: 3000 });
     } catch (err) {
       get().fetchNotifications();
     }
@@ -99,7 +99,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     try {
       set({ notifications: [], unreadCount: 0 });
       await api.delete('/notifications');
-      toast.success('ล้างรายการแจ้งเตือนทั้งหมดแล้ว');
+      toast.success('ล้างรายการแจ้งเตือนทั้งหมดแล้ว', { id: 'notif-clear-all', duration: 3000 });
     } catch (err) {
       get().fetchNotifications();
     }
@@ -117,10 +117,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       };
     });
 
-    // In-app alert audio chime or subtle toast
-    toast(newNotif.title, {
+    // In-app alert: strip prefix emoji if already present so it doesn't double-render with icon
+    const rawTitle = newNotif.title || 'ถึงเวลาเตือนความจำ';
+    const displayTitle = rawTitle.replace(/^🔔\s*/, '');
+    toast(displayTitle, {
+      id: `inapp-notif-${newNotif.id}`,
       icon: '🔔',
-      duration: 5000,
+      duration: 4000,
     });
   },
 

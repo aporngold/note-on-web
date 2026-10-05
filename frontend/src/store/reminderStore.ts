@@ -76,13 +76,13 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
           remindersByNote: { ...state.remindersByNote, [saved.noteId]: saved },
           isLoading: false,
         }));
-        toast.success('บันทึกการแจ้งเตือนเรียบร้อยแล้ว', { icon: '⏰' });
+        toast.success('บันทึกการแจ้งเตือนเรียบร้อยแล้ว', { id: 'reminder-save', icon: '⏰', duration: 3000 });
         return saved;
       }
       return null;
     } catch (err: any) {
       set({ isLoading: false });
-      toast.error(err.response?.data?.error || 'บันทึกการแจ้งเตือนไม่สำเร็จ');
+      toast.error(err.response?.data?.error || 'บันทึกการแจ้งเตือนไม่สำเร็จ', { id: 'reminder-save', duration: 5000 });
       return null;
     }
   },
@@ -109,13 +109,13 @@ export const useReminderStore = create<ReminderState>((set, get) => ({
             isLoading: false,
           };
         });
-        toast.success('ลบการแจ้งเตือนแล้ว');
+        toast.success('ลบการแจ้งเตือนแล้ว', { id: 'reminder-delete', duration: 3000 });
         return true;
       }
       return false;
     } catch (err) {
       set({ isLoading: false });
-      toast.error('ไม่สามารถลบการแจ้งเตือนได้');
+      toast.error('ไม่สามารถลบการแจ้งเตือนได้', { id: 'reminder-delete', duration: 5000 });
       return false;
     }
   },

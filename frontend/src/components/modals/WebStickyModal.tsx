@@ -76,9 +76,9 @@ export default function WebStickyModal({ isOpen, onClose }: WebStickyModalProps)
         color: s.color,
         boardId: activeBoardId || undefined,
       });
-      toast.success('บันทึกโน้ตลงในกระดานหลักแล้ว');
+      toast.success('บันทึกโน้ตลงในกระดานหลักแล้ว', { id: 'web-sticky-save', duration: 3000 });
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
+      toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note', { id: 'web-sticky-save', duration: 5000 });
     }
   };
 

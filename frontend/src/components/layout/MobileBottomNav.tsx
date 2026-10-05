@@ -78,7 +78,7 @@ export default function MobileBottomNav() {
           res.devicesCount && res.devicesCount > 0
             ? `ส่งการแจ้งเตือนสำเร็จไปยัง ${res.devicesCount} เครื่อง! สังเกตที่แถบแจ้งเตือนของคุณ`
             : 'ส่งการแจ้งเตือนสำเร็จ! เช็คแถบแจ้งเตือนของเครื่องคุณ',
-          { id: 'mobile-push-test', duration: 5000, icon: '🔔' }
+          { id: 'mobile-push-test', duration: 3000, icon: '🔔' }
         );
       } else {
         toast.error(res.error || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ กรุณาอนุญาตสิทธิ์', { id: 'mobile-push-test', duration: 5000 });

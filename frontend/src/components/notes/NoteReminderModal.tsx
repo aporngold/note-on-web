@@ -148,11 +148,10 @@ export default function NoteReminderModal({
               <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{pushWarningMessage}</p>
             </div>
           ),
-          { duration: 8000, icon: '⚠️' }
+          { id: 'reminder-push-warn', duration: 4000, icon: '⚠️' }
         );
-      } else {
-        toast.success('บันทึกการแจ้งเตือนสำเร็จแล้ว', { icon: '🔔' });
       }
+      // Note: saveReminder() already triggers the single consolidated success toast
       if (onReminderUpdated) onReminderUpdated(true);
       onClose();
     }
@@ -173,9 +172,9 @@ export default function NoteReminderModal({
     setIsRequestingPermission(false);
     if (res.success) {
       setHasPushPermission(true);
-      toast.success('เปิดการแจ้งเตือน Web Push สำเร็จแล้ว!', { icon: '🔔' });
+      toast.success('เปิดการแจ้งเตือน Web Push สำเร็จแล้ว!', { id: 'push-perm', icon: '🔔', duration: 3000 });
     } else {
-      toast.error(res.error || 'เปิดการแจ้งเตือนไม่สำเร็จ');
+      toast.error(res.error || 'เปิดการแจ้งเตือนไม่สำเร็จ', { id: 'push-perm', duration: 5000 });
     }
   };
 
@@ -190,7 +189,7 @@ export default function NoteReminderModal({
           res.devicesCount && res.devicesCount > 0
             ? `ส่งข้อความทดสอบสำเร็จแล้ว (${res.devicesCount} เครื่อง)! กรุณาดูที่แถบแจ้งเตือนของเครื่องคุณ`
             : 'ส่งข้อความทดสอบสำเร็จแล้ว! กรุณาดูที่แถบแจ้งเตือนของเครื่องคุณ',
-          { id: 'test-push', duration: 5000, icon: '🔔' }
+          { id: 'test-push', duration: 3000, icon: '🔔' }
         );
       } else {
         toast.error(res.error || 'ส่งการแจ้งเตือนทดสอบไม่สำเร็จ กรุณาตรวจสอบสิทธิ์', { id: 'test-push', duration: 5000 });
