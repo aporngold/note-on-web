@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Disable native mobile tap highlight flash across all touchscreen devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 :root {
   --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
   --font-sans: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;

@@ -406,18 +406,12 @@ export default function FullscreenNoteModal({
     if (hasUnsavedChangesRef.current && note) {
       await performSave();
     }
-    if (typeof document !== 'undefined' && document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
-    }
     onClose();
   };
 
   const handleAcceptModal = async () => {
     stopGlobalSpeechToText(false);
     await performSave();
-    if (typeof document !== 'undefined' && document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
-    }
     toast.success('บันทึกเรียบร้อย', { id: 'fullscreen-note-save', duration: 3000 });
     onClose();
   };
@@ -578,7 +572,7 @@ export default function FullscreenNoteModal({
 
   return (
     <ViewportPortal>
-      <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-fade-in">
+      <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex flex-col justify-between overflow-hidden">
         <div
           style={{
             backgroundColor: color,

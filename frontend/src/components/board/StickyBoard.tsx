@@ -116,9 +116,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [isArranging, setIsArranging] = useState(false);
 
   const handleOpenFullscreen = (n: Note) => {
-    if (typeof document !== 'undefined' && !document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => { });
-    }
+    setHighlightedNoteId(null);
     setFullscreenNote(n);
   };
 
@@ -2154,9 +2152,6 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
           note={notes.find((n) => n.id === fullscreenNote.id) || fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {
-            if (typeof document !== 'undefined' && document.fullscreenElement) {
-              document.exitFullscreen?.().catch(() => { });
-            }
             setFullscreenNote(null);
             fetchNotes({ isArchived: false });
           }}

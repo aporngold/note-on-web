@@ -939,10 +939,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   };
 
   const handleOpenFullscreen = async () => {
-    if (typeof document !== 'undefined' && !document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => { });
-    }
-
     const currentHtml = editor ? editor.getHTML() : content;
     const currentNoteId = noteIdRef.current || initialNoteId;
 
@@ -1663,9 +1659,6 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           onClose={async () => {
             setIsFullscreenModalOpen(false);
             setActiveNoteForModal(null);
-            if (typeof document !== 'undefined' && document.fullscreenElement) {
-              document.exitFullscreen?.().catch(() => { });
-            }
             const targetId = noteIdRef.current || initialNoteId || activeNoteForModal?.id;
             if (targetId) {
               try {

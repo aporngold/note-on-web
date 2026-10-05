@@ -126,9 +126,6 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
       onUnlockRequest();
       return;
     }
-    if (typeof document !== 'undefined' && !document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
-    }
     setFullscreenNote(n);
   };
 
@@ -514,9 +511,6 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
           note={notes.find((n) => n.id === fullscreenNote.id) || fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {
-            if (typeof document !== 'undefined' && document.fullscreenElement) {
-              document.exitFullscreen?.().catch(() => {});
-            }
             setFullscreenNote(null);
           }}
         />
