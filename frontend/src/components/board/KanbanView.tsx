@@ -510,6 +510,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
       {/* Fullscreen Note Focus Modal */}
       {fullscreenNote && (
         <FullscreenNoteModal
+          key={fullscreenNote.id}
           note={notes.find((n) => n.id === fullscreenNote.id) || fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   X,
   Minimize2,
@@ -100,20 +100,39 @@ export default function FullscreenNoteModal({
   onClose,
 }: FullscreenNoteModalProps) {
   const { updateNote, uploadAttachment, deleteAttachment, togglePin, deleteNote } = useNoteStore();
+  const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [color, setColor] = useState('#FEF08A');
-  const [textColor, setTextColor] = useState('#0F172A');
-  const [fontFamily, setFontFamily] = useState('sans');
-  const [fontSize, setFontSize] = useState('normal');
+  // Compute decrypted initial content safely
+  const initialContent = useMemo(() => {
+    if (!note) return '';
+    let rawContent = note.content || '';
+    if (note.isLocked) {
+      if (isVaultUnlocked) {
+        try {
+          const parsed = JSON.parse(note.content || '{}');
+          if (parsed.encrypted && parsed.iv) {
+            rawContent = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
+          }
+        } catch (e) {
+          // Not JSON or plain
+        }
+      }
+    }
+    return convertLegacyContentToHtml(rawContent);
+  }, [note?.id, note?.content, note?.isLocked, note?.salt, isVaultUnlocked]);
+
+  const [title, setTitle] = useState(note?.title || '');
+  const [content, setContent] = useState(initialContent);
+  const [color, setColor] = useState(note?.color || '#FEF08A');
+  const [textColor, setTextColor] = useState(note?.textColor || '#0F172A');
+  const [fontFamily, setFontFamily] = useState(note?.fontFamily || 'sans');
+  const [fontSize, setFontSize] = useState(note?.fontSize || 'normal');
   const [isTrulyFullscreen, setIsTrulyFullscreen] = useState(true);
   const [isBorderless, setIsBorderless] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const allNotes = useNoteStore((state) => state.notes);
   const attachedStickers = note ? getNoteStickers(note.id, allNotes) : [];
-  const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(!!note?.isLocked);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [pendingLockAction, setPendingLockAction] = useState<'lock' | 'unlock' | null>(null);
   const [isCopied, setIsCopied] = useState(false);
@@ -139,12 +158,12 @@ export default function FullscreenNoteModal({
   const [lastSavedTime, setLastSavedTime] = useState<string>('');
   const hasUnsavedChangesRef = useRef(false);
   const latestDataRef = useRef<{ title: string; content: string; color: string; textColor: string; fontFamily?: string; fontSize?: string }>({
-    title: '',
-    content: '',
-    color: '#FEF08A',
-    textColor: '#0F172A',
-    fontFamily: 'sans',
-    fontSize: '16px',
+    title: note?.title || '',
+    content: initialContent,
+    color: note?.color || '#FEF08A',
+    textColor: note?.textColor || '#0F172A',
+    fontFamily: note?.fontFamily || 'sans',
+    fontSize: note?.fontSize || '16px',
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -194,7 +213,7 @@ export default function FullscreenNoteModal({
       AudioExtension,
       InlineEmojiExtension,
     ],
-    content: '',
+    content: initialContent,
     immediatelyRender: false,
     editorProps: {
       handleKeyDown: (view, event) => {
@@ -296,7 +315,7 @@ export default function FullscreenNoteModal({
 
       const initialHtml = convertLegacyContentToHtml(rawContent);
       setContent(initialHtml);
-      if (editor) {
+      if (editor && editor.getHTML() !== initialHtml) {
         editor.commands.setContent(initialHtml, { emitUpdate: false });
       }
 
@@ -565,7 +584,7 @@ export default function FullscreenNoteModal({
             backgroundColor: color,
             color: textColor,
           }}
-          className={`flex flex-col w-full h-full relative overflow-hidden transition-all duration-200 ${
+          className={`flex flex-col w-full h-full relative overflow-hidden transition-colors duration-150 ${
             isBorderless
               ? 'shadow-none border-0'
               : 'shadow-2xl'

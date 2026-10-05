@@ -2150,6 +2150,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       {/* Fullscreen Note Focus Modal (เหมือนหน้าคัมบัง) */}
       {fullscreenNote && (
         <FullscreenNoteModal
+          key={fullscreenNote.id}
           note={notes.find((n) => n.id === fullscreenNote.id) || fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {

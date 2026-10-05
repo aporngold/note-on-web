@@ -649,6 +649,7 @@ export default function Dashboard() {
       {/* Fullscreen Note Focus Modal (เหมือนหน้าคัมบัง ทุกโหมด Grid, List, Kanban, Sticky Board) */}
       {fullscreenNote && (
         <FullscreenNoteModal
+          key={fullscreenNote.id}
           note={notes.find((n) => n.id === fullscreenNote.id) || fullscreenNote}
           isOpen={!!fullscreenNote}
           onClose={() => {

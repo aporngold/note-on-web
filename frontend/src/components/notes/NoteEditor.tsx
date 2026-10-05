@@ -1657,6 +1657,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
       {/* Fullscreen Note Focus Modal (เหมือนหน้าคัมบัง) */}
       {isFullscreenModalOpen && activeNoteForModal && (
         <FullscreenNoteModal
+          key={activeNoteForModal.id}
           note={activeNoteForModal}
           isOpen={isFullscreenModalOpen}
           onClose={async () => {
