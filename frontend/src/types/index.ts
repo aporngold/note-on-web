@@ -8,6 +8,7 @@ export interface User {
   masterPasswordSalt?: string | null;
   hasPassword?: boolean;
   role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  canBroadcast?: boolean;
   createdAt: string;
 }
 

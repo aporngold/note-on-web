@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import BackupModal from '../modals/BackupModal';
 import NotificationCenter from '../notifications/NotificationCenter';
+import SystemAnnouncementBanner from './SystemAnnouncementBanner';
 import { useAuthStore } from '@/store/authStore';
 import { useNoteStore } from '@/store/noteStore';
 import { useReminderStore } from '@/store/reminderStore';
@@ -107,6 +108,9 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300">
+        {/* System Announcement Banner */}
+        <SystemAnnouncementBanner />
+
         {/* Top Navbar */}
         <header
           className={`h-16 px-4 sm:px-8 items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10 ${

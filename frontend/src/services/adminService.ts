@@ -51,6 +51,7 @@ export interface AdminUserItem {
   email: string;
   username: string;
   role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  canBroadcast?: boolean;
   authProvider: string;
   hasMasterPassword: boolean;
   createdAt: string;
@@ -164,9 +165,10 @@ export const adminService = {
   // 3. ปรับเปลี่ยนสิทธิ์ (เฉพาะ SUPER_ADMIN)
   async updateUserRole(
     userId: string,
-    role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
+    role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN',
+    canBroadcast?: boolean
   ): Promise<{ success: boolean; message: string; user: any }> {
-    const res = await api.put(`/admin/users/${userId}/role`, { role });
+    const res = await api.put(`/admin/users/${userId}/role`, { role, canBroadcast });
     return res.data;
   },
 

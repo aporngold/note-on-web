@@ -34,9 +34,23 @@ import {
   FileSpreadsheet,
   Trash2,
   Bell,
+  Megaphone,
+  Plus,
+  Edit2,
+  AlertOctagon,
+  Info,
+  ExternalLink,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
+import {
+  announcementService,
+  AnnouncementItem,
+  AnnouncementInput,
+  AnnouncementType,
+} from '@/services/announcementService';
 import {
   adminService,
   AdminStats,
@@ -49,7 +63,7 @@ import {
 } from '@/services/adminService';
 import toast from 'react-hot-toast';
 
-type AdminTab = 'overview' | 'users' | 'boards' | 'database' | 'audit';
+type AdminTab = 'overview' | 'users' | 'announcements' | 'boards' | 'database' | 'audit';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -84,9 +98,27 @@ export default function AdminDashboardPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [auditPagination, setAuditPagination] = useState({ total: 0, totalPages: 1, page: 1, limit: 15 });
 
+  // Announcements Management
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
+  const [announcementsPagination, setAnnouncementsPagination] = useState({ total: 0, totalPages: 1, page: 1, limit: 10 });
+  const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<AnnouncementItem | null>(null);
+  const [announcementFormData, setAnnouncementFormData] = useState<AnnouncementInput>({
+    title: '',
+    message: '',
+    type: 'info',
+    isActive: true,
+    dismissible: true,
+    linkText: '',
+    linkUrl: '',
+  });
+  const [isSubmittingAnnouncement, setIsSubmittingAnnouncement] = useState(false);
+  const [deletingAnnouncementId, setDeletingAnnouncementId] = useState<string | null>(null);
+
   // Role Change Modal
   const [selectedUserForRole, setSelectedUserForRole] = useState<AdminUserItem | null>(null);
   const [newRole, setNewRole] = useState<'USER' | 'ADMIN' | 'SUPER_ADMIN'>('USER');
+  const [newCanBroadcast, setNewCanBroadcast] = useState(false);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
   // Delete User Modal State
@@ -109,6 +141,7 @@ export default function AdminDashboardPage() {
   }, [user, isAuthLoading, router]);
 
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const canManageAnnouncements = isSuperAdmin || Boolean((user as any)?.canBroadcast);
 
   // Load Tab Data
   const loadStats = useCallback(async () => {
@@ -162,15 +195,26 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  const loadAnnouncements = useCallback(async (page = 1) => {
+    try {
+      const res = await announcementService.getAll(page, 10);
+      setAnnouncements(res.announcements);
+      setAnnouncementsPagination(res.pagination);
+    } catch (err: any) {
+      toast.error('ไม่สามารถโหลดข้อมูลประกาศระบบได้');
+    }
+  }, []);
+
   const refreshCurrentTab = useCallback(async () => {
     setIsLoading(true);
     if (activeTab === 'overview') await loadStats();
     else if (activeTab === 'users') await loadUsers(usersPagination.page);
+    else if (activeTab === 'announcements') await loadAnnouncements(announcementsPagination.page);
     else if (activeTab === 'boards') await loadBoards();
     else if (activeTab === 'database') await loadDatabaseAndBackups();
     else if (activeTab === 'audit') await loadAuditLogs(auditPagination.page);
     setIsLoading(false);
-  }, [activeTab, loadStats, loadUsers, usersPagination.page, loadBoards, loadDatabaseAndBackups, loadAuditLogs, auditPagination.page]);
+  }, [activeTab, loadStats, loadUsers, usersPagination.page, loadAnnouncements, announcementsPagination.page, loadBoards, loadDatabaseAndBackups, loadAuditLogs, auditPagination.page]);
 
   useEffect(() => {
     if (user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) {
@@ -196,20 +240,104 @@ export default function AdminDashboardPage() {
     }
     setSelectedUserForRole(targetUser);
     setNewRole(targetUser.role);
+    setNewCanBroadcast(!!targetUser.canBroadcast);
   };
 
   const handleSaveRole = async () => {
     if (!selectedUserForRole) return;
     setIsUpdatingRole(true);
     try {
-      const res = await adminService.updateUserRole(selectedUserForRole.id, newRole);
+      const res = await adminService.updateUserRole(selectedUserForRole.id, newRole, newCanBroadcast);
       toast.success(res.message);
       setSelectedUserForRole(null);
       loadUsers(usersPagination.page);
+      if (stats) loadStats();
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์');
     } finally {
       setIsUpdatingRole(false);
+    }
+  };
+
+  // ────────────── ANNOUNCEMENT HANDLERS ──────────────
+  const handleOpenCreateAnnouncementModal = () => {
+    setEditingAnnouncement(null);
+    setAnnouncementFormData({
+      title: '',
+      message: '',
+      type: 'info',
+      isActive: true,
+      dismissible: true,
+      linkText: '',
+      linkUrl: '',
+    });
+    setIsAnnouncementModalOpen(true);
+  };
+
+  const handleOpenEditAnnouncementModal = (item: AnnouncementItem) => {
+    setEditingAnnouncement(item);
+    setAnnouncementFormData({
+      title: item.title,
+      message: item.message,
+      type: item.type,
+      isActive: item.isActive,
+      dismissible: item.dismissible,
+      linkText: item.linkText || '',
+      linkUrl: item.linkUrl || '',
+    });
+    setIsAnnouncementModalOpen(true);
+  };
+
+  const handleSaveAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!announcementFormData.title?.trim()) {
+      toast.error('กรุณาระบุหัวข้อประกาศ');
+      return;
+    }
+    if (!announcementFormData.message?.trim()) {
+      toast.error('กรุณาระบุเนื้อหาประกาศ');
+      return;
+    }
+
+    setIsSubmittingAnnouncement(true);
+    try {
+      if (editingAnnouncement) {
+        await announcementService.update(editingAnnouncement.id, announcementFormData);
+        toast.success('อัปเดตประกาศระบบเรียบร้อยแล้ว');
+      } else {
+        await announcementService.create(announcementFormData);
+        toast.success('สร้างและส่งประกาศระบบเรียบร้อยแล้ว');
+      }
+      setIsAnnouncementModalOpen(false);
+      loadAnnouncements(announcementsPagination.page);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'เกิดข้อผิดพลาดในการบันทึกประกาศ');
+    } finally {
+      setIsSubmittingAnnouncement(false);
+    }
+  };
+
+  const handleToggleAnnouncementActive = async (item: AnnouncementItem) => {
+    try {
+      await announcementService.update(item.id, { isActive: !item.isActive });
+      toast.success(!item.isActive ? 'เปิดแสดงประกาศแล้ว' : 'ปิดการแสดงผลประกาศแล้ว');
+      loadAnnouncements(announcementsPagination.page);
+    } catch (err: any) {
+      toast.error('ไม่สามารถเปลี่ยนสถานะประกาศได้');
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบประกาศนี้?')) return;
+    setDeletingAnnouncementId(id);
+    try {
+      await announcementService.delete(id);
+      toast.success('ลบประกาศระบบเรียบร้อยแล้ว');
+      loadAnnouncements(announcementsPagination.page);
+    } catch (err: any) {
+      toast.error('ไม่สามารถลบประกาศได้');
+    } finally {
+      setDeletingAnnouncementId(null);
     }
   };
 
@@ -417,6 +545,7 @@ export default function AdminDashboardPage() {
           {[
             { id: 'overview' as const, label: 'ภาพรวม (Overview)', icon: Shield },
             { id: 'users' as const, label: `ผู้ใช้งาน & สิทธิ์ (${stats?.users.total || users.length})`, icon: Users },
+            { id: 'announcements' as const, label: `ประกาศระบบ (Broadcast)`, icon: Megaphone },
             { id: 'boards' as const, label: 'กระดาน & โน้ต (บอร์ด 56 แผ่น)', icon: LayoutGrid },
             { id: 'database' as const, label: 'ฐานข้อมูล & การสำรอง', icon: HardDrive },
             { id: 'audit' as const, label: 'ประวัติกิจกรรม (Audit Logs)', icon: History },
@@ -630,6 +759,16 @@ export default function AdminDashboardPage() {
                       <ArrowUpRight size={15} className="text-slate-400 group-hover:text-blue-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </button>
                     <button
+                      onClick={() => setActiveTab('announcements')}
+                      className="w-full py-3 px-4 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-700/60 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-between transition-all group shadow-2xs"
+                    >
+                      <span className="flex items-center gap-2.5 text-amber-600 dark:text-amber-400 font-bold">
+                        <span className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50"><Megaphone size={15} /></span>
+                        ส่งประกาศ / แจ้งเตือนทุกคน
+                      </span>
+                      <ArrowUpRight size={15} className="text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </button>
+                    <button
                       onClick={() => setActiveTab('boards')}
                       className="w-full py-3 px-4 rounded-xl border border-slate-200/80 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700/60 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-between transition-all group shadow-2xs"
                     >
@@ -713,18 +852,28 @@ export default function AdminDashboardPage() {
                         </td>
 
                         <td className="px-4 py-3.5">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                              u.role === 'SUPER_ADMIN'
-                                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
-                                : u.role === 'ADMIN'
-                                ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/30'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                            }`}
-                          >
-                            {u.role === 'SUPER_ADMIN' ? '👑 ' : ''}
-                            {u.role}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                                u.role === 'SUPER_ADMIN'
+                                  ? 'bg-amber-500/10 text-amber-500 border border-amber-500/30'
+                                  : u.role === 'ADMIN'
+                                  ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/30'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                              }`}
+                            >
+                              {u.role === 'SUPER_ADMIN' ? '👑 ' : ''}
+                              {u.role}
+                            </span>
+                            {u.canBroadcast && u.role !== 'SUPER_ADMIN' && (
+                              <span
+                                className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-800/60"
+                                title="ได้รับสิทธิ์ส่งประกาศระบบถึงทุกคน"
+                              >
+                                📢 สิทธิ์ประกาศ
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         <td className="px-4 py-3.5 hidden md:table-cell">
@@ -835,6 +984,186 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ────────────── TAB: SYSTEM ANNOUNCEMENTS (BROADCAST) ────────────── */}
+        {activeTab === 'announcements' && (
+          <div className="space-y-5">
+            {/* Header Actions Card */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <span className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
+                  <Megaphone size={22} />
+                </span>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>จัดการประกาศและข้อความแจ้งเตือนระบบ</span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                      {announcements.length} รายการ
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    ส่งข้อความประกาศขึ้นแถบหัวเว็บถึงสมาชิกทุกคนแบบ Real-time (เฉพาะ Super Admin หรือผู้ที่ได้รับมอบสิทธิ์)
+                  </p>
+                </div>
+              </div>
+
+              {canManageAnnouncements && (
+                <button
+                  type="button"
+                  onClick={handleOpenCreateAnnouncementModal}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0"
+                >
+                  <Plus size={16} className="stroke-[2.5]" />
+                  <span>สร้างประกาศใหม่</span>
+                </button>
+              )}
+            </div>
+
+            {/* Announcements List */}
+            <div className="space-y-3">
+              {announcements.map((item) => {
+                const typeBadges = {
+                  info: { label: 'ข่าวสารทั่วไป', bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+                  warning: { label: 'แจ้งเตือนสำคัญ', bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30' },
+                  critical: { label: 'ด่วนที่สุด', bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30' },
+                  success: { label: 'อัปเดตใหม่', bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+                };
+                const badge = typeBadges[item.type] || typeBadges.info;
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs hover:shadow-md ${
+                      item.isActive
+                        ? 'border-indigo-500/40 ring-1 ring-indigo-500/20'
+                        : 'border-slate-200/80 dark:border-slate-800 opacity-80'
+                    }`}
+                  >
+                    <div className="space-y-2 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Active / Inactive Badge */}
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                            item.isActive
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${item.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                          {item.isActive ? 'กำลังแสดงผลบนเว็บ' : 'ปิดการแสดงผล'}
+                        </span>
+
+                        {/* Type Badge */}
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badge.bg}`}>
+                          {badge.label}
+                        </span>
+
+                        {/* Dismissible Badge */}
+                        <span className="text-[11px] text-slate-400">
+                          {item.dismissible ? '• ผู้ใช้ปิดแถบได้' : '• บังคับแสดงผล'}
+                        </span>
+                      </div>
+
+                      {/* Title & Message */}
+                      <div>
+                        <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+                          {item.title}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed break-words">
+                          {item.message}
+                        </p>
+                      </div>
+
+                      {/* Link (if any) */}
+                      {item.linkUrl && (
+                        <div className="pt-1">
+                          <a
+                            href={item.linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                          >
+                            <span>{item.linkText || 'ดูรายละเอียด'}</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Meta Info */}
+                      <div className="text-[11px] text-slate-400 flex items-center gap-3 pt-1">
+                        <span>สร้างโดย: <b className="text-slate-600 dark:text-slate-300">{item.author?.username || 'Super Admin'}</b></span>
+                        <span>•</span>
+                        <span>{new Date(item.createdAt).toLocaleString('th-TH')}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 w-full sm:w-auto justify-end">
+                      {/* Toggle Active Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAnnouncementActive(item)}
+                        disabled={!canManageAnnouncements}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border ${
+                          item.isActive
+                            ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
+                            : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                        }`}
+                        title={item.isActive ? 'ปิดการแสดงผลประกาศนี้' : 'เปิดแสดงผลประกาศนี้'}
+                      >
+                        {item.isActive ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                        <span>{item.isActive ? 'ปิดประกาศ' : 'เปิดใช้งาน'}</span>
+                      </button>
+
+                      {/* Edit Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditAnnouncementModal(item)}
+                        disabled={!canManageAnnouncements}
+                        className="p-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                        title="แก้ไขประกาศ"
+                      >
+                        <Edit2 size={15} />
+                      </button>
+
+                      {/* Delete Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAnnouncement(item.id)}
+                        disabled={!canManageAnnouncements || deletingAnnouncementId === item.id}
+                        className="p-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition disabled:opacity-50"
+                        title="ลบประกาศนี้"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {announcements.length === 0 && (
+                <div className="py-16 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 mx-auto flex items-center justify-center">
+                    <Megaphone size={24} />
+                  </div>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-base">ยังไม่มีประกาศระบบ</h4>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                    คุณสามารถกดปุ่ม "สร้างประกาศใหม่" เพื่อเริ่มส่งข้อความแจ้งเตือนขึ้นแถบหัวเว็บถึงสมาชิกทุกคนได้ทันที
+                  </p>
+                  {canManageAnnouncements && (
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateAnnouncementModal}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20"
+                    >
+                      สร้างประกาศแรก
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1270,6 +1599,28 @@ export default function AdminDashboardPage() {
                   ))}
                 </div>
               </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <label className="flex items-start gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 cursor-pointer transition">
+                  <input
+                    type="checkbox"
+                    checked={newRole === 'SUPER_ADMIN' ? true : newCanBroadcast}
+                    disabled={newRole === 'SUPER_ADMIN'}
+                    onChange={(e) => setNewCanBroadcast(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-white text-xs">
+                      สิทธิ์ส่งประกาศระบบ (Broadcast Permission)
+                    </div>
+                    <div className="text-[11px] text-slate-400 leading-relaxed">
+                      {newRole === 'SUPER_ADMIN'
+                        ? 'Super Admin ได้รับสิทธิ์ส่งประกาศระบบโดยอัตโนมัติ'
+                        : 'อนุญาตให้ผู้ใช้นี้สร้างและส่งแถบประกาศแจ้งเตือนถึงสมาชิกทุกคนได้'}
+                    </div>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -1412,6 +1763,191 @@ export default function AdminDashboardPage() {
                 <span>{isDeletingUser ? 'กำลังลบข้อมูล...' : 'ยืนยันลบบัญชีนี้ถาวร'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────── ANNOUNCEMENT CREATE / EDIT MODAL ────────────── */}
+      {isAnnouncementModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 w-full max-w-xl shadow-2xl space-y-4 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500"><Megaphone size={18} /></span>
+                <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  {editingAnnouncement ? 'แก้ไขประกาศระบบ' : 'สร้างประกาศระบบใหม่'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAnnouncementModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAnnouncement} className="space-y-4 text-xs sm:text-sm">
+              {/* Title */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  หัวข้อประกาศ <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="เช่น ปรับปรุงเซิร์ฟเวอร์ประจำสัปดาห์, อัปเดตฟีเจอร์ใหม่"
+                  value={announcementFormData.title}
+                  onChange={(e) => setAnnouncementFormData({ ...announcementFormData, title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  เนื้อหาข้อความ <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="เช่น ระบบจะปิดปรับปรุงเวลา 23:00 - 01:00 น. กรุณาบันทึกข้อมูลโน้ตก่อนเวลาดังกล่าว"
+                  value={announcementFormData.message}
+                  onChange={(e) => setAnnouncementFormData({ ...announcementFormData, message: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                />
+              </div>
+
+              {/* Type Selection */}
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+                  ประเภท / ระดับความสำคัญ:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'info' as const, label: 'ข่าวสาร (Info)', color: 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' },
+                    { id: 'warning' as const, label: 'แจ้งเตือน (Warning)', color: 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400' },
+                    { id: 'critical' as const, label: 'ด่วนที่สุด (Critical)', color: 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400' },
+                    { id: 'success' as const, label: 'อัปเดตใหม่ (Success)', color: 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setAnnouncementFormData({ ...announcementFormData, type: t.id })}
+                      className={`p-2.5 rounded-xl border text-xs font-bold text-center transition ${
+                        announcementFormData.type === t.id
+                          ? `${t.color} ring-2 ring-indigo-500/30`
+                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Optional Link */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="font-semibold text-slate-600 dark:text-slate-400 block mb-1 text-xs">
+                    ข้อความปุ่มลิงก์ (ไม่บังคับ)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="เช่น ดูรายละเอียด, อ่านวิธีแก้"
+                    value={announcementFormData.linkText || ''}
+                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, linkText: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-600 dark:text-slate-400 block mb-1 text-xs">
+                    URL ปลายทาง (ไม่บังคับ)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="เช่น /help หรือ https://..."
+                    value={announcementFormData.linkUrl || ''}
+                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, linkUrl: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Toggles */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={announcementFormData.isActive}
+                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, isActive: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <span>เปิดใช้งานทันที (Active)</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={announcementFormData.dismissible}
+                    onChange={(e) => setAnnouncementFormData({ ...announcementFormData, dismissible: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <span>อนุญาตให้ผู้ใช้กดย่อ/ปิดแถบประกาศได้</span>
+                </label>
+              </div>
+
+              {/* Live Preview Box */}
+              <div className="pt-2">
+                <span className="text-[11px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">
+                  ตัวอย่างการแสดงผลบนเว็บ (Live Preview):
+                </span>
+                <div className={`p-3 rounded-xl text-white text-xs flex items-center justify-between gap-3 shadow-sm ${
+                  announcementFormData.type === 'warning'
+                    ? 'bg-amber-600'
+                    : announcementFormData.type === 'critical'
+                    ? 'bg-rose-600'
+                    : announcementFormData.type === 'success'
+                    ? 'bg-emerald-600'
+                    : 'bg-indigo-600'
+                }`}>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="p-1 rounded bg-white/20 shrink-0">
+                      {announcementFormData.type === 'warning' ? <AlertTriangle size={14} /> :
+                       announcementFormData.type === 'critical' ? <AlertOctagon size={14} /> :
+                       announcementFormData.type === 'success' ? <Sparkles size={14} /> :
+                       <Info size={14} />}
+                    </span>
+                    <span className="font-bold shrink-0">{announcementFormData.title || 'หัวข้อประกาศ'}:</span>
+                    <span className="truncate opacity-90">{announcementFormData.message || 'ข้อความประกาศตัวอย่าง...'}</span>
+                    {announcementFormData.linkUrl && (
+                      <span className="underline ml-1 shrink-0 font-bold">{announcementFormData.linkText || 'ดูรายละเอียด'}</span>
+                    )}
+                  </div>
+                  {announcementFormData.dismissible && (
+                    <span className="p-1 rounded bg-white/20 text-white shrink-0"><X size={12} /></span>
+                  )}
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAnnouncementModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingAnnouncement}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-600/20 disabled:opacity-50 flex items-center gap-1.5 transition active:scale-95"
+                >
+                  {isSubmittingAnnouncement ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                  <span>{editingAnnouncement ? 'บันทึกการแก้ไข' : 'เผยแพร่ประกาศ'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

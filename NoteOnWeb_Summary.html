@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สรุปฟังก์ชันและจุดเด่น - Note on Web (SecureNote)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Prompt', 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      line-height: 1.5;
+      font-size: 13.5px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(15, 23, 42, 0.15);
+      position: relative;
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.35);
+      border: 1px solid rgba(165, 180, 252, 0.4);
+      color: #e0e7ff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-subtitle {
+      font-size: 13.5px;
+      color: #cbd5e1;
+      font-weight: 300;
+      line-height: 1.4;
+    }
+
+    /* Section Styles */
+    .section {
+      margin-bottom: 20px;
+      page-break-inside: avoid;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e1b4b;
+      border-left: 4px solid #6366f1;
+      padding-left: 10px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Grid for Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .feature-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      break-inside: avoid;
+    }
+
+    .feature-card.highlight {
+      background: #f5f3ff;
+      border-color: #ddd6fe;
+    }
+
+    .feature-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .feature-icon {
+      font-size: 18px;
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .feature-card ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+
+    .feature-card li {
+      position: relative;
+      padding-left: 14px;
+      margin-bottom: 4px;
+      font-size: 12.5px;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .feature-card li::before {
+      content: "•";
+      color: #6366f1;
+      font-weight: bold;
+      position: absolute;
+      left: 2px;
+    }
+
+    /* Table Styles */
+    .table-container {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      background: #ffffff;
+      page-break-inside: avoid;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: #334155;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    th.highlight-col, td.highlight-col {
+      background-color: #f5f3ff;
+      font-weight: 600;
+      color: #4338ca;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .badge-check {
+      color: #16a34a;
+      font-weight: 700;
+    }
+
+    .badge-cross {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .badge-warn {
+      color: #d97706;
+      font-weight: 600;
+    }
+
+    /* Differentiators */
+    .diff-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .diff-item {
+      background: #f8fafc;
+      border-left: 3px solid #6366f1;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      page-break-inside: avoid;
+    }
+
+    .diff-item-title {
+      font-weight: 600;
+      color: #1e1b4b;
+      font-size: 13.5px;
+      margin-bottom: 2px;
+    }
+
+    .diff-item-desc {
+      color: #475569;
+      font-size: 12.5px;
+    }
+
+    /* Marketing Template Box */
+    .template-box {
+      background: #faf5ff;
+      border: 1px dashed #c084fc;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 10px;
+      page-break-inside: avoid;
+    }
+
+    .template-title {
+      font-weight: 600;
+      color: #7e22ce;
+      font-size: 13px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .template-content {
+      font-size: 12px;
+      color: #3b0764;
+      white-space: pre-line;
+      line-height: 1.45;
+      background: #ffffff;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #e9d5ff;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <span class="header-badge">Product Summary & Competitive Guide</span>
+      <h1>🔒 Note on Web (SecureNote)</h1>
+      <p class="header-subtitle">
+        เว็บแอปพลิเคชันจดบันทึกและบริหารจัดการผังความคิด ที่รวมความปลอดภัยระดับ Zero-Knowledge Vault, บอร์ดโพสต์อิทอิสระ, และขุมพลัง AI ไว้อย่างสมบูรณ์แบบ
+      </p>
+    </div>
+
+    <!-- Section 1: Features -->
+    <div class="section">
+      <div class="section-title">✨ ฟังก์ชันการทำงานหลัก (All Core Features)</div>
+      
+      <div class="features-grid">
+        <!-- Card 1 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-icon">📝</span>
+            <span class="feature-title">Smart Note & Editor</span>
+          </div>
+          <ul>
+            <li><strong>WYSIWYG TipTap Editor:</strong> จัดรูปแบบครบ ตัวหนา/เอียง, สีข้อความ, ตาราง, โค้ดบล็อก, เช็คลิสต์</li>
+            <li><strong>Autosave & History:</strong> เซฟอัตโนมัติ พร้อมดูประวัติการแก้ไขย้อนหลัง (Version History) และกู้คืนได้</li>
+            <li><strong>Export ทันที:</strong> บันทึกออกเป็น Markdown (.md) หรือพิมพ์เป็นไฟล์ PDF</li>
+            <li><strong>การจัดระเบียบ:</strong> สมุดบันทึก (Notebooks), ป้ายกำกับ (Tags), ปักหมุด (Pin), ถังขยะและกู้คืน (Trash)</li>
+          </ul>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="feature-card highlight">
+          <div class="feature-header">
+            <span class="feature-icon">📌</span>
+            <span class="feature-title">Sticky Board & Mindmap</span>
+          </div>
+          <ul>
+            <li><strong>Freeform Canvas:</strong> แปะโน้ตลงกระดานใหญ่ ลากย้าย หมุนองศา และปรับขนาดได้อย่างอิสระ</li>
+            <li><strong>เส้นเชื่อมโยง Mindmap:</strong> ลากเส้นเชื่อมโยงความสัมพันธ์ระหว่างโน้ตเพื่อวางแผนงาน</li>
+            <li><strong>สติกเกอร์ตกแต่ง:</strong> แปะเทปกาว หมุดปัก แสตมป์เร่งด่วน สร้างบรรยากาศเสมือนบอร์ดจริง</li>
+            <li><strong>Kanban Mode:</strong> สลับมุมมองเป็นตาราง To Do, In Progress, Done ได้ในคลิกเดียว</li>
+          </ul>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="feature-card highlight">
+          <div class="feature-header">
+            <span class="feature-icon">🎙️</span>
+            <span class="feature-title">AI, เสียง & สแกนภาพ (OCR)</span>
+          </div>
+          <ul>
+            <li><strong>Speech-to-Text:</strong> พิมพ์ด้วยเสียงพูดอัตโนมัติ รองรับภาษาไทยและอังกฤษได้อย่างแม่นยำ</li>
+            <li><strong>Voice Recorder:</strong> อัดเสียงพูด/การประชุมแนบไว้ในโน้ต พร้อมเครื่องเล่นเสียง</li>
+            <li><strong>Image OCR:</strong> สแกนและถอดข้อความจากภาพถ่ายเอกสารลงในโน้ตทันที</li>
+            <li><strong>AI Assistant:</strong> ช่วยสรุปเนื้อหา, ช่วยคิดไอเดีย, ขัดเกลาข้อความ และแนะนำแท็ก</li>
+          </ul>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="feature-card">
+          <div class="feature-header">
+            <span class="feature-icon">🔐</span>
+            <span class="feature-title">Zero-Knowledge Vault</span>
+          </div>
+          <ul>
+            <li><strong>AES-256 Encryption:</strong> เข้ารหัสโน้ตลับบนเครื่องผู้ใช้ก่อนส่งขึ้นคลาวด์ แอดมินเซิร์ฟเวอร์ก็แอบอ่านไม่ได้</li>
+            <li><strong>Master Password:</strong> กุญแจเฉพาะตัวผู้ใช้ ไม่มีการเก็บรหัสลับไว้ที่ฐานข้อมูล</li>
+            <li><strong>Passkeys / WebAuthn:</strong> ล็อกอินสะดวกรวดเร็วด้วย Face ID, Touch ID, Windows Hello</li>
+            <li><strong>Real-time Collaboration:</strong> แชร์ลิงก์โน้ต (อ่านอย่างเดียว หรือช่วยกันพิมพ์สดพร้อมกัน)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Comparison -->
+    <div class="section">
+      <div class="section-title">📊 ตารางเปรียบเทียบจุดเด่นกับเจ้าอื่นในตลาด</div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ความสามารถ / ฟีเจอร์</th>
+              <th class="highlight-col">Note on Web</th>
+              <th>Google Keep</th>
+              <th>Notion</th>
+              <th>Apple Notes</th>
+              <th>Obsidian</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>ความปลอดภัย Zero-Knowledge</strong></td>
+              <td class="highlight-col"><span class="badge-check">✔ AES-256 Vault</span></td>
+              <td><span class="badge-cross">✘ ไม่มี</span></td>
+              <td><span class="badge-cross">✘ ไม่มี</span></td>
+              <td><span class="badge-warn">▲ มีบางส่วน</span></td>
+              <td><span class="badge-warn">▲ ออฟไลน์เท่านั้น</span></td>
+            </tr>
+            <tr>
+              <td><strong>กระดาน Canvas ลากวาง + เส้นเชื่อม</strong></td>
+              <td class="highlight-col"><span class="badge-check">✔ มีในตัว</span></td>
+              <td><span class="badge-cross">✘ ไม่มี</span></td>
+              <td><span class="badge-cross">✘ ไม่มี</span></td>
+              <td><span class="badge-cross">✘ ไม่มี</span></td>
+              <td><span class="badge-warn">▲ มี Canvas แต่หนัก</span></td>
+            </tr>
+            <tr>
+              <td><strong>พิมพ์ด้วยเสียง (Voice to Text) ไทย</strong></td>
+              <td class="highlight-col"><span class="badge-check">✔ มีในตัว</span></td>
+              <td><span class="badge-warn">▲ เฉพาะบนมือถือ</span></td>
+              <td><span class="badge-cross">✘ ไม่มี</span></td>
+              <td><span class="badge-warn">▲ Dictation พื้นฐาน</span></td>
+              <td><span class="badge-cross">✘ ต้องลง Plugin</span></td>
+            </tr>
+            <tr>
+              <td><strong>สแกนตัวหนังสือจากภาพ (OCR)</strong></td>
+              <td class="highlight-col"><span class="badge-check">✔ มีในตัว</span></td>
+              <td><span class="badge-check">✔ มี</span></td>
+              <td><span class="badge-cross">✘ ไม่มี</span></td>
+              <td><span class="badge-check">✔ มี (Apple เท่านั้น)</span></td>
+              <td><span class="badge-cross">✘ ต้องลง Plugin</span></td>
+            </tr>
+            <tr>
+              <td><strong>ความเร็วในการใช้งาน (Lightweight)</strong></td>
+              <td class="highlight-col"><span class="badge-check">✔ โหลดไว ไม่หนักเครื่อง</span></td>
+              <td><span class="badge-check">✔ ไวมาก</span></td>
+              <td><span class="badge-cross">✘ ช้า / หน่วงเมื่อฐานข้อมูลใหญ่</span></td>
+              <td><span class="badge-check">✔ ไว</span></td>
+              <td><span class="badge-check">✔ ไว</span></td>
+            </tr>
+            <tr>
+              <td><strong>ใช้งานข้ามระบบ (Cross-Platform)</strong></td>
+              <td class="highlight-col"><span class="badge-check">✔ ทุกอุปกรณ์ (Web/PWA)</span></td>
+              <td><span class="badge-check">✔ ทุกอุปกรณ์</span></td>
+              <td><span class="badge-check">✔ ทุกอุปกรณ์</span></td>
+              <td><span class="badge-cross">✘ จำกัดในระบบ Apple</span></td>
+              <td><span class="badge-warn">▲ ซิงก์ข้ามเครื่องต้องจ่ายเพิ่ม</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 3: 5 Distinct Advantages -->
+    <div class="section">
+      <div class="section-title">💎 5 จุดเด่นที่ทำให้ Note on Web แตกต่างและน่าใช้งาน</div>
+      <div class="diff-list">
+        <div class="diff-item">
+          <div class="diff-item-title">1. ความเป็นส่วนตัวระดับสูงสุด (Real Privacy)</div>
+          <div class="diff-item-desc">ผู้ใช้มั่นใจได้ 100% ว่าข้อมูลรหัสผ่าน เอกสารลับ หรือบันทึกส่วนตัวจะไม่รั่วไหล เพราะถูกเข้ารหัสบนอุปกรณ์ด้วย AES-256 Vault ก่อนจัดเก็บ</div>
+        </div>
+        <div class="diff-item">
+          <div class="diff-item-title">2. รวมแอปจดโน้ตและแอปวางแผนไว้ที่เดียว (All-in-One Space)</div>
+          <div class="diff-item-desc">ไม่ต้องสลับแอปไปมาระหว่างแอปจดบันทึกและกระดานไวท์บอร์ด เพราะมีทั้งโหมด Document ปกติ, กระดาน Canvas โพสต์อิทลากวาง และตาราง Kanban ในระบบเดียว</div>
+        </div>
+        <div class="diff-item">
+          <div class="diff-item-title">3. บันทึกได้สะดวกรวดเร็ว ไม่ต้องพิมพ์ (Voice & OCR)</div>
+          <div class="diff-item-desc">รองรับการพูดเป็นข้อความภาษาไทย/อังกฤษ อัดเสียงบันทึกการประชุม และสแกนข้อความจากภาพถ่ายได้ทันที เพิ่มความคล่องตัวในการทำงาน</div>
+        </div>
+        <div class="diff-item">
+          <div class="diff-item-title">4. ความลื่นไหลและดีไซน์ระดับพรีเมียม (Modern Aesthetics)</div>
+          <div class="diff-item-desc">ดีไซน์ Dark Mode และ Glassmorphism ที่สบายตา สวยงาม ตอบสนองไว ไม่มีอาการหน่วงเหมือนโปรแกรมขนาดใหญ่</div>
+        </div>
+        <div class="diff-item">
+          <div class="diff-item-title">5. เข้าถึงได้ทุกที่ ไม่มีข้อจำกัดเรื่องอุปกรณ์ (Web & PWA)</div>
+          <div class="diff-item-desc">เปิดใช้งานผ่านเบราว์เซอร์ได้ทันทีบน Windows, Mac, iPad, iPhone และ Android ซิงก์ข้อมูลตรงกันแบบ Real-time</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Announcement Copy -->
+    <div class="section" style="margin-top: 16px;">
+      <div class="section-title">📢 ข้อความสำเร็จรูปสำหรับนำไปโพสต์แจ้งผู้ใช้</div>
+      <div class="template-box">
+        <div class="template-title">📌 ตัวอย่างข้อความสำหรับโพสต์ Social Media / Facebook / LINE</div>
+        <div class="template-content">🚀 เปิดตัว "Note on Web" มิติใหม่ของการจดบันทึกและระดมไอเดีย!
+
+เบื่อไหมกับแอปจดโน้ตที่เทอะทะ โหลดช้า หรือกังวลว่าข้อมูลลับจะไม่ปลอดภัย?
+ขอแนะนำ Note on Web — พื้นที่บันทึกความคิดสุดล้ำ ปลอดภัย และลื่นไหลที่สุด ✨
+
+🔥 ไฮไลต์ที่คุณจะต้องหลงรัก:
+• 📌 Sticky Board & Mindmap: แปะโพสต์อิท ลากวางอิสระ ขีดเส้นเชื่อมโยงความคิดได้ดั่งใจ
+• 🔒 Secure Vault: เข้ารหัสลับ AES-256 ระดับ Zero-Knowledge แม้แต่เซิร์ฟเวอร์ก็เปิดอ่านไม่ได้
+• 🎙️ Voice to Text: แค่กดพูด ระบบพิมพ์ข้อความภาษาไทยให้อัตโนมัติ ไม่ต้องพิมพ์เอง
+• 📷 Image OCR: ถ่ายรูปเอกสาร ดึงตัวหนังสือมาใส่โน้ตได้ในเสี้ยววินาที
+• 🤖 AI Assistant: ช่วยสรุปเนื้อหา ต่อยอดบทความ และเรียบเรียงภาษา
+• ⚡ ใช้งานได้ทุกที่: รองรับทั้งคอมพิวเตอร์และมือถือ พร้อม Dark Mode ถนอมสายตา
+
+👉 เข้าใช้งานได้แล้ววันนี้ที่: [ใส่ลิงก์เว็บไซต์]</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      เอกสารสรุปคุณสมบัติ Note on Web (SecureNote) • จัดทำเมื่อ วันที่ 12 ตุลาคม 2569
+    </div>
+
+  </div>
+
+</body>
+</html>

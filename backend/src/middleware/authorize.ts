@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth';
+import { prisma } from '../utils/database';
 
 export type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
 
@@ -46,4 +47,47 @@ export const requireSuperAdmin = (
   }
 
   next();
+};
+
+/**
+ * Middleware ตรวจสอบสิทธิ์สำหรับส่งประกาศระบบ (Broadcast Announcement)
+ * อนุญาตสำหรับ:
+ * 1. ผู้ใช้ที่เป็น SUPER_ADMIN
+ * 2. หรือผู้ใช้ที่ได้รับมอบสิทธิ์ canBroadcast จาก Super Admin
+ */
+export const requireBroadcastPermission = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'กรุณาเข้าสู่ระบบก่อนดำเนินการ' });
+  }
+
+  // Super Admin ได้รับสิทธิ์เสมอ
+  if (req.user.role === 'SUPER_ADMIN') {
+    return next();
+  }
+
+  if (req.user.canBroadcast) {
+    return next();
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { role: true, canBroadcast: true },
+    });
+
+    if (user?.role === 'SUPER_ADMIN' || user?.canBroadcast) {
+      req.user.canBroadcast = !!user.canBroadcast;
+      return next();
+    }
+  } catch (err) {
+    console.error('Error checking broadcast permission:', err);
+  }
+
+  return res.status(403).json({
+    error: 'การเข้าถึงถูกปฏิเสธ: คุณไม่มีสิทธิ์จัดการประกาศระบบ (เฉพาะ Super Admin หรือผู้ที่ได้รับมอบหมายเท่านั้น)',
+  });
 };

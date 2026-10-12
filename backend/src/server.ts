@@ -20,6 +20,7 @@ import adminRoutes from './routes/adminRoutes';
 import reminderRoutes from './routes/reminderRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import privacyRoutes from './routes/privacyRoutes';
+import announcementRoutes from './routes/announcementRoutes';
 import { initReminderScheduler, setSchedulerSocketIO } from './services/reminderScheduler';
 import { setSocketIO } from './utils/socket';
 import { errorHandler } from './middleware/errorHandler';
@@ -171,6 +172,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/privacy', privacyRoutes);
+app.use('/api/announcements', announcementRoutes);
 
 // Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
 const notePresenceMap = new Map<string, Map<string, { userId: string; username: string; color?: string }>>();

@@ -14,6 +14,7 @@ model User {
   username      String       @unique
   passwordHash  String?
   role          String       @default("USER")
+  canBroadcast  Boolean      @default(false)
   authProvider  String       @default("local")
   googleId      String?      @unique
   publicKey     String?
@@ -38,6 +39,7 @@ model User {
   consents      UserConsent[]
   privacyRequests DataSubjectRequest[]
   passwordResetTokens PasswordResetToken[]
+  announcements Announcement[]
 }
 
 model Note {
@@ -346,3 +348,24 @@ model PasswordResetToken {
   @@index([userId])
   @@index([tokenHash])
 }
+
+model Announcement {
+  id          String    @id @default(cuid())
+  title       String
+  message     String
+  type        String    @default("info") // 'info' | 'warning' | 'critical' | 'success'
+  isActive    Boolean   @default(true)
+  dismissible Boolean   @default(true)
+  linkText    String?
+  linkUrl     String?
+  startDate   DateTime? @default(now())
+  endDate     DateTime?
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+

@@ -27,3 +27,13 @@ export function emitToBoard(boardId: string, event: string, data: any) {
     ioInstance.to(`board:${boardId}`).emit(event, data);
   }
 }
+
+/**
+ * Emit a broadcast event to all connected users
+ */
+export function emitBroadcast(event: string, data: any) {
+  if (ioInstance) {
+    ioInstance.emit(event, data);
+  }
+}
+

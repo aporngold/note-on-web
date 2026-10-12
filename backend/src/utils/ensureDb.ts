@@ -38,6 +38,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
 
     const userColumnDefs: Array<{ name: string; sql: string }> = [
       { name: 'role', sql: 'ALTER TABLE "User" ADD COLUMN "role" TEXT DEFAULT \'USER\';' },
+      { name: 'canBroadcast', sql: 'ALTER TABLE "User" ADD COLUMN "canBroadcast" BOOLEAN DEFAULT 0;' },
       { name: 'authProvider', sql: 'ALTER TABLE "User" ADD COLUMN "authProvider" TEXT DEFAULT \'local\';' },
       { name: 'googleId', sql: 'ALTER TABLE "User" ADD COLUMN "googleId" TEXT;' },
       { name: 'publicKey', sql: 'ALTER TABLE "User" ADD COLUMN "publicKey" TEXT;' },
@@ -206,6 +207,27 @@ export async function ensureDatabaseSchema(): Promise<void> {
           FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
         ); CREATE UNIQUE INDEX IF NOT EXISTS "PasswordResetToken_tokenHash_key" ON "PasswordResetToken"("tokenHash");
         CREATE INDEX IF NOT EXISTS "PasswordResetToken_userId_idx" ON "PasswordResetToken"("userId");`,
+      },
+      {
+        name: 'Announcement',
+        sql: `CREATE TABLE IF NOT EXISTS "Announcement" (
+          "id" TEXT NOT NULL PRIMARY KEY,
+          "title" TEXT NOT NULL,
+          "message" TEXT NOT NULL,
+          "type" TEXT NOT NULL DEFAULT 'info',
+          "isActive" BOOLEAN NOT NULL DEFAULT 1,
+          "dismissible" BOOLEAN NOT NULL DEFAULT 1,
+          "linkText" TEXT,
+          "linkUrl" TEXT,
+          "startDate" DATETIME DEFAULT CURRENT_TIMESTAMP,
+          "endDate" DATETIME,
+          "authorId" TEXT,
+          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY ("authorId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS "Announcement_isActive_idx" ON "Announcement"("isActive");
+        CREATE INDEX IF NOT EXISTS "Announcement_createdAt_idx" ON "Announcement"("createdAt");`,
       },
     ];
 
