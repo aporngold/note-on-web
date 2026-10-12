@@ -225,6 +225,19 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
     content: '',
     immediatelyRender: false,
     editorProps: {
+      handleClick: (view, pos, event) => {
+        const target = event.target as HTMLElement;
+        const link = target.closest('a');
+        if (link) {
+          const href = link.getAttribute('href');
+          if (href) {
+            event.preventDefault();
+            window.open(href, '_blank', 'noopener,noreferrer');
+            return true;
+          }
+        }
+        return false;
+      },
       handleKeyDown: (view, event) => {
         if (event.ctrlKey || event.metaKey) {
           const key = event.key.toLowerCase();
@@ -1503,6 +1516,14 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 zoom: zoomLevel !== 100 ? `${zoomLevel}%` : undefined,
                 fontFamily: activeFontPreset.family,
               }}
+              onClick={(e) => {
+                const target = e.target as HTMLElement;
+                const link = target.closest('a');
+                if (link && link.getAttribute('href')) {
+                  e.preventDefault();
+                  window.open(link.getAttribute('href')!, '_blank', 'noopener,noreferrer');
+                }
+              }}
               dangerouslySetInnerHTML={{
                 __html: content || '<p class="text-slate-400 italic">ไม่มีเนื้อหา...</p>',
               }}
@@ -1510,7 +1531,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           ) : (
             <div
               className="flex-1 min-h-[160px] lg:min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed transition-all duration-150"
-              onClick={() => {
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('a')) return;
                 if (editor && !editor.isFocused) {
                   editor.commands.focus();
                 }

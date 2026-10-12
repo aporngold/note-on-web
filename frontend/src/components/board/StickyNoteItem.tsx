@@ -37,6 +37,7 @@ import ViewportContextMenu from '../ui/ViewportContextMenu';
 import ShareNoteModal from '../notes/ShareNoteModal';
 import { FONT_PRESETS } from '../notes/editorExtensions';
 import { useReminderStore } from '@/store/reminderStore';
+import { convertLegacyContentToHtml } from '@/utils/editorHelper';
 
 interface StickyNoteItemProps {
   note: Note;
@@ -166,6 +167,7 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
     if (linkElement && linkElement.getAttribute('href')) {
       const href = linkElement.getAttribute('href')!;
       // Open link in new tab safely
+      e.preventDefault();
       e.stopPropagation();
       window.open(href, '_blank', 'noopener,noreferrer');
     }
@@ -443,14 +445,15 @@ export default function StickyNoteItem({
 
   // Handle encrypted notes
   let isEncrypted = false;
-  let displayContent = content;
+  let displayContent = convertLegacyContentToHtml(content);
 
   if (note.isLocked) {
     if (isVaultUnlocked) {
       try {
         const parsed = JSON.parse(note.content);
         if (parsed.encrypted && parsed.iv) {
-          displayContent = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
+          const decrypted = EncryptionService.getInstance().decrypt(parsed.encrypted, parsed.iv, note.salt || undefined);
+          displayContent = convertLegacyContentToHtml(decrypted);
         }
       } catch (e) {
         // ignore

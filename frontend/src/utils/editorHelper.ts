@@ -8,9 +8,12 @@ export function convertLegacyContentToHtml(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return '';
 
-  // If already structured HTML with common tags, return as-is
+  // If already structured HTML with common tags, convert any embedded markdown links and return
   if (/<(p|div|h[1-6]|ul|ol|table|blockquote|span|mark|b|strong|i|em|hr|pre|code|img|audio|figure|video)[^>]*>/i.test(trimmed)) {
-    return raw;
+    return raw.replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 underline font-semibold cursor-pointer hover:text-blue-800 transition-colors">$1</a>'
+    );
   }
 
   // Convert legacy markdown checklists to TipTap taskList HTML
@@ -47,6 +50,11 @@ export function convertLegacyContentToHtml(raw: string): string {
 
   // Convert legacy markdown patterns to HTML tags
   formatted = formatted
+    // Markdown links: [text](url)
+    .replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 underline font-semibold cursor-pointer hover:text-blue-800 transition-colors">$1</a>'
+    )
     // Markdown images: ![alt](url)
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
     // Bold: **text**

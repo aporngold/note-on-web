@@ -217,6 +217,19 @@ export default function FullscreenNoteModal({
     content: initialContent,
     immediatelyRender: false,
     editorProps: {
+      handleClick: (view, pos, event) => {
+        const target = event.target as HTMLElement;
+        const link = target.closest('a');
+        if (link) {
+          const href = link.getAttribute('href');
+          if (href) {
+            event.preventDefault();
+            window.open(href, '_blank', 'noopener,noreferrer');
+            return true;
+          }
+        }
+        return false;
+      },
       handleKeyDown: (view, event) => {
         if (event.ctrlKey || event.metaKey) {
           const key = event.key.toLowerCase();
@@ -780,7 +793,8 @@ export default function FullscreenNoteModal({
 
           {/* Large Note Content TipTap Editor */}
           <div
-            onClick={() => {
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest('a')) return;
               if (editor && !editor.isFocused) {
                 editor.commands.focus();
               }
