@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import {
@@ -83,6 +83,25 @@ export default function AdminDashboardPage() {
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isLoading, setIsLoading] = useState(true);
+  const tabScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleTabClick = (tabId: AdminTab, e: React.MouseEvent<HTMLButtonElement>) => {
+    setActiveTab(tabId);
+    e.currentTarget.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    });
+  };
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabScrollRef.current) {
+      tabScrollRef.current.scrollBy({
+        left: direction === 'left' ? -220 : 220,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Data States
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -592,36 +611,64 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Tab Navigation (Segmented Pill Bar) */}
-        <div className="p-1.5 rounded-2xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 backdrop-blur-sm flex items-center gap-1 overflow-x-auto no-scrollbar">
-          {[
-            { id: 'overview' as const, label: 'ภาพรวม (Overview)', icon: Shield },
-            { id: 'users' as const, label: `ผู้ใช้งาน & สิทธิ์ (${stats?.users.total || users.length})`, icon: Users },
-            ...(isSuperAdmin
-              ? [{ id: 'storage' as const, label: `วิเคราะห์พื้นที่ (Storage)`, icon: PieChart }]
-              : []),
-            { id: 'announcements' as const, label: `ประกาศระบบ (Broadcast)`, icon: Megaphone },
-            { id: 'boards' as const, label: 'กระดาน & โน้ต (บอร์ด 56 แผ่น)', icon: LayoutGrid },
-            { id: 'database' as const, label: 'ฐานข้อมูล & การสำรอง', icon: HardDrive },
-            { id: 'audit' as const, label: 'ประวัติกิจกรรม (Audit Logs)', icon: History },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all duration-200 whitespace-nowrap ${
-                  isActive
-                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/80 dark:border-slate-700 font-extrabold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50'
-                }`}
-              >
-                <Icon size={15} className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
+        {/* Tab Navigation (Segmented Pill Bar with Smooth Scroll & Arrows like Help Modal) */}
+        <div className="relative flex items-center gap-1.5 w-full">
+          {/* Scroll Left Button */}
+          <button
+            type="button"
+            onClick={() => scrollTabs('left')}
+            className="p-2 sm:p-2.5 rounded-2xl bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-2xs shrink-0 transition-all active:scale-95 flex items-center justify-center backdrop-blur-md"
+            title="เลื่อนแท็บไปทางซ้าย"
+            aria-label="เลื่อนแท็บไปทางซ้าย"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {/* Scrollable Tabs Track */}
+          <div
+            ref={tabScrollRef}
+            className="flex-1 p-1.5 rounded-2xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60 backdrop-blur-sm flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth"
+          >
+            {[
+              { id: 'overview' as const, label: 'ภาพรวม (Overview)', icon: Shield },
+              { id: 'users' as const, label: `ผู้ใช้งาน & สิทธิ์ (${stats?.users.total || users.length})`, icon: Users },
+              ...(isSuperAdmin
+                ? [{ id: 'storage' as const, label: `วิเคราะห์พื้นที่ (Storage)`, icon: PieChart }]
+                : []),
+              { id: 'announcements' as const, label: `ประกาศระบบ (Broadcast)`, icon: Megaphone },
+              { id: 'boards' as const, label: 'กระดาน & โน้ต (บอร์ด 56 แผ่น)', icon: LayoutGrid },
+              { id: 'database' as const, label: 'ฐานข้อมูล & การสำรอง', icon: HardDrive },
+              { id: 'audit' as const, label: 'ประวัติกิจกรรม (Audit Logs)', icon: History },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={(e) => handleTabClick(tab.id, e)}
+                  className={`px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all duration-200 whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/80 dark:border-slate-700 font-extrabold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50'
+                  }`}
+                >
+                  <Icon size={15} className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Scroll Right Button */}
+          <button
+            type="button"
+            onClick={() => scrollTabs('right')}
+            className="p-2 sm:p-2.5 rounded-2xl bg-white/90 dark:bg-slate-800/90 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-2xs shrink-0 transition-all active:scale-95 flex items-center justify-center backdrop-blur-md"
+            title="เลื่อนแท็บไปทางขวา"
+            aria-label="เลื่อนแท็บไปทางขวา"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
 
         {/* ────────────── TAB 1: OVERVIEW ────────────── */}
