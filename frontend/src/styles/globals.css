@@ -331,10 +331,28 @@ body {
   text-align: left;
 }
 
-.tiptap.ProseMirror a {
-  color: #4f46e5;
-  text-decoration: underline;
-  cursor: pointer;
+.tiptap.ProseMirror a,
+.prose a,
+.sticky-note-content a {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  cursor: pointer !important;
+  font-weight: 600;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.dark .tiptap.ProseMirror a,
+.dark .prose a,
+.dark .sticky-note-content a {
+  color: #60a5fa !important;
+}
+
+.tiptap.ProseMirror a:hover,
+.prose a:hover,
+.sticky-note-content a:hover {
+  color: #1d4ed8 !important;
+  opacity: 0.85;
 }
 
 .tiptap.ProseMirror mark {

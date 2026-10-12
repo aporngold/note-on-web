@@ -194,11 +194,12 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
         types: ['heading', 'paragraph'],
       }),
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
         autolink: true,
         HTMLAttributes: {
           target: '_blank',
           rel: 'noopener noreferrer',
+          class: 'text-blue-600 dark:text-blue-400 underline font-semibold cursor-pointer hover:text-blue-800 transition-colors',
         },
       }),
       Placeholder.configure({

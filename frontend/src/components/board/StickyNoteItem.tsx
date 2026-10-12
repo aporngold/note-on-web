@@ -160,6 +160,17 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
     onChange(newHtml);
   };
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const linkElement = target.closest('a');
+    if (linkElement && linkElement.getAttribute('href')) {
+      const href = linkElement.getAttribute('href')!;
+      // Open link in new tab safely
+      e.stopPropagation();
+      window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div className="relative w-full h-full min-h-0">
       <div
@@ -167,9 +178,10 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
         contentEditable={!disabled}
         suppressContentEditableWarning
         onInput={handleInput}
+        onClick={handleClick}
         onFocus={onFocus}
         onBlur={onBlur}
-        className={`${className} px-2 py-1 focus:outline-none select-text cursor-text no-drag min-h-full`}
+        className={`${className} px-2 py-1 focus:outline-none select-text cursor-text no-drag min-h-full sticky-note-content`}
         style={style}
       />
       {isEmpty && (
