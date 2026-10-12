@@ -37,7 +37,7 @@ import ViewportContextMenu from '../ui/ViewportContextMenu';
 import ShareNoteModal from '../notes/ShareNoteModal';
 import { FONT_PRESETS } from '../notes/editorExtensions';
 import { useReminderStore } from '@/store/reminderStore';
-import { convertLegacyContentToHtml } from '@/utils/editorHelper';
+import { convertLegacyContentToHtml, openExternalUrl } from '@/utils/editorHelper';
 
 interface StickyNoteItemProps {
   note: Note;
@@ -146,7 +146,9 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
   useEffect(() => {
     if (ref.current && html !== lastHtmlRef.current) {
       lastHtmlRef.current = html;
-      const isFocused = document.activeElement === ref.current;
+      const isFocused =
+        document.activeElement === ref.current ||
+        (ref.current ? ref.current.contains(document.activeElement) : false);
       if (!isFocused) {
         ref.current.innerHTML = html || '';
         setIsEmpty(!html || html.replace(/<[^>]*>/g, '').trim() === '');
@@ -161,15 +163,36 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
     onChange(newHtml);
   };
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePaste = () => {
+    // Sync after browser DOM finishes pasting content
+    setTimeout(() => {
+      if (ref.current) {
+        const newHtml = ref.current.innerHTML;
+        lastHtmlRef.current = newHtml;
+        setIsEmpty(!newHtml || newHtml.replace(/<[^>]*>/g, '').trim() === '');
+        onChange(newHtml);
+      }
+    }, 0);
+  };
+
+  const handleLinkMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const linkElement = target.closest('a');
+    if (linkElement && linkElement.getAttribute('href')) {
+      // Prevent browser contentEditable from focusing into anchor and overriding click
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const linkElement = target.closest('a');
     if (linkElement && linkElement.getAttribute('href')) {
       const href = linkElement.getAttribute('href')!;
-      // Open link in new tab safely
       e.preventDefault();
       e.stopPropagation();
-      window.open(href, '_blank', 'noopener,noreferrer');
+      openExternalUrl(href);
     }
   };
 
@@ -180,7 +203,10 @@ const StickyContentEditable: React.FC<StickyContentEditableProps> = ({
         contentEditable={!disabled}
         suppressContentEditableWarning
         onInput={handleInput}
-        onClick={handleClick}
+        onPaste={handlePaste}
+        onMouseDownCapture={handleLinkMouseDown}
+        onClickCapture={handleLinkClick}
+        onClick={handleLinkClick}
         onFocus={onFocus}
         onBlur={onBlur}
         className={`${className} px-2 py-1 focus:outline-none select-text cursor-text no-drag min-h-full sticky-note-content`}
@@ -336,6 +362,7 @@ export default function StickyNoteItem({
   // Inline editing state
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content || '');
+  const isEditingRef = useRef(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [isTextColorOpen, setIsTextColorOpen] = useState(false);
 
@@ -401,8 +428,10 @@ export default function StickyNoteItem({
 
   // Synchronize title and content when note prop updates (from fullscreen editor or external edit)
   useEffect(() => {
-    setTitle(note.title || '');
-    setContent(note.content || '');
+    if (!isEditingRef.current) {
+      setTitle(note.title || '');
+      setContent(note.content || '');
+    }
   }, [note.title, note.content]);
 
   // Synchronize size when note prop updates
@@ -1720,9 +1749,18 @@ export default function StickyNoteItem({
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onFocus={() => onBringToFront?.()}
-              onBlur={handleBlur}
+              onChange={(e) => {
+                isEditingRef.current = true;
+                setTitle(e.target.value);
+              }}
+              onFocus={() => {
+                isEditingRef.current = true;
+                onBringToFront?.();
+              }}
+              onBlur={() => {
+                isEditingRef.current = false;
+                handleBlur();
+              }}
               placeholder="หัวข้อโน้ต..."
               className={`w-full font-bold bg-transparent border-b border-black/10 focus:border-black/30 focus:outline-none px-1.5 pb-0.5 placeholder-black/30 ${getFontFamilyClass()}`}
               style={{ color: textColor, fontFamily: activeFontPreset.family }}
@@ -1825,10 +1863,17 @@ export default function StickyNoteItem({
               <StickyContentEditable
                 html={displayContent}
                 onChange={(newHtml) => {
+                  isEditingRef.current = true;
                   setContent(newHtml);
                 }}
-                onFocus={() => onBringToFront?.()}
-                onBlur={handleBlur}
+                onFocus={() => {
+                  isEditingRef.current = true;
+                  onBringToFront?.();
+                }}
+                onBlur={() => {
+                  isEditingRef.current = false;
+                  handleBlur();
+                }}
                 disabled={note.isLocked}
                 placeholder="เขียนข้อความของคุณตรงนี้..."
                 className="w-full h-full prose dark:prose-invert max-w-none text-inherit leading-relaxed"

@@ -104,3 +104,33 @@ export function stripHtmlTags(html: string): string {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
+
+/**
+ * Safely open external URL in a new tab without being blocked by popup blockers
+ */
+export function openExternalUrl(href: string): void {
+  if (!href || typeof href !== 'string') return;
+  let url = href.trim();
+  if (!url) return;
+  // Prepend https:// if protocol is missing and not relative/anchor
+  if (!/^https?:\/\//i.test(url) && !url.startsWith('/') && !url.startsWith('#') && !url.startsWith('mailto:') && !url.startsWith('tel:')) {
+    url = `https://${url}`;
+  }
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (a.parentNode) {
+        a.parentNode.removeChild(a);
+      }
+    }, 150);
+  } catch (e) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+}
+

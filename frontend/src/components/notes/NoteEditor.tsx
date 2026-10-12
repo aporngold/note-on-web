@@ -70,7 +70,7 @@ import ImageOcrModal from './ImageOcrModal';
 import AIAssistantModal from './AIAssistantModal';
 import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
 import SpeechToTextButton, { stopGlobalSpeechToText } from './SpeechToTextButton';
-import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
+import { convertLegacyContentToHtml, stripHtmlTags, openExternalUrl } from '@/utils/editorHelper';
 import NoteReminderModal from './NoteReminderModal';
 import { useReminderStore } from '@/store/reminderStore';
 
@@ -232,7 +232,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           const href = link.getAttribute('href');
           if (href) {
             event.preventDefault();
-            window.open(href, '_blank', 'noopener,noreferrer');
+            event.stopPropagation();
+            openExternalUrl(href);
             return true;
           }
         }
@@ -1521,7 +1522,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
                 const link = target.closest('a');
                 if (link && link.getAttribute('href')) {
                   e.preventDefault();
-                  window.open(link.getAttribute('href')!, '_blank', 'noopener,noreferrer');
+                  e.stopPropagation();
+                  openExternalUrl(link.getAttribute('href')!);
                 }
               }}
               dangerouslySetInnerHTML={{
@@ -1531,6 +1533,18 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           ) : (
             <div
               className="flex-1 min-h-[160px] lg:min-h-[420px] cursor-text text-sm sm:text-base leading-relaxed transition-all duration-150"
+              onClickCapture={(e) => {
+                const target = e.target as HTMLElement;
+                const link = target.closest('a');
+                if (link) {
+                  const href = link.getAttribute('href');
+                  if (href) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openExternalUrl(href);
+                  }
+                }
+              }}
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest('a')) return;
                 if (editor && !editor.isFocused) {

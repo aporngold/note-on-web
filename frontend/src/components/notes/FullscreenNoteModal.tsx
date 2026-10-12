@@ -53,7 +53,7 @@ import ImageOcrModal from './ImageOcrModal';
 import AIAssistantModal from './AIAssistantModal';
 import ActiveCollaboratorsBar from './ActiveCollaboratorsBar';
 import ViewportPortal from '../ui/ViewportPortal';
-import { convertLegacyContentToHtml, stripHtmlTags } from '@/utils/editorHelper';
+import { convertLegacyContentToHtml, stripHtmlTags, openExternalUrl } from '@/utils/editorHelper';
 import { stopGlobalSpeechToText } from './SpeechToTextButton';
 import NoteReminderModal from './NoteReminderModal';
 import { useReminderStore } from '@/store/reminderStore';
@@ -157,6 +157,7 @@ export default function FullscreenNoteModal({
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSavedTime, setLastSavedTime] = useState<string>('');
   const hasUnsavedChangesRef = useRef(false);
+  const lastLoadedNoteIdRef = useRef<string | null>(null);
   const latestDataRef = useRef<{ title: string; content: string; color: string; textColor: string; fontFamily?: string; fontSize?: string }>({
     title: note?.title || '',
     content: initialContent,
@@ -224,7 +225,8 @@ export default function FullscreenNoteModal({
           const href = link.getAttribute('href');
           if (href) {
             event.preventDefault();
-            window.open(href, '_blank', 'noopener,noreferrer');
+            event.stopPropagation();
+            openExternalUrl(href);
             return true;
           }
         }
@@ -301,9 +303,17 @@ export default function FullscreenNoteModal({
     },
   });
 
-  // Sync state when active note changes
+  // Sync state when active note changes (only when switching note or pristine)
   useEffect(() => {
     if (note) {
+      const isSwitchingNote = note.id !== lastLoadedNoteIdRef.current;
+
+      // If user is currently editing or has unsaved changes on this note, DO NOT overwrite!
+      if (!isSwitchingNote && (hasUnsavedChangesRef.current || (editor && editor.isFocused))) {
+        return;
+      }
+
+      lastLoadedNoteIdRef.current = note.id;
       setTitle(note.title || '');
       setColor(note.color || '#FEF08A');
       setTextColor(note.textColor || '#0F172A');
@@ -329,8 +339,10 @@ export default function FullscreenNoteModal({
 
       const initialHtml = convertLegacyContentToHtml(rawContent);
       setContent(initialHtml);
-      if (editor && editor.getHTML() !== initialHtml) {
-        editor.commands.setContent(initialHtml, { emitUpdate: false });
+      if (editor && (isSwitchingNote || !hasUnsavedChangesRef.current)) {
+        if (editor.getHTML() !== initialHtml) {
+          editor.commands.setContent(initialHtml, { emitUpdate: false });
+        }
       }
 
       latestDataRef.current = {
@@ -343,7 +355,7 @@ export default function FullscreenNoteModal({
       };
       hasUnsavedChangesRef.current = false;
     }
-  }, [note, editor, isVaultUnlocked]);
+  }, [note?.id, note?.updatedAt, editor, isVaultUnlocked]);
 
   const performSave = useCallback(async (customData?: Partial<Note>) => {
     if (!note) return;
@@ -793,6 +805,18 @@ export default function FullscreenNoteModal({
 
           {/* Large Note Content TipTap Editor */}
           <div
+            onClickCapture={(e) => {
+              const target = e.target as HTMLElement;
+              const link = target.closest('a');
+              if (link) {
+                const href = link.getAttribute('href');
+                if (href) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openExternalUrl(href);
+                }
+              }
+            }}
             onClick={(e) => {
               if ((e.target as HTMLElement).closest('a')) return;
               if (editor && !editor.isFocused) {
