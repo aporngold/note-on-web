@@ -31,7 +31,13 @@ router.post('/backups/create', AdminController.triggerBackup);
 router.get('/backups/:filename/download', AdminController.downloadBackup);
 router.post('/backups/restore', requireSuperAdmin, AdminController.triggerRestore);
 
+import storageAnalyticsRoutes from './storageAnalyticsRoutes';
+
 // 6. บันทึกประวัติกิจกรรม (Audit Logs)
 router.get('/audit-logs', AdminController.getAuditLogs);
 
+// 7. วิเคราะห์การใช้พื้นที่จัดเก็บ (Storage Usage Analytics - Super Admin Only)
+router.use('/storage', requireSuperAdmin, storageAnalyticsRoutes);
+
 export default router;
+
