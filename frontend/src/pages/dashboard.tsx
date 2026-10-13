@@ -45,6 +45,7 @@ export default function Dashboard() {
     sortBy,
     setSortBy,
     activeFocusedNoteId,
+    setActiveFocusedNoteId,
   } = useNoteStore();
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -52,6 +53,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites' | 'reminders'>('all');
   const [isAiSearchOpen, setIsAiSearchOpen] = useState(false);
   const [isBoardShareModalOpen, setIsBoardShareModalOpen] = useState(false);
+  const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(null);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const reminderNotesCount = notes.filter((n) => Boolean(remindersByNote[n.id])).length;
 
@@ -62,16 +64,28 @@ export default function Dashboard() {
     if (!focusId || notes.length === 0) return;
 
     if (viewMode === 'grid' || viewMode === 'list') {
+      setHighlightedNoteId(focusId);
+      setActiveFocusedNoteId(null);
+      sessionStorage.removeItem('secure_note_focus_note_id');
+
       const timer = setTimeout(() => {
         const el = document.getElementById(`note-card-${focusId}`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 150);
+      }, 100);
 
-      return () => clearTimeout(timer);
+      // Dismiss highlight cleanly after 0.50s (500ms)
+      const clearTimer = setTimeout(() => {
+        setHighlightedNoteId(null);
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(clearTimer);
+      };
     }
-  }, [viewMode, activeFocusedNoteId, notes]);
+  }, [viewMode, activeFocusedNoteId, notes, setActiveFocusedNoteId]);
 
   useEffect(() => {
     if (router.query.tab === 'reminders') {
@@ -535,6 +549,7 @@ export default function Dashboard() {
                           note={note}
                           onUnlockRequest={() => setIsVaultModalOpen(true)}
                           onOpenFullscreen={handleOpenFullscreen}
+                          isHighlighted={highlightedNoteId === note.id}
                         />
                       ))}
                     </div>
@@ -555,6 +570,7 @@ export default function Dashboard() {
                           note={note}
                           onUnlockRequest={() => setIsVaultModalOpen(true)}
                           onOpenFullscreen={handleOpenFullscreen}
+                          isHighlighted={highlightedNoteId === note.id}
                         />
                       ))}
                     </div>
@@ -575,6 +591,7 @@ export default function Dashboard() {
                           note={note}
                           onUnlockRequest={() => setIsVaultModalOpen(true)}
                           onOpenFullscreen={handleOpenFullscreen}
+                          isHighlighted={highlightedNoteId === note.id}
                         />
                       ))}
                     </div>
@@ -595,6 +612,7 @@ export default function Dashboard() {
                           note={note}
                           onUnlockRequest={() => setIsVaultModalOpen(true)}
                           onOpenFullscreen={handleOpenFullscreen}
+                          isHighlighted={highlightedNoteId === note.id}
                         />
                       ))}
                     </div>
@@ -617,6 +635,7 @@ export default function Dashboard() {
                           note={note}
                           onUnlockRequest={() => setIsVaultModalOpen(true)}
                           onOpenFullscreen={handleOpenFullscreen}
+                          isHighlighted={highlightedNoteId === note.id}
                         />
                       ))}
                     </div>
@@ -638,6 +657,7 @@ export default function Dashboard() {
                           note={note}
                           onUnlockRequest={() => setIsVaultModalOpen(true)}
                           onOpenFullscreen={handleOpenFullscreen}
+                          isHighlighted={highlightedNoteId === note.id}
                         />
                       ))}
                     </div>
@@ -652,6 +672,7 @@ export default function Dashboard() {
             notes={filteredNotes}
             onUnlockRequest={() => setIsVaultModalOpen(true)}
             onOpenFullscreen={handleOpenFullscreen}
+            highlightedNoteId={highlightedNoteId}
           />
         )}
       </div>

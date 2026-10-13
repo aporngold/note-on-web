@@ -21,9 +21,10 @@ interface NoteCardProps {
   note: Note;
   onUnlockRequest?: () => void;
   onOpenFullscreen?: (note: Note) => void;
+  isHighlighted?: boolean;
 }
 
-export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: NoteCardProps) {
+export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen, isHighlighted }: NoteCardProps) {
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin, toggleFavorite, toggleNoteLock, setSelectedLabel } = useNoteStore();
   const allNotes = useNoteStore((state) => state.notes);
@@ -112,8 +113,6 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
     });
   };
 
-  const isFocused = useNoteStore((state) => state.activeFocusedNoteId === note.id);
-
   return (
     <div
       id={`note-card-${note.id}`}
@@ -124,8 +123,8 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
       }}
       onContextMenu={handleContextMenu}
       className={`group relative bg-warm-card dark:bg-warm-darkSurface rounded-2xl p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border border-warm-border dark:border-warm-darkBorder flex flex-col justify-between overflow-hidden ${
-        isFocused
-          ? 'ring-4 ring-indigo-500/80 shadow-xl scale-[1.02] animate-pulse duration-300'
+        isHighlighted
+          ? 'ring-4 ring-indigo-500/90 shadow-xl scale-[1.02] animate-pulse duration-300'
           : note.isPinned
           ? 'ring-1 ring-sand-400/80 dark:ring-sand-500/50'
           : ''

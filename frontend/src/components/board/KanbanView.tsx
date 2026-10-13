@@ -63,7 +63,16 @@ const COLUMNS = [
 
 export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) {
   const router = useRouter();
-  const { updateNote, deleteNote, createNote, activeBoardId, togglePin, toggleNoteLock, activeFocusedNoteId } = useNoteStore();
+  const {
+    updateNote,
+    deleteNote,
+    createNote,
+    activeBoardId,
+    togglePin,
+    toggleNoteLock,
+    activeFocusedNoteId,
+    setActiveFocusedNoteId,
+  } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
@@ -81,6 +90,8 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
 
     const targetNote = notes.find((n) => n.id === focusId);
     if (targetNote) {
+      sessionStorage.removeItem('secure_note_focus_note_id');
+      setActiveFocusedNoteId(null);
       const noteCol = targetNote.kanbanStatus || 'todo';
       setActiveMobileCol(noteCol);
       setHighlightedNoteId(targetNote.id);
@@ -90,18 +101,19 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 150);
+      }, 100);
 
+      // Dismiss highlight cleanly after 0.50s (500ms)
       const fadeTimer = setTimeout(() => {
         setHighlightedNoteId((curr) => (curr === targetNote.id ? null : curr));
-      }, 2000);
+      }, 500);
 
       return () => {
         clearTimeout(timer);
         clearTimeout(fadeTimer);
       };
     }
-  }, [notes, activeFocusedNoteId]);
+  }, [notes, activeFocusedNoteId, setActiveFocusedNoteId]);
 
   // Mobile Touch Swipe Gesture Tracking
   const touchStartX = useRef<number | null>(null);

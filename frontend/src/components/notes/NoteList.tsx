@@ -17,6 +17,7 @@ interface NoteListProps {
   notes: Note[];
   onUnlockRequest?: () => void;
   onOpenFullscreen?: (note: Note) => void;
+  highlightedNoteId?: string | null;
 }
 
 const formatReminderDate = (dateStr: string) => {
@@ -42,12 +43,14 @@ function NoteListItem({
   onOpenFullscreen,
   onOpenShare,
   onOpenReminder,
+  isHighlighted,
 }: {
   note: Note;
   onUnlockRequest?: () => void;
   onOpenFullscreen?: (note: Note) => void;
   onOpenShare: (note: Note) => void;
   onOpenReminder: (note: Note) => void;
+  isHighlighted?: boolean;
 }) {
   const router = useRouter();
   const { deleteNote, duplicateNote, togglePin, toggleNoteLock } = useNoteStore();
@@ -88,8 +91,6 @@ function NoteListItem({
 
   const cleanPreview = stripHtmlTags(previewText);
 
-  const isFocused = useNoteStore((state) => state.activeFocusedNoteId === note.id);
-
   return (
     <div
       id={`note-card-${note.id}`}
@@ -109,7 +110,7 @@ function NoteListItem({
         if (onOpenFullscreen) onOpenFullscreen(note);
       }}
       className={`py-3 px-4 sm:px-5 flex items-center justify-between gap-3 hover:bg-warm-bg/70 dark:hover:bg-warm-darkCard/50 active:bg-warm-border/40 dark:active:bg-warm-darkCard/80 transition cursor-pointer group ${
-        isFocused
+        isHighlighted
           ? 'bg-indigo-50/90 dark:bg-indigo-950/50 ring-2 ring-indigo-500 shadow-md animate-pulse duration-300'
           : ''
       }`}
@@ -437,7 +438,7 @@ function NoteListItem({
   );
 }
 
-export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: NoteListProps) {
+export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen, highlightedNoteId }: NoteListProps) {
   const [shareNote, setShareNote] = useState<Note | null>(null);
   const [selectedReminderNote, setSelectedReminderNote] = useState<Note | null>(null);
 
@@ -464,6 +465,7 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
                   onOpenFullscreen={onOpenFullscreen}
                   onOpenShare={setShareNote}
                   onOpenReminder={setSelectedReminderNote}
+                  isHighlighted={highlightedNoteId === note.id}
                 />
               ))}
             </div>
@@ -483,6 +485,7 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
                   onOpenFullscreen={onOpenFullscreen}
                   onOpenShare={setShareNote}
                   onOpenReminder={setSelectedReminderNote}
+                  isHighlighted={highlightedNoteId === note.id}
                 />
               ))}
             </div>
@@ -499,6 +502,7 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
               onOpenFullscreen={onOpenFullscreen}
               onOpenShare={setShareNote}
               onOpenReminder={setSelectedReminderNote}
+              isHighlighted={highlightedNoteId === note.id}
             />
           ))}
         </div>

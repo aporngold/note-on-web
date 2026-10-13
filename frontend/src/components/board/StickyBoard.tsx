@@ -823,6 +823,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
     const targetNote = notes.find((n) => n.id === focusNoteId);
     if (targetNote) {
       sessionStorage.removeItem('secure_note_focus_note_id');
+      setActiveFocusedNoteId(null);
       isFocusingSavedNoteRef.current = true;
       setTimeout(() => {
         isFocusingSavedNoteRef.current = false;
@@ -841,16 +842,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         ensureNoteInView(targetNote);
       }, 350);
 
-      // Dismiss subtle highlight and focus cleanly within 1.5s
+      // Dismiss subtle highlight and focus cleanly within 0.50s (500ms)
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
       highlightTimerRef.current = setTimeout(() => {
         setHighlightedNoteId(null);
-      }, 1500);
+      }, 500);
 
       if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
       focusTimerRef.current = setTimeout(() => {
         setFocusedNoteId((curr) => (curr === targetNote.id ? null : curr));
-      }, 1500);
+      }, 500);
 
       return () => {
         clearTimeout(timer1);
@@ -865,7 +866,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         }
       };
     }
-  }, [notes, activeFocusedNoteId, bringToFront, ensureNoteInView]);
+  }, [notes, activeFocusedNoteId, bringToFront, ensureNoteInView, setActiveFocusedNoteId]);
 
   // Automatically scroll to top-left when board changes (except when focusing a newly created/saved note)
   useEffect(() => {
