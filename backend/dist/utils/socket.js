@@ -4,6 +4,7 @@ exports.setSocketIO = setSocketIO;
 exports.getSocketIO = getSocketIO;
 exports.emitToUser = emitToUser;
 exports.emitToBoard = emitToBoard;
+exports.emitBroadcast = emitBroadcast;
 let ioInstance = null;
 function setSocketIO(io) {
     ioInstance = io;
@@ -25,5 +26,13 @@ function emitToUser(userId, event, data) {
 function emitToBoard(boardId, event, data) {
     if (ioInstance && boardId) {
         ioInstance.to(`board:${boardId}`).emit(event, data);
+    }
+}
+/**
+ * Emit a broadcast event to all connected users
+ */
+function emitBroadcast(event, data) {
+    if (ioInstance) {
+        ioInstance.emit(event, data);
     }
 }

@@ -26,6 +26,7 @@ const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
 const reminderRoutes_1 = __importDefault(require("./routes/reminderRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const privacyRoutes_1 = __importDefault(require("./routes/privacyRoutes"));
+const announcementRoutes_1 = __importDefault(require("./routes/announcementRoutes"));
 const reminderScheduler_1 = require("./services/reminderScheduler");
 const socket_1 = require("./utils/socket");
 const errorHandler_1 = require("./middleware/errorHandler");
@@ -158,6 +159,7 @@ app.use('/api/admin', adminRoutes_1.default);
 app.use('/api/reminders', reminderRoutes_1.default);
 app.use('/api/notifications', notificationRoutes_1.default);
 app.use('/api/privacy', privacyRoutes_1.default);
+app.use('/api/announcements', announcementRoutes_1.default);
 // Track active users in note rooms: noteId -> Map(socketId -> { userId, username })
 const notePresenceMap = new Map();
 const PRESENCE_COLORS = [

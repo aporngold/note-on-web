@@ -160,6 +160,7 @@ class AdminController {
                         email: true,
                         username: true,
                         role: true,
+                        canBroadcast: true,
                         authProvider: true,
                         hasMasterPassword: true,
                         createdAt: true,
@@ -249,13 +250,13 @@ class AdminController {
     static async updateUserRole(req, res) {
         try {
             const { id } = req.params;
-            const { role } = req.body;
-            if (!['USER', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+            const { role, canBroadcast } = req.body;
+            if (role && !['USER', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
                 return res.status(400).json({
                     error: 'สิทธิ์ไม่ถูกต้อง (ต้องเป็น USER, ADMIN หรือ SUPER_ADMIN เท่านั้น)',
                 });
             }
-            if (req.user?.id === id) {
+            if (req.user?.id === id && role && role !== req.user.role) {
                 return res.status(400).json({
                     error: 'ไม่สามารถปรับเปลี่ยนสิทธิ์ของบัญชีตนเองได้ เพื่อความปลอดภัยของระบบ',
                 });
@@ -265,7 +266,7 @@ class AdminController {
                 return res.status(404).json({ error: 'ไม่พบผู้ใช้งานที่ต้องการแก้ไข' });
             }
             // ถ้ากำลังจะปลด SUPER_ADMIN ตรวจสอบว่ายังมี SUPER_ADMIN คนอื่นเหลืออยู่อย่างน้อย 1 คนหรือไม่
-            if (targetUser.role === 'SUPER_ADMIN' && role !== 'SUPER_ADMIN') {
+            if (role && targetUser.role === 'SUPER_ADMIN' && role !== 'SUPER_ADMIN') {
                 const superAdminCount = await database_1.prisma.user.count({
                     where: { role: 'SUPER_ADMIN' },
                 });
@@ -275,11 +276,16 @@ class AdminController {
                     });
                 }
             }
+            const updateData = {};
+            if (role)
+                updateData.role = role;
+            if (typeof canBroadcast === 'boolean')
+                updateData.canBroadcast = canBroadcast;
             const oldRole = targetUser.role;
             const updatedUser = await database_1.prisma.user.update({
                 where: { id },
-                data: { role },
-                select: { id: true, email: true, username: true, role: true },
+                data: updateData,
+                select: { id: true, email: true, username: true, role: true, canBroadcast: true },
             });
             // บันทึกลง AuditLog
             await database_1.prisma.auditLog.create({
@@ -287,7 +293,7 @@ class AdminController {
                     adminId: req.user.id,
                     action: 'CHANGE_USER_ROLE',
                     target: targetUser.email,
-                    details: `เปลี่ยนสิทธิ์จาก ${oldRole} เป็น ${role}`,
+                    details: `ปรับสิทธิ์: Role (${oldRole} -> ${role || oldRole}), สิทธิ์ส่งประกาศ (${typeof canBroadcast === 'boolean' ? canBroadcast : targetUser.canBroadcast})`,
                     ipAddress: (req.ip || req.socket.remoteAddress || 'unknown').slice(0, 45),
                     result: 'SUCCESS',
                 },
