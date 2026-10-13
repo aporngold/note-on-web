@@ -121,7 +121,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
   const [isArranging, setIsArranging] = useState(false);
 
   const handleOpenFullscreen = (n: Note) => {
-    useNoteStore.getState().clearFocusedNote();
+    const currentFocusId = useNoteStore.getState().activeFocusedNoteId;
+    if (currentFocusId && currentFocusId !== n.id) {
+      useNoteStore.getState().clearFocusedNote();
+    }
     setHighlightedNoteId(null);
     setFullscreenNote(n);
   };
@@ -744,7 +747,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   const handleNoteFocus = useCallback(
     (noteId: string, shouldScroll = false) => {
-      useNoteStore.getState().clearFocusedNote();
+      const currentFocusId = useNoteStore.getState().activeFocusedNoteId;
+      if (currentFocusId && currentFocusId !== noteId) {
+        useNoteStore.getState().clearFocusedNote();
+      }
       bringToFront(noteId);
       setFocusedNoteId(noteId);
       setLastActiveNoteId(noteId);
@@ -1101,12 +1107,12 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
       highlightTimerRef.current = setTimeout(() => {
         setHighlightedNoteId(null);
-      }, 400);
+      }, 500);
 
       if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
       focusTimerRef.current = setTimeout(() => {
         setFocusedNoteId((curr) => (curr === newNote.id ? null : curr));
-      }, 550);
+      }, 500);
     }
   };
 
@@ -1239,11 +1245,11 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       setHighlightedNoteId(newNote.id);
       setStickerTargetNoteId(null);
 
-      // Auto-clear highlight ring after 1.5 seconds
+      // Auto-clear highlight ring after 0.50 seconds (500ms)
       if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
       highlightTimerRef.current = setTimeout(() => {
         setHighlightedNoteId(null);
-      }, 1500);
+      }, 500);
 
       toast.success(
         targetNote

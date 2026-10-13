@@ -852,13 +852,15 @@ export default function StickyNoteItem({
           fontFamily: activeFontPreset.family,
           transform: isDragging
             ? `scale(1.03) rotate(${rotation}deg)`
-            : isFocused
+            : isHighlighted || isFocused
             ? `scale(1.02) rotate(${rotation}deg)`
             : `rotate(${rotation}deg)`,
           zIndex: isDragging || resizingDir
             ? 9999
             : isConnectingSource
             ? 8888
+            : isHighlighted
+            ? 999
             : customZIndex !== undefined
             ? customZIndex
             : note.isPinned
@@ -867,7 +869,7 @@ export default function StickyNoteItem({
           boxShadow: isDragging || resizingDir
             ? '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
             : isHighlighted
-            ? undefined
+            ? '0 0 0 4px #6366F1, 0 20px 25px -5px rgba(99, 102, 241, 0.4)'
             : isFocused
             ? '0 0 0 2px #6366F1, 0 10px 20px -5px rgba(99, 102, 241, 0.2)'
             : isConnectingSource
@@ -895,7 +897,7 @@ export default function StickyNoteItem({
           note.isPinned ? 'ring-2 ring-indigo-500/50' : ''
         } ${
           isHighlighted
-            ? 'animate-highlight-fade'
+            ? 'ring-4 ring-indigo-500/90 shadow-2xl animate-pulse duration-300'
             : isFocused
             ? 'ring-1 ring-indigo-400/80'
             : ''
