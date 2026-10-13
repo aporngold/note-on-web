@@ -95,6 +95,7 @@ function NoteListItem({
     <div
       id={`note-card-${note.id}`}
       onClick={() => {
+        useNoteStore.getState().clearFocusedNote();
         if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {
           onUnlockRequest();
           return;

@@ -92,6 +92,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen, isHi
   };
 
   const handleClick = () => {
+    useNoteStore.getState().clearFocusedNote();
     if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {
       onUnlockRequest();
       return;

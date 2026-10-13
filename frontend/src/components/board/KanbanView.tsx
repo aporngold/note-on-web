@@ -72,6 +72,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
     toggleNoteLock,
     activeFocusedNoteId,
     setActiveFocusedNoteId,
+    consumeFocusedNoteForView,
   } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
@@ -85,23 +86,27 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   // Auto-scroll and highlight focused/newly-created note across views
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    const focusId = activeFocusedNoteId || sessionStorage.getItem('secure_note_focus_note_id');
-    if (!focusId || notes.length === 0) return;
+    if (notes.length === 0) return;
 
-    const targetNote = notes.find((n) => n.id === focusId);
+    const targetId = consumeFocusedNoteForView('kanban');
+    if (!targetId) return;
+
+    const targetNote = notes.find((n) => n.id === targetId);
     if (targetNote) {
-      sessionStorage.removeItem('secure_note_focus_note_id');
-      setActiveFocusedNoteId(null);
       const noteCol = targetNote.kanbanStatus || 'todo';
       setActiveMobileCol(noteCol);
       setHighlightedNoteId(targetNote.id);
 
-      const timer = setTimeout(() => {
+      let retryTimer: NodeJS.Timeout | null = null;
+      const scrollToKanbanCard = (attempt = 0) => {
         const el = document.getElementById(`kanban-card-${targetNote.id}`);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        } else if (attempt < 6) {
+          retryTimer = setTimeout(() => scrollToKanbanCard(attempt + 1), 80);
         }
-      }, 100);
+      };
+      scrollToKanbanCard();
 
       // Dismiss highlight cleanly after 0.50s (500ms)
       const fadeTimer = setTimeout(() => {
@@ -109,11 +114,11 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
       }, 500);
 
       return () => {
-        clearTimeout(timer);
+        if (retryTimer) clearTimeout(retryTimer);
         clearTimeout(fadeTimer);
       };
     }
-  }, [notes, activeFocusedNoteId, setActiveFocusedNoteId]);
+  }, [notes, activeFocusedNoteId, consumeFocusedNoteForView]);
 
   // Mobile Touch Swipe Gesture Tracking
   const touchStartX = useRef<number | null>(null);
@@ -167,6 +172,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   };
 
   const handleOpenFullscreen = (n: Note) => {
+    useNoteStore.getState().clearFocusedNote();
     if (n.isLocked && !isVaultUnlocked && onUnlockRequest) {
       onUnlockRequest();
       return;

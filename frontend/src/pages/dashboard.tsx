@@ -46,6 +46,7 @@ export default function Dashboard() {
     setSortBy,
     activeFocusedNoteId,
     setActiveFocusedNoteId,
+    consumeFocusedNoteForView,
   } = useNoteStore();
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -60,32 +61,47 @@ export default function Dashboard() {
   // Seamless Cross-View Focus: Scroll to newly created or active note when switching to Grid or List view
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const focusId = activeFocusedNoteId || sessionStorage.getItem('secure_note_focus_note_id');
-    if (!focusId || notes.length === 0) return;
+    if (viewMode !== 'grid' && viewMode !== 'list') return;
+    if (notes.length === 0) return;
 
-    if (viewMode === 'grid' || viewMode === 'list') {
-      setHighlightedNoteId(focusId);
-      setActiveFocusedNoteId(null);
-      sessionStorage.removeItem('secure_note_focus_note_id');
+    const targetId = consumeFocusedNoteForView(viewMode);
+    if (!targetId) return;
 
-      const timer = setTimeout(() => {
-        const el = document.getElementById(`note-card-${focusId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
-
-      // Dismiss highlight cleanly after 0.50s (500ms)
-      const clearTimer = setTimeout(() => {
-        setHighlightedNoteId(null);
-      }, 500);
-
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(clearTimer);
-      };
+    const targetNote = notes.find((n) => n.id === targetId);
+    if (targetNote) {
+      if (activeTab === 'reminders' && !remindersByNote[targetId]) {
+        setActiveTab('all');
+      } else if (activeTab === 'pinned' && !targetNote.isPinned) {
+        setActiveTab('all');
+      } else if (activeTab === 'favorites' && !targetNote.isFavorite) {
+        setActiveTab('all');
+      }
     }
-  }, [viewMode, activeFocusedNoteId, notes, setActiveFocusedNoteId]);
+
+    setHighlightedNoteId(targetId);
+
+    // Robust scroll with retries for DOM readiness
+    let retryTimer: NodeJS.Timeout | null = null;
+    const scrollToCard = (attempt = 0) => {
+      const el = document.getElementById(`note-card-${targetId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (attempt < 6) {
+        retryTimer = setTimeout(() => scrollToCard(attempt + 1), 80);
+      }
+    };
+    scrollToCard();
+
+    // Dismiss highlight cleanly after 0.50s (500ms)
+    const clearTimer = setTimeout(() => {
+      setHighlightedNoteId(null);
+    }, 500);
+
+    return () => {
+      if (retryTimer) clearTimeout(retryTimer);
+      clearTimeout(clearTimer);
+    };
+  }, [viewMode, activeFocusedNoteId, notes, activeTab, consumeFocusedNoteForView, remindersByNote]);
 
   useEffect(() => {
     if (router.query.tab === 'reminders') {
@@ -96,6 +112,7 @@ export default function Dashboard() {
   }, [router.query.tab]);
 
   const handleOpenFullscreen = (n: Note) => {
+    useNoteStore.getState().clearFocusedNote();
     setFullscreenNote(n);
   };
 

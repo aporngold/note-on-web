@@ -27,9 +27,12 @@ interface NoteState {
   isTrashLoading: boolean;
   pendingLockNote: Note | null;
   activeFocusedNoteId: string | null;
+  focusedViewsForNote: Record<string, boolean>;
 
   // Actions
   setActiveFocusedNoteId: (id: string | null) => void;
+  consumeFocusedNoteForView: (viewName: 'grid' | 'list' | 'kanban' | 'board') => string | null;
+  clearFocusedNote: () => void;
   setPendingLockNote: (note: Note | null) => void;
   toggleNoteLock: (note: Note, onNeedMasterPassword?: () => void) => Promise<void>;
   processPendingLock: () => Promise<void>;
@@ -109,6 +112,7 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   isTrashLoading: false,
   pendingLockNote: null,
   activeFocusedNoteId: (typeof window !== 'undefined' ? sessionStorage.getItem('secure_note_focus_note_id') : null) || null,
+  focusedViewsForNote: {},
 
   setActiveFocusedNoteId: (id) => {
     if (typeof window !== 'undefined') {
@@ -118,7 +122,33 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         sessionStorage.removeItem('secure_note_focus_note_id');
       }
     }
-    set({ activeFocusedNoteId: id });
+    set({ activeFocusedNoteId: id, focusedViewsForNote: {} });
+  },
+
+  consumeFocusedNoteForView: (viewName) => {
+    const { activeFocusedNoteId, focusedViewsForNote } = get();
+    const focusId = activeFocusedNoteId || (typeof window !== 'undefined' ? sessionStorage.getItem('secure_note_focus_note_id') : null);
+    if (!focusId) return null;
+    if (focusedViewsForNote[viewName]) return null;
+
+    const updatedViews = { ...focusedViewsForNote, [viewName]: true };
+    const allConsumed = ['grid', 'list', 'kanban', 'board'].every((v) => updatedViews[v]);
+    if (allConsumed) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('secure_note_focus_note_id');
+      }
+      set({ activeFocusedNoteId: null, focusedViewsForNote: {} });
+    } else {
+      set({ focusedViewsForNote: updatedViews });
+    }
+    return focusId;
+  },
+
+  clearFocusedNote: () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('secure_note_focus_note_id');
+    }
+    set({ activeFocusedNoteId: null, focusedViewsForNote: {} });
   },
   setPendingLockNote: (note) => set({ pendingLockNote: note }),
 
@@ -392,11 +422,13 @@ export const useNoteStore = create<NoteState>((set, get) => ({
         return {
           notes: state.notes.map((n) => (n.id === newNote.id ? { ...n, ...newNote } : n)),
           activeFocusedNoteId: newNote.id,
+          focusedViewsForNote: {},
         };
       }
       return {
         notes: [newNote, ...state.notes],
         activeFocusedNoteId: newNote.id,
+        focusedViewsForNote: {},
         boards: state.boards.map((b) => {
           const matches = newNote.boardId ? b.id === newNote.boardId : b.isDefault;
           return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;
