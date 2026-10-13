@@ -88,8 +88,11 @@ function NoteListItem({
 
   const cleanPreview = stripHtmlTags(previewText);
 
+  const isFocused = useNoteStore((state) => state.activeFocusedNoteId === note.id);
+
   return (
     <div
+      id={`note-card-${note.id}`}
       onClick={() => {
         if (note.isLocked && !isVaultUnlocked && onUnlockRequest) {
           onUnlockRequest();
@@ -105,7 +108,11 @@ function NoteListItem({
         e.stopPropagation();
         if (onOpenFullscreen) onOpenFullscreen(note);
       }}
-      className="py-3 px-4 sm:px-5 flex items-center justify-between gap-3 hover:bg-warm-bg/70 dark:hover:bg-warm-darkCard/50 active:bg-warm-border/40 dark:active:bg-warm-darkCard/80 transition cursor-pointer group"
+      className={`py-3 px-4 sm:px-5 flex items-center justify-between gap-3 hover:bg-warm-bg/70 dark:hover:bg-warm-darkCard/50 active:bg-warm-border/40 dark:active:bg-warm-darkCard/80 transition cursor-pointer group ${
+        isFocused
+          ? 'bg-indigo-50/90 dark:bg-indigo-950/50 ring-2 ring-indigo-500 shadow-md animate-pulse duration-300'
+          : ''
+      }`}
     >
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
         {/* Accent dot indicator with soft ring */}
@@ -175,6 +182,30 @@ function NoteListItem({
             {note.notebook && (
               <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                 <Book size={11} /> {note.notebook.name}
+              </span>
+            )}
+
+            {note.kanbanStatus && (
+              <span
+                className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  note.kanbanStatus === 'done'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                    : note.kanbanStatus === 'doing'
+                    ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                }`}
+                title={`สถานะคันบัง: ${
+                  note.kanbanStatus === 'done' ? 'เสร็จแล้ว (Done)' : note.kanbanStatus === 'doing' ? 'กำลังทำ (Doing)' : 'ต้องทำ (To Do)'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    note.kanbanStatus === 'done' ? 'bg-emerald-500' : note.kanbanStatus === 'doing' ? 'bg-sky-500' : 'bg-amber-500'
+                  }`}
+                />
+                <span>
+                  {note.kanbanStatus === 'done' ? 'Done' : note.kanbanStatus === 'doing' ? 'Doing' : 'To Do'}
+                </span>
               </span>
             )}
             {reminder && (

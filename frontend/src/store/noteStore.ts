@@ -26,8 +26,10 @@ interface NoteState {
   isLoading: boolean;
   isTrashLoading: boolean;
   pendingLockNote: Note | null;
+  activeFocusedNoteId: string | null;
 
   // Actions
+  setActiveFocusedNoteId: (id: string | null) => void;
   setPendingLockNote: (note: Note | null) => void;
   toggleNoteLock: (note: Note, onNeedMasterPassword?: () => void) => Promise<void>;
   processPendingLock: () => Promise<void>;
@@ -106,7 +108,18 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   isLoading: false,
   isTrashLoading: false,
   pendingLockNote: null,
+  activeFocusedNoteId: (typeof window !== 'undefined' ? sessionStorage.getItem('secure_note_focus_note_id') : null) || null,
 
+  setActiveFocusedNoteId: (id) => {
+    if (typeof window !== 'undefined') {
+      if (id) {
+        sessionStorage.setItem('secure_note_focus_note_id', id);
+      } else {
+        sessionStorage.removeItem('secure_note_focus_note_id');
+      }
+    }
+    set({ activeFocusedNoteId: id });
+  },
   setPendingLockNote: (note) => set({ pendingLockNote: note }),
 
   fetchNotes: async (params = {}) => {
@@ -370,15 +383,20 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   createNote: async (data) => {
     const res = await api.post('/notes', data);
     const newNote = res.data;
+    if (typeof window !== 'undefined' && newNote?.id) {
+      sessionStorage.setItem('secure_note_focus_note_id', newNote.id);
+    }
     set((state) => {
       // Deduplicate: If WebSocket note:created already added this note before HTTP returned, update it instead of prepending duplicate!
       if (state.notes.some((n) => n.id === newNote.id)) {
         return {
           notes: state.notes.map((n) => (n.id === newNote.id ? { ...n, ...newNote } : n)),
+          activeFocusedNoteId: newNote.id,
         };
       }
       return {
         notes: [newNote, ...state.notes],
+        activeFocusedNoteId: newNote.id,
         boards: state.boards.map((b) => {
           const matches = newNote.boardId ? b.id === newNote.boardId : b.isDefault;
           return matches ? { ...b, noteCount: (b.noteCount || 0) + 1 } : b;

@@ -63,14 +63,45 @@ const COLUMNS = [
 
 export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) {
   const router = useRouter();
-  const { updateNote, deleteNote, createNote, activeBoardId, togglePin, toggleNoteLock } = useNoteStore();
+  const { updateNote, deleteNote, createNote, activeBoardId, togglePin, toggleNoteLock, activeFocusedNoteId } = useNoteStore();
   const isVaultUnlocked = useAuthStore((state) => state.isVaultUnlocked);
   const [draggedNoteId, setDraggedNoteId] = useState<string | null>(null);
   const [fullscreenNote, setFullscreenNote] = useState<Note | null>(null);
   const [activeMobileCol, setActiveMobileCol] = useState<string>('todo');
+  const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(null);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const [reminderModalNote, setReminderModalNote] = useState<Note | null>(null);
   const pendingSlotsRef = useRef<{ x: number; y: number }[]>([]);
+
+  // Auto-scroll and highlight focused/newly-created note across views
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const focusId = activeFocusedNoteId || sessionStorage.getItem('secure_note_focus_note_id');
+    if (!focusId || notes.length === 0) return;
+
+    const targetNote = notes.find((n) => n.id === focusId);
+    if (targetNote) {
+      const noteCol = targetNote.kanbanStatus || 'todo';
+      setActiveMobileCol(noteCol);
+      setHighlightedNoteId(targetNote.id);
+
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`kanban-card-${targetNote.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+
+      const fadeTimer = setTimeout(() => {
+        setHighlightedNoteId((curr) => (curr === targetNote.id ? null : curr));
+      }, 2000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(fadeTimer);
+      };
+    }
+  }, [notes, activeFocusedNoteId]);
 
   // Mobile Touch Swipe Gesture Tracking
   const touchStartX = useRef<number | null>(null);
@@ -318,6 +349,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                     return (
                       <div
                         key={note.id}
+                        id={`kanban-card-${note.id}`}
                         draggable
                         onDragStart={(e) => handleDragStart(e, note.id)}
                         onClick={() => handleOpenFullscreen(note)}
@@ -327,7 +359,11 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
                           color: note.textColor || '#0F172A',
                           fontFamily: fontPreset?.family,
                         }}
-                        className="p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all active:scale-[0.99] cursor-grab active:cursor-grabbing group select-none relative cursor-pointer"
+                        className={`p-4 rounded-xl shadow-sm hover:shadow-md border border-black/10 transition-all active:scale-[0.99] cursor-grab active:cursor-grabbing group select-none relative cursor-pointer ${
+                          highlightedNoteId === note.id
+                            ? 'ring-4 ring-indigo-500/80 shadow-xl scale-[1.02] animate-pulse duration-300'
+                            : ''
+                        }`}
                         title="คลิกหรือดับเบิ้ลคลิกเพื่อเปิดแก้ไขเต็มจอ / ลากเพื่อเปลี่ยนสถานะ"
                       >
                         {/* Attached Corner Sticker Stamp */}

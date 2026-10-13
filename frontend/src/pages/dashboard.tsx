@@ -44,6 +44,7 @@ export default function Dashboard() {
     setSearchQuery,
     sortBy,
     setSortBy,
+    activeFocusedNoteId,
   } = useNoteStore();
 
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
@@ -53,6 +54,24 @@ export default function Dashboard() {
   const [isBoardShareModalOpen, setIsBoardShareModalOpen] = useState(false);
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const reminderNotesCount = notes.filter((n) => Boolean(remindersByNote[n.id])).length;
+
+  // Seamless Cross-View Focus: Scroll to newly created or active note when switching to Grid or List view
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const focusId = activeFocusedNoteId || sessionStorage.getItem('secure_note_focus_note_id');
+    if (!focusId || notes.length === 0) return;
+
+    if (viewMode === 'grid' || viewMode === 'list') {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`note-card-${focusId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, activeFocusedNoteId, notes]);
 
   useEffect(() => {
     if (router.query.tab === 'reminders') {
