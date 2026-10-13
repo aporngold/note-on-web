@@ -27,6 +27,7 @@ import { EncryptionService } from '@/utils/encryption';
 import { stripHtmlTags } from '@/utils/editorHelper';
 import { FONT_PRESETS } from '../notes/editorExtensions';
 import { isStickerNote, getNoteStickers, getStickerUrl } from './stickerData';
+import { findNextAvailableGridSlot } from '@/utils/boardLayout';
 
 interface KanbanViewProps {
   notes: Note[];
@@ -69,6 +70,7 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   const [activeMobileCol, setActiveMobileCol] = useState<string>('todo');
   const remindersByNote = useReminderStore((state) => state.remindersByNote);
   const [reminderModalNote, setReminderModalNote] = useState<Note | null>(null);
+  const pendingSlotsRef = useRef<{ x: number; y: number }[]>([]);
 
   // Mobile Touch Swipe Gesture Tracking
   const touchStartX = useRef<number | null>(null);
@@ -154,11 +156,20 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
   };
 
   const handleAddNoteToColumn = async (status: string) => {
-    const activeBoardNotes = notes.filter((n) => !n.isArchived);
+    // 1. Calculate active board notes (ignoring archived & canvas stickers)
+    const activeBoardNotes = notes.filter((n) => (!activeBoardId || n.boardId === activeBoardId) && !n.isArchived && !isStickerNote(n));
     if (activeBoardNotes.length >= 56) {
       toast.error('Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
       return;
     }
+
+    // 2. Find neat grid slot to ensure perfect alignment when viewing on Sticky Board
+    const slot = findNextAvailableGridSlot(activeBoardNotes, pendingSlotsRef.current);
+    pendingSlotsRef.current.push(slot);
+    setTimeout(() => {
+      pendingSlotsRef.current = pendingSlotsRef.current.filter((p) => p.x !== slot.x || p.y !== slot.y);
+    }, 1500);
+
     try {
       await createNote({
         title: 'งานใหม่',
@@ -166,8 +177,15 @@ export default function KanbanView({ notes, onUnlockRequest }: KanbanViewProps) 
         kanbanStatus: status,
         boardId: activeBoardId || undefined,
         color: status === 'done' ? '#BBF7D0' : status === 'doing' ? '#BAE6FD' : '#FEF08A',
+        textColor: '#0F172A',
+        fontSize: 'normal',
+        fontFamily: 'sans',
+        posX: slot.x,
+        posY: slot.y,
+        rotation: 0,
       });
     } catch (err: any) {
+      pendingSlotsRef.current = pendingSlotsRef.current.filter((p) => p.x !== slot.x || p.y !== slot.y);
       toast.error(err.response?.data?.error || 'Board นี้มีครบ 56 Notes แล้ว กรุณาสร้าง Board ใหม่เพื่อเพิ่ม Note');
     }
   };

@@ -58,6 +58,7 @@ import { useAuthStore } from '@/store/authStore';
 import { EncryptionService } from '@/utils/encryption';
 import MasterPasswordModal from './MasterPasswordModal';
 import api, { getResolvedBackendUrl } from '@/utils/api';
+import { findNextAvailableGridSlot } from '@/utils/boardLayout';
 import NoteRichToolbar from './NoteRichToolbar';
 import MobileEditorToolbar from './MobileEditorToolbar';
 import BottomSheet from '../ui/BottomSheet';
@@ -456,34 +457,8 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
   const calculateInitialSlot = useCallback((boardIdToUse?: string | null) => {
     const targetBoardId = boardIdToUse || boards.find((b) => b.isDefault)?.id || boards[0]?.id || undefined;
     const relevantNotes = notes.filter((n) => (!targetBoardId || n.boardId === targetBoardId) && !n.isArchived);
-    const cols = 7;
-    const spacingX = 285;
-    const spacingY = 295;
-    const startX = 16;
-    const startY = 16;
-
-    for (let slot = 0; slot < relevantNotes.length + 100; slot++) {
-      const c = slot % cols;
-      const r = Math.floor(slot / cols);
-      const candX = startX + c * spacingX;
-      const candY = startY + r * spacingY;
-      const isTaken = relevantNotes.some((n) => {
-        const nx = n.posX ?? startX;
-        const ny = n.posY ?? startY;
-        const nw = n.width ?? 260;
-        const nh = n.height ?? 260;
-        return (
-          candX < nx + nw + 16 &&
-          candX + 260 + 16 > nx &&
-          candY < ny + nh + 16 &&
-          candY + 260 + 16 > ny
-        );
-      });
-      if (!isTaken) {
-        return { x: candX, y: candY, boardId: targetBoardId };
-      }
-    }
-    return { x: startX, y: startY, boardId: targetBoardId };
+    const slot = findNextAvailableGridSlot(relevantNotes);
+    return { x: slot.x, y: slot.y, boardId: targetBoardId };
   }, [notes, boards]);
 
   // Handle Vault lock toggle
@@ -562,6 +537,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           textColor,
           fontFamily,
           fontSize: fontSize || '16px',
+          kanbanStatus: 'todo',
           isLocked,
           isPinned,
           isFavorite,
@@ -695,6 +671,7 @@ export default function NoteEditor({ initialNoteId }: NoteEditorProps) {
           textColor,
           fontFamily,
           fontSize: fontSize || '16px',
+          kanbanStatus: 'todo',
           isLocked,
           isPinned,
           isFavorite,

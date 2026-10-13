@@ -38,6 +38,7 @@ import ShareNoteModal from '../notes/ShareNoteModal';
 import { FONT_PRESETS } from '../notes/editorExtensions';
 import { useReminderStore } from '@/store/reminderStore';
 import { convertLegacyContentToHtml, openExternalUrl } from '@/utils/editorHelper';
+import { getSlotByIndex, BOARD_GRID } from '@/utils/boardLayout';
 
 interface StickyNoteItemProps {
   note: Note;
@@ -323,10 +324,11 @@ export default function StickyNoteItem({
     y: 0,
   });
 
-  // Position state
+  // Position state (defaults to orderly 7-column grid slot if coordinates not yet persisted)
+  const fallbackSlot = getSlotByIndex(index);
   const [pos, setPos] = useState({
-    x: note.posX ?? 80 + (index % 5) * 280,
-    y: note.posY ?? 80 + Math.floor(index / 5) * 320,
+    x: typeof note.posX === 'number' ? note.posX : fallbackSlot.x,
+    y: typeof note.posY === 'number' ? note.posY : fallbackSlot.y,
   });
   const posRef = useRef(pos);
 
@@ -407,24 +409,24 @@ export default function StickyNoteItem({
 
   // Optimistic position tracker: prevents note from bouncing when dragging finishes
   const lastSavedPosRef = useRef<{ x: number; y: number }>({
-    x: note.posX ?? 80 + (index % 5) * 280,
-    y: note.posY ?? 80 + Math.floor(index / 5) * 320,
+    x: typeof note.posX === 'number' ? note.posX : fallbackSlot.x,
+    y: typeof note.posY === 'number' ? note.posY : fallbackSlot.y,
   });
 
   useEffect(() => {
     // Only update pos from external props if note.posX / posY are valid and different from last saved pos
     if (!isDragging && !resizingDir) {
-      if (typeof note.posX === 'number' && typeof note.posY === 'number') {
-        if (
-          Math.abs(note.posX - lastSavedPosRef.current.x) > 4 ||
-          Math.abs(note.posY - lastSavedPosRef.current.y) > 4
-        ) {
-          lastSavedPosRef.current = { x: note.posX, y: note.posY };
-          setPos({ x: note.posX, y: note.posY });
-        }
+      const targetX = typeof note.posX === 'number' ? note.posX : fallbackSlot.x;
+      const targetY = typeof note.posY === 'number' ? note.posY : fallbackSlot.y;
+      if (
+        Math.abs(targetX - lastSavedPosRef.current.x) > 4 ||
+        Math.abs(targetY - lastSavedPosRef.current.y) > 4
+      ) {
+        lastSavedPosRef.current = { x: targetX, y: targetY };
+        setPos({ x: targetX, y: targetY });
       }
     }
-  }, [note.posX, note.posY, isDragging, resizingDir]);
+  }, [note.posX, note.posY, isDragging, resizingDir, fallbackSlot.x, fallbackSlot.y]);
 
   // Synchronize title and content when note prop updates (from fullscreen editor or external edit)
   useEffect(() => {

@@ -202,6 +202,31 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               </span>
             )}
 
+            {/* Kanban Status Tag */}
+            {note.kanbanStatus && (
+              <span
+                className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  note.kanbanStatus === 'done'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                    : note.kanbanStatus === 'doing'
+                    ? 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                }`}
+                title={`สถานะคันบัง: ${
+                  note.kanbanStatus === 'done' ? 'เสร็จแล้ว (Done)' : note.kanbanStatus === 'doing' ? 'กำลังทำ (Doing)' : 'ต้องทำ (To Do)'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    note.kanbanStatus === 'done' ? 'bg-emerald-500' : note.kanbanStatus === 'doing' ? 'bg-sky-500' : 'bg-amber-500'
+                  }`}
+                />
+                <span>
+                  {note.kanbanStatus === 'done' ? 'Done' : note.kanbanStatus === 'doing' ? 'Doing' : 'To Do'}
+                </span>
+              </span>
+            )}
+
             {note.attachments && note.attachments.length > 0 && (
               <span
                 className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-sand-100 dark:bg-sand-950/60 text-sand-800 dark:text-sand-300"

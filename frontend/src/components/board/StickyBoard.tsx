@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Sparkles,
   ChevronDown,
+  LayoutGrid,
 } from 'lucide-react';
 import StickyNoteItem from './StickyNoteItem';
 import StickyStickerItem from './StickyStickerItem';
@@ -35,6 +36,7 @@ import MasterPasswordModal from '../notes/MasterPasswordModal';
 import NoteReminderModal from '../notes/NoteReminderModal';
 import { getRandomNoteColor } from '../notes/NoteEditor';
 import { sortNotes, SORT_OPTIONS } from '@/utils/sortHelper';
+import { findNextAvailableGridSlot, getSlotByIndex, BOARD_GRID } from '@/utils/boardLayout';
 import toast from 'react-hot-toast';
 
 interface StickyBoardProps {
@@ -771,28 +773,22 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
       return occupiedSlots.some((slot) => Math.abs(slot.x - x) < 60 && Math.abs(slot.y - y) < 60);
     };
 
-    const cols = 7;
-    const spacingX = 285;
-    const spacingY = 295;
-    const startX = 16;
-    const startY = 16;
-
     const findFreeSlot = () => {
       for (let slot = 0; slot < notes.length + 100; slot++) {
-        const c = slot % cols;
-        const r = Math.floor(slot / cols);
-        const candX = startX + c * spacingX;
-        const candY = startY + r * spacingY;
+        const c = slot % BOARD_GRID.COLS;
+        const r = Math.floor(slot / BOARD_GRID.COLS);
+        const candX = BOARD_GRID.START_X + c * BOARD_GRID.SPACING_X;
+        const candY = BOARD_GRID.START_Y + r * BOARD_GRID.SPACING_Y;
         if (!isColliding(candX, candY)) {
           return { x: candX, y: candY };
         }
       }
-      return { x: startX, y: startY };
+      return { x: BOARD_GRID.START_X, y: BOARD_GRID.START_Y };
     };
 
     notes.forEach((note) => {
-      const curX = note.posX ?? 24;
-      const curY = note.posY ?? 24;
+      const curX = note.posX ?? BOARD_GRID.START_X;
+      const curY = note.posY ?? BOARD_GRID.START_Y;
       if (isColliding(curX, curY)) {
         const free = findFreeSlot();
         occupiedSlots.push({ id: note.id, x: free.x, y: free.y });
@@ -1014,61 +1010,13 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
   // Smart slot finder: finds nearest empty grid slot that doesn't overlap any existing note with proper spacing
   const findNextAvailableSlot = () => {
-    const spacingX = 285;
-    const spacingY = 295;
-    const startX = 16;
-    const startY = 16;
-    // Support 7 notes horizontally across the board before going down to the next row
-    const cols = 7;
-
-    const isSlotOccupied = (candX: number, candY: number, candW = 260, candH = 260) => {
-      const margin = 16;
-      // 1. Check against all existing active notes on the board (ignore archived notes & canvas stickers)
-      const noteCollision = notes.some((n) => {
-        if (n.isArchived) return false;
-        if (isStickerNote(n)) return false;
-        const nx = n.posX ?? startX;
-        const ny = n.posY ?? startY;
-        const nw = n.width ?? 260;
-        const nh = n.height ?? 260;
-        return (
-          candX < nx + nw + margin &&
-          candX + candW + margin > nx &&
-          candY < ny + nh + margin &&
-          candY + candH + margin > ny
-        );
-      });
-      if (noteCollision) return true;
-
-      // 2. Check against pending reservations to prevent race conditions during rapid clicks
-      const pendingCollision = pendingSlotsRef.current.some((p) => {
-        return (
-          candX < p.x + 260 + margin &&
-          candX + candW + margin > p.x &&
-          candY < p.y + 260 + margin &&
-          candY + candH + margin > p.y
-        );
-      });
-      return pendingCollision;
-    };
-
-    // Scan slots row by row
-    for (let slot = 0; slot < notes.length + 100; slot++) {
-      const col = slot % cols;
-      const row = Math.floor(slot / cols);
-      const candX = startX + col * spacingX;
-      const candY = startY + row * spacingY;
-
-      if (!isSlotOccupied(candX, candY)) {
-        pendingSlotsRef.current.push({ x: candX, y: candY });
-        setTimeout(() => {
-          pendingSlotsRef.current = pendingSlotsRef.current.filter((p) => p.x !== candX || p.y !== candY);
-        }, 1200);
-        return { x: candX, y: candY };
-      }
-    }
-
-    return { x: startX, y: startY };
+    const activeNotes = notes.filter((n) => !n.isArchived && !isStickerNote(n));
+    const slot = findNextAvailableGridSlot(activeNotes, pendingSlotsRef.current);
+    pendingSlotsRef.current.push(slot);
+    setTimeout(() => {
+      pendingSlotsRef.current = pendingSlotsRef.current.filter((p) => p.x !== slot.x || p.y !== slot.y);
+    }, 1200);
+    return slot;
   };
 
   // Quick add sticky note directly onto the active board with proper spacing, bring to front, and auto-focus
@@ -1150,6 +1098,40 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
         setFocusedNoteId((curr) => (curr === newNote.id ? null : curr));
       }, 550);
     }
+  };
+
+  // Auto align all regular notes on the board into a neat, clean 7-column grid
+  const handleAutoAlignNotes = async () => {
+    const regularNotes = notes.filter((n) => !n.isArchived && !isStickerNote(n));
+    if (regularNotes.length === 0) return;
+
+    // Sort notes visually (by Y then X)
+    const sorted = [...regularNotes].sort((a, b) => {
+      const aY = a.posY ?? 0;
+      const bY = b.posY ?? 0;
+      if (Math.abs(aY - bY) > 80) return aY - bY;
+      return (a.posX ?? 0) - (b.posX ?? 0);
+    });
+
+    const updates = sorted.map((note, idx) => {
+      const slot = getSlotByIndex(idx);
+      return { id: note.id, posX: slot.x, posY: slot.y };
+    });
+
+    // 1. Optimistic update
+    useNoteStore.setState((state) => ({
+      notes: state.notes.map((n) => {
+        const up = updates.find((u) => u.id === n.id);
+        return up ? { ...n, posX: up.posX, posY: up.posY } : n;
+      }),
+    }));
+
+    toast.success('จัดระเบียบโน้ตบนบอร์ดเรียบร้อยแล้ว ✨');
+
+    // 2. Persist to DB
+    await Promise.allSettled(
+      updates.map((u) => updateNote(u.id, { posX: u.posX, posY: u.posY }))
+    );
   };
 
   // Open sticker picker targeted specifically to a note
@@ -1727,6 +1709,16 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             >
               <Sparkles size={14} className="text-sand-600 dark:text-sand-400 animate-pulse" />
               <span className="hidden sm:inline">สติกเกอร์</span>
+            </button>
+
+            {/* Auto Align Grid Button */}
+            <button
+              onClick={handleAutoAlignNotes}
+              className="px-2.5 py-1.5 bg-sand-100/80 dark:bg-sand-950/60 hover:bg-sand-200/80 dark:hover:bg-sand-900/50 text-sand-800 dark:text-sand-300 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-sand-300 dark:border-sand-800/60 transition active:scale-95 cursor-pointer"
+              title="จัดระเบียบโน้ตบนกระดานให้เรียงตามตาราง 7 คอลัมน์อย่างสวยงามอัตโนมัติ"
+            >
+              <LayoutGrid size={14} className="text-sand-600 dark:text-sand-400" />
+              <span className="hidden sm:inline">จัดระเบียบ</span>
             </button>
           </div>
         </div>
