@@ -210,8 +210,8 @@ export default function PrivacyPolicyPage() {
       {/* Main Content Area */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6">
         {/* Hero Title Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50/40 dark:from-slate-900 dark:via-indigo-950/30 dark:to-purple-950/20 border border-indigo-100 dark:border-slate-800 p-6 sm:p-10 shadow-sm">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold mb-4 border border-emerald-500/20">
+        <div className="relative overflow-hidden rounded-3xl bg-warm-card dark:bg-warm-darkSurface border border-warm-border dark:border-warm-darkBorder p-6 sm:p-10 shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 text-brand-700 dark:text-brand-300 text-xs font-bold mb-4 border border-brand-500/20">
             <CheckCircle2 size={13} />
             <span>สอดคล้องตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA) & เกณฑ์ปี 2569</span>
           </div>

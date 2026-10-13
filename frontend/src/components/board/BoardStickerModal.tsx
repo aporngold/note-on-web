@@ -30,15 +30,15 @@ export default function BoardStickerModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Modal Header ── */}
-        <div className="p-4 sm:px-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10">
+        <div className="p-4 sm:px-6 border-b border-warm-border dark:border-warm-darkBorder flex items-center justify-between bg-sand-100/40 dark:bg-sand-950/20">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold shadow-inner">
+            <div className="w-9 h-9 rounded-2xl bg-sand-200/60 dark:bg-sand-900/60 text-sand-800 dark:text-sand-300 flex items-center justify-center font-bold">
               <Sparkles size={20} />
             </div>
             <div>
               <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <span>สติกเกอร์ตกแต่งกระดาน</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 font-mono">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-800 font-mono">
                   Stickers
                 </span>
               </h3>

@@ -344,7 +344,7 @@ export default function Fluent3DEmojiPicker({ onSelectEmoji, onClose, initialMod
   return (
     <div className="w-[330px] max-w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden flex flex-col animate-fade-in text-slate-800 dark:text-slate-100">
       {/* Header */}
-      <div className="p-2.5 px-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-50/70 to-purple-50/70 dark:from-indigo-950/40 dark:to-purple-950/40">
+      <div className="p-2.5 px-3 border-b border-warm-border dark:border-warm-darkBorder flex items-center justify-between bg-warm-bg/70 dark:bg-warm-darkCard/50">
         <div className="flex items-center gap-1.5">
           <span className="text-base">✨</span>
           <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">

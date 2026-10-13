@@ -163,7 +163,7 @@ export default function SecuritySettingsPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/80">
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-indigo-500/20">
+                <div className="w-12 h-12 rounded-2xl bg-brand-500 text-white font-extrabold text-base flex items-center justify-center shadow-xs">
                   {user?.username?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <div>

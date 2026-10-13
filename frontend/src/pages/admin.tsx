@@ -562,17 +562,12 @@ export default function AdminDashboardPage() {
       </Head>
 
       <div className="w-full max-w-[1720px] mx-auto space-y-4 lg:space-y-5 pb-4">
-        {/* Top Header Banner (Luminous Pearlescent White with Soft Indigo & Pale Violet Accents) */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/35 dark:from-slate-900 dark:via-indigo-950/40 dark:to-purple-950/30 border border-indigo-100/80 dark:border-slate-800 shadow-lg shadow-indigo-100/30 dark:shadow-none p-4 sm:px-6 sm:py-4.5 lg:px-8 lg:py-5 backdrop-blur-sm">
-          {/* Subtle Pearlescent Ambient Glows */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-300/60 dark:via-indigo-500/40 to-transparent" />
-          <div className="absolute -top-14 -right-14 w-80 h-80 bg-gradient-to-br from-indigo-200/35 to-purple-200/25 dark:from-indigo-600/10 dark:to-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-14 left-1/4 w-72 h-72 bg-gradient-to-tr from-purple-200/30 to-indigo-100/30 dark:from-purple-600/10 dark:to-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-
+        {/* Top Header Banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-warm-card dark:bg-warm-darkSurface border border-warm-border dark:border-warm-darkBorder shadow-xs p-4 sm:px-6 sm:py-4.5 lg:px-8 lg:py-5">
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <span className="p-2.5 rounded-2xl bg-white/90 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-100/90 dark:border-indigo-900/50 shadow-xs shadow-indigo-100/50">
+                <span className="p-2.5 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200/80 dark:border-brand-800 shadow-2xs">
                   <ShieldCheck size={22} />
                 </span>
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -1598,7 +1593,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={handleOpenCreateAnnouncementModal}
-                  className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0 cursor-pointer"
                 >
                   <Plus size={16} className="stroke-[2.5]" />
                   <span>สร้างประกาศใหม่</span>
@@ -2526,7 +2521,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={isSubmittingAnnouncement}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-md shadow-indigo-600/20 disabled:opacity-50 flex items-center gap-1.5 transition active:scale-95"
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white shadow-xs disabled:opacity-50 flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                 >
                   {isSubmittingAnnouncement ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
                   <span>{editingAnnouncement ? 'บันทึกการแก้ไข' : 'เผยแพร่ประกาศ'}</span>

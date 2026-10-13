@@ -293,7 +293,7 @@ export default function MobileBottomNav() {
             onClick={() => handleLabelClick(null)}
             className={`w-full flex items-center justify-between p-3 rounded-2xl transition text-sm font-medium ${
               !selectedLabel
-                ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 font-bold'
+                ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-bold'
                 : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
           >
@@ -301,7 +301,7 @@ export default function MobileBottomNav() {
               <Tag size={18} className="text-slate-400" />
               <span>ป้ายกำกับทั้งหมด</span>
             </div>
-            {!selectedLabel && <Check size={18} className="text-purple-600 dark:text-purple-400" />}
+            {!selectedLabel && <Check size={18} className="text-brand-600 dark:text-brand-400" />}
           </button>
 
           {labels.map((lbl) => (
@@ -310,18 +310,18 @@ export default function MobileBottomNav() {
               onClick={() => handleLabelClick(lbl.id)}
               className={`w-full flex items-center justify-between p-3 rounded-2xl transition text-sm font-medium ${
                 selectedLabel === lbl.id
-                  ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 font-bold'
+                  ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-bold'
                   : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
               }`}
             >
               <div className="flex items-center gap-3">
                 <span
                   className="w-3.5 h-3.5 rounded-full ring-2 ring-white dark:ring-slate-900"
-                  style={{ backgroundColor: lbl.color || '#8B5CF6' }}
+                  style={{ backgroundColor: lbl.color || '#47745C' }}
                 />
                 <span className="truncate">#{lbl.name}</span>
               </div>
-              {selectedLabel === lbl.id && <Check size={18} className="text-purple-600 dark:text-purple-400" />}
+              {selectedLabel === lbl.id && <Check size={18} className="text-brand-600 dark:text-brand-400" />}
             </button>
           ))}
 
@@ -330,7 +330,7 @@ export default function MobileBottomNav() {
               setActiveSheet(null);
               setIsLabelModalOpen(true);
             }}
-            className="w-full flex items-center justify-center gap-2 p-3.5 mt-2 rounded-2xl border border-dashed border-purple-300 dark:border-purple-800/80 text-purple-600 dark:text-purple-400 text-sm font-bold hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition"
+            className="w-full flex items-center justify-center gap-2 p-3.5 mt-2 rounded-2xl border border-dashed border-brand-300 dark:border-brand-800/80 text-brand-700 dark:text-brand-300 text-sm font-bold hover:bg-brand-50/50 dark:hover:bg-brand-950/30 transition cursor-pointer"
           >
             <Plus size={18} />
             <span>สร้างป้ายกำกับใหม่</span>
@@ -637,7 +637,7 @@ export default function MobileBottomNav() {
           {/* User Info and Logout */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-brand-500 text-white font-bold flex items-center justify-center text-sm shadow-xs">
                 {user?.username?.[0]?.toUpperCase() || 'U'}
               </div>
               <div className="text-left">

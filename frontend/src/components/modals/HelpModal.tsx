@@ -421,9 +421,9 @@ export default function HelpModal({ isOpen, onClose, initialTab = 'all' }: HelpM
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-        <div className="p-4 sm:px-6 sm:py-4.5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-50/60 via-purple-50/30 to-transparent dark:from-slate-800/60 dark:via-indigo-950/20 dark:to-transparent">
+        <div className="p-4 sm:px-6 sm:py-4.5 border-b border-warm-border dark:border-warm-darkBorder flex items-center justify-between bg-warm-bg/60 dark:bg-warm-darkCard/40">
           <div className="flex items-center gap-3">
-            <span className="p-2.5 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-500/25">
+            <span className="p-2.5 rounded-2xl bg-brand-500 text-white shadow-xs">
               <BookOpen size={22} />
             </span>
             <div>

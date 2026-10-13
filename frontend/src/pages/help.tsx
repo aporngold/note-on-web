@@ -31,9 +31,9 @@ export default function HelpPage() {
         </div>
 
         {/* Banner */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-indigo-950/30 dark:to-purple-950/20 border border-indigo-100 dark:border-slate-800 shadow-md mb-6">
+        <div className="p-6 sm:p-8 rounded-3xl bg-warm-card dark:bg-warm-darkSurface border border-warm-border dark:border-warm-darkBorder shadow-xs mb-6">
           <div className="flex items-center gap-3 mb-2">
-            <span className="p-2.5 rounded-2xl bg-indigo-600 text-white shadow-md shadow-indigo-500/25">
+            <span className="p-2.5 rounded-2xl bg-brand-500 text-white shadow-xs">
               <BookOpen size={24} />
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">

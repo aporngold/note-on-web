@@ -111,7 +111,7 @@ export default function VersionHistoryDrawer({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 flex items-center justify-center">
               <History className="w-5 h-5" />
             </div>
             <div>
@@ -135,7 +135,7 @@ export default function VersionHistoryDrawer({
           <button
             type="button"
             onClick={handleCreateSnapshot}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>สร้างจุดบันทึกสแนปช็อตเดี๋ยวนี้</span>
@@ -148,7 +148,7 @@ export default function VersionHistoryDrawer({
           <div className="w-56 border-r border-slate-100 dark:border-slate-800 overflow-y-auto p-3 space-y-2">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                <Loader2 className="w-5 h-5 animate-spin text-brand-500" />
                 <p className="text-[11px]">กำลังโหลด...</p>
               </div>
             ) : versions.length === 0 ? (
@@ -166,7 +166,7 @@ export default function VersionHistoryDrawer({
                     onClick={() => setSelectedVersion(ver)}
                     className={`p-3 rounded-xl cursor-pointer transition-all border text-left ${
                       isSelected
-                        ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 shadow-sm'
+                        ? 'border-brand-500 bg-brand-50/70 dark:bg-brand-950/40 text-brand-900 dark:text-brand-200 shadow-2xs font-semibold'
                         : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
                     }`}
                   >
@@ -205,7 +205,7 @@ export default function VersionHistoryDrawer({
                     type="button"
                     onClick={() => handleRestore(selectedVersion)}
                     disabled={isRestoring}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-md transition-all disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 cursor-pointer active:scale-95"
                   >
                     {isRestoring ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
                     <span>กู้คืนเวอร์ชันนี้</span>

@@ -280,12 +280,12 @@ export default function SharedNotePage() {
             {/* Meta bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm shadow">
+                <div className="w-10 h-10 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-sm shadow-xs">
                   {noteData.author?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
-                    <User className="w-3.5 h-3.5 text-indigo-500" />
+                    <User className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                     <span>เขียนโดย: {noteData.author}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">

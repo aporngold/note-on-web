@@ -259,16 +259,16 @@ export default function AIAssistantModal({
           onClick={(e) => e.stopPropagation()}
         >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-warm-border dark:border-warm-darkBorder bg-warm-card dark:bg-warm-darkSurface">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-brand-500 text-white flex items-center justify-center shadow-xs">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-base">SecureNote AI Architect</h3>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60 flex items-center gap-1 shadow-xs">
-                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200/60 dark:border-brand-800/60 flex items-center gap-1 shadow-2xs">
+                  <Sparkles className="w-3 h-3 text-brand-600 dark:text-brand-400" />
                   <span>Powered by Gemini</span>
                 </span>
               </div>
