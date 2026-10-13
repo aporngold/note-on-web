@@ -124,7 +124,7 @@ export default function MobileBottomNav() {
               const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
               router.push(url);
             }}
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-500/30 flex items-center justify-center transition-transform active:scale-95"
+            className="w-14 h-14 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-950/25 border border-brand-400/30 flex items-center justify-center transition-transform active:scale-95"
             title="สร้างโน้ตใหม่"
             aria-label="สร้างโน้ตใหม่"
           >
@@ -136,7 +136,7 @@ export default function MobileBottomNav() {
       {/* Bottom Navigation Bar */}
       <nav
         aria-label="เมนูหลักสำหรับมือถือ"
-        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 px-2 pt-1 pb-[max(6px,env(safe-area-inset-bottom))] flex items-center justify-around shadow-lg"
+        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden bg-warm-surface/95 dark:bg-warm-darkSurface/95 backdrop-blur-md border-t border-warm-border dark:border-warm-darkBorder px-2 pt-1 pb-[max(6px,env(safe-area-inset-bottom))] flex items-center justify-around shadow-lg"
       >
         {/* 1. All Notes */}
         <button
@@ -153,8 +153,8 @@ export default function MobileBottomNav() {
           }}
           className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 ${
             currentPath === '/dashboard' && !router.query.tab && !selectedNotebook && !selectedLabel
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'text-brand-700 dark:text-brand-300 font-bold'
+              : 'text-warm-muted dark:text-warm-darkMuted hover:text-warm-text dark:hover:text-warm-darkText'
           }`}
         >
           <FileText size={20} />
@@ -167,14 +167,14 @@ export default function MobileBottomNav() {
           onClick={() => setActiveSheet('notebooks')}
           className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 relative ${
             selectedNotebook
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'text-brand-700 dark:text-brand-300 font-bold'
+              : 'text-warm-muted dark:text-warm-darkMuted hover:text-warm-text dark:hover:text-warm-darkText'
           }`}
         >
           <Book size={20} />
           <span className="text-[10px] mt-0.5">สมุด</span>
           {selectedNotebook && (
-            <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white dark:ring-slate-900" />
+            <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-brand-600 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
           )}
         </button>
 
@@ -184,8 +184,8 @@ export default function MobileBottomNav() {
           onClick={() => setActiveSheet('search')}
           className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 ${
             searchQuery
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'text-brand-700 dark:text-brand-300 font-bold'
+              : 'text-warm-muted dark:text-warm-darkMuted hover:text-warm-text dark:hover:text-warm-darkText'
           }`}
         >
           <Search size={20} />
@@ -198,14 +198,14 @@ export default function MobileBottomNav() {
           onClick={() => setActiveSheet('labels')}
           className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 relative ${
             selectedLabel
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'text-brand-700 dark:text-brand-300 font-bold'
+              : 'text-warm-muted dark:text-warm-darkMuted hover:text-warm-text dark:hover:text-warm-darkText'
           }`}
         >
           <Tag size={20} />
           <span className="text-[10px] mt-0.5">ป้าย</span>
           {selectedLabel && (
-            <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-purple-600 ring-2 ring-white dark:ring-slate-900" />
+            <span className="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-sand-500 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
           )}
         </button>
 
@@ -215,8 +215,8 @@ export default function MobileBottomNav() {
           onClick={() => setActiveSheet('more')}
           className={`flex flex-col items-center justify-center min-w-[56px] min-h-[44px] py-1 px-2 rounded-xl transition active:scale-95 relative ${
             router.query.tab === 'reminders' || currentPath === '/trash'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'text-brand-700 dark:text-brand-300 font-bold'
+              : 'text-warm-muted dark:text-warm-darkMuted hover:text-warm-text dark:hover:text-warm-darkText'
           }`}
         >
           <MoreHorizontal size={20} />

@@ -196,7 +196,7 @@ export default function MasterPasswordModal({
 
         {/* Header Section */}
         <div className="flex items-center gap-3.5 mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center text-white shadow-sm shrink-0">
             {mode === 'setup' || mode === 'setup_success' ? <ShieldCheck size={26} /> : <Lock size={24} />}
           </div>
           <div>
@@ -209,7 +209,7 @@ export default function MasterPasswordModal({
                 ? 'กู้คืน Master Password'
                 : title || 'ปลดล็อกโน้ตที่เข้ารหัส (E2EE)'}
             </h3>
-            <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
+            <p className="text-xs text-brand-600 dark:text-brand-400 font-medium">
               End-to-End Encryption (AES-256-GCM / PBKDF2)
             </p>
           </div>
@@ -235,7 +235,7 @@ export default function MasterPasswordModal({
                     setError('');
                   }}
                   placeholder="กรอก Master Password ของคุณ..."
-                  className="w-full pl-10 pr-11 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium transition"
+                  className="w-full pl-10 pr-11 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-medium transition"
                   autoFocus
                 />
                 <KeyRound size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
@@ -262,7 +262,7 @@ export default function MasterPasswordModal({
                   setMode('recover');
                   setError('');
                 }}
-                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium cursor-pointer"
+                className="text-xs text-brand-600 dark:text-brand-400 hover:underline font-medium cursor-pointer"
               >
                 ลืม Master Password? กู้คืนด้วย Recovery Key
               </button>
@@ -279,7 +279,7 @@ export default function MasterPasswordModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-98 rounded-xl shadow-md shadow-indigo-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 active:scale-98 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Unlock size={16} />
                 <span>{isSubmitting ? 'กำลังตรวจสอบ...' : 'ปลดล็อกโน้ต'}</span>
@@ -384,7 +384,7 @@ export default function MasterPasswordModal({
               <button
                 type="submit"
                 disabled={!isPasswordValid || password !== confirmPassword || isSubmitting}
-                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-98 rounded-xl shadow-md shadow-indigo-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 active:scale-98 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <span>{isSubmitting ? 'กำลังประมวลผล...' : 'ถัดไป: รับ Recovery Key'}</span>
               </button>
@@ -409,14 +409,14 @@ export default function MasterPasswordModal({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                 Recovery Key ของคุณ (ใช้สำหรับกู้คืนรหัสผ่าน)
               </label>
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-indigo-400/60 dark:border-indigo-500/60">
-                <span className="font-mono text-sm sm:text-base font-bold text-indigo-700 dark:text-indigo-300 tracking-wider select-all">
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-sand-400/80 dark:border-sand-500/60">
+                <span className="font-mono text-sm sm:text-base font-bold text-sand-800 dark:text-sand-300 tracking-wider select-all">
                   {generatedRecoveryKey}
                 </span>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(generatedRecoveryKey)}
-                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-brand-500 hover:bg-brand-600 text-white shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   {hasCopiedKey ? <Check size={14} /> : <Copy size={14} />}
                   <span>{hasCopiedKey ? 'คัดลอกแล้ว' : 'คัดลอก'}</span>
@@ -432,7 +432,7 @@ export default function MasterPasswordModal({
                   setHasConfirmedSavedKey(e.target.checked);
                   setError('');
                 }}
-                className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                className="mt-0.5 rounded text-brand-600 focus:ring-brand-500 cursor-pointer"
               />
               <span className="text-xs text-slate-700 dark:text-slate-300 leading-snug font-medium">
                 ฉันได้คัดลอกและบันทึก Recovery Key ไว้ในที่ปลอดภัยเรียบร้อยแล้ว
@@ -451,7 +451,7 @@ export default function MasterPasswordModal({
                 type="button"
                 onClick={handleFinishSetup}
                 disabled={!hasConfirmedSavedKey}
-                className="w-full sm:w-auto px-7 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-98 rounded-xl shadow-md shadow-indigo-500/25 transition cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-7 py-2.5 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 active:scale-98 rounded-xl shadow-xs transition cursor-pointer disabled:opacity-50"
               >
                 เริ่มใช้งานโน้ตที่เข้ารหัสลับ
               </button>
@@ -541,7 +541,7 @@ export default function MasterPasswordModal({
               <button
                 type="submit"
                 disabled={isSubmitting || !recoveryKeyInput.trim() || !isPasswordValid || password !== confirmPassword}
-                className="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-98 rounded-xl shadow-md shadow-indigo-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 active:scale-98 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw size={16} className={isSubmitting ? 'animate-spin' : ''} />
                 <span>{isSubmitting ? 'กำลังตรวจสอบ...' : 'กู้คืนและตั้งรหัสผ่าน'}</span>

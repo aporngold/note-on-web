@@ -119,10 +119,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-slate-950 overflow-hidden p-4 sm:p-6 select-none font-inter">
-      {/* 3D Animated Grid Bloom Background - Original First Effect */}
+    <div className="relative min-h-screen flex items-center justify-center bg-[#1E201E] overflow-hidden p-4 sm:p-6 select-none font-inter">
+      {/* 3D Animated Grid Bloom Background - Warm Forest Green */}
       <GridBloom
-        color="#818cf8"
+        color="#47745C"
         speed={0.8}
         gridScale={14.0}
         fadeFalloff={8.0}
@@ -133,21 +133,21 @@ export default function LoginPage() {
         blending="additive"
       />
 
-      {/* Login Card: Bright, Eye-Pleasing (สบายตา), 30% Transparent Glassmorphic Form */}
-      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-white/70 backdrop-blur-2xl border border-white/50 rounded-3xl shadow-2xl shadow-slate-950/20 space-y-7 animate-fade-in">
+      {/* Login Card: Warm Minimalist Clean Form */}
+      <div className="relative z-10 w-full max-w-md p-8 sm:p-10 bg-[#FCFBF9]/95 backdrop-blur-xl border border-[#E4E0D6] rounded-2xl shadow-xl space-y-6 animate-fade-in">
         {/* Header Branding */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-1.5">
           <div className="inline-flex items-center justify-center mb-1">
             <img
               src="/NoteAll-icon.png"
               alt="NoteAll"
-              className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-md rounded-2xl hover:scale-105 transition-transform"
+              className="w-16 h-16 sm:w-18 sm:h-18 object-contain rounded-2xl shadow-xs hover:scale-105 transition-transform"
             />
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-warm-text tracking-tight">
             เข้าสู่ระบบ NoteAll
           </h1>
-          <p className="text-xs text-slate-500 font-normal">
+          <p className="text-xs text-warm-muted font-normal">
             ระบบจดบันทึกความปลอดภัยสูง ป้องกันข้อมูลลับของคุณ
           </p>
         </div>
@@ -155,7 +155,7 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-warm-text uppercase tracking-wider mb-1.5">
               อีเมล หรือ ชื่อผู้ใช้
             </label>
             <div className="relative">
@@ -164,9 +164,9 @@ export default function LoginPage() {
                 type="text"
                 autoComplete="email"
                 placeholder="name@example.com หรือ username"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300/80 bg-white/60 backdrop-blur-sm text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DCD8CE] bg-white text-warm-text placeholder-warm-muted/70 text-sm focus:bg-white focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:outline-none transition shadow-2xs"
               />
-              <Mail size={17} className="absolute left-3.5 top-3 text-slate-400" />
+              <Mail size={17} className="absolute left-3.5 top-3 text-warm-muted" />
             </div>
             {errors.email && (
               <p className="mt-1 text-xs text-rose-500 font-medium">{errors.email.message}</p>
@@ -175,12 +175,12 @@ export default function LoginPage() {
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-warm-text uppercase tracking-wider">
                 รหัสผ่าน
               </label>
               <Link
                 href="/forgot-password"
-                className="text-xs font-medium text-teal-600 hover:text-sky-600 hover:underline transition-colors"
+                className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline transition-colors"
               >
                 ลืมรหัสผ่าน?
               </Link>
@@ -191,13 +191,13 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300/80 bg-white/60 backdrop-blur-sm text-slate-900 placeholder-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition shadow-sm"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#DCD8CE] bg-white text-warm-text placeholder-warm-muted/70 text-sm focus:bg-white focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:outline-none transition shadow-2xs"
               />
-              <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
+              <Lock size={17} className="absolute left-3.5 top-3 text-warm-muted" />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
+                className="absolute right-3 top-3 text-warm-muted hover:text-warm-text transition"
               >
                 {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
@@ -210,7 +210,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-600 hover:to-sky-600 text-white rounded-xl font-semibold shadow-lg shadow-teal-500/20 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-2"
+            className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold shadow-xs hover:shadow active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-2"
           >
             {isLoading ? (
               <>
@@ -225,8 +225,8 @@ export default function LoginPage() {
 
         {/* Divider */}
         <div className="relative flex items-center justify-center my-1">
-          <div className="border-t border-slate-300/80 w-full" />
-          <span className="bg-white/90 backdrop-blur-md px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider absolute rounded-full border border-slate-200/60 shadow-xs">
+          <div className="border-t border-[#E4E0D6] w-full" />
+          <span className="bg-[#FCFBF9] px-3 text-[11px] font-semibold text-warm-muted uppercase tracking-wider absolute rounded-full border border-[#E4E0D6] shadow-2xs">
             หรือ
           </span>
         </div>
@@ -235,7 +235,7 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="w-full py-2.5 px-4 bg-white/90 hover:bg-white text-slate-700 hover:text-slate-900 border border-slate-300/90 hover:border-slate-400 rounded-xl font-medium text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-3 active:scale-[0.99]"
+          className="w-full py-2.5 px-4 bg-white hover:bg-[#FAF8F5] text-warm-text border border-[#DCD8CE] hover:border-warm-muted rounded-xl font-medium text-sm shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-3 active:scale-[0.99]"
         >
           <FcGoogle size={20} />
           <span>เข้าสู่ระบบด้วย Google</span>
@@ -246,34 +246,34 @@ export default function LoginPage() {
           type="button"
           onClick={handlePasskeySignIn}
           disabled={isPasskeyLoading}
-          className="w-full py-2.5 px-4 bg-gradient-to-r from-teal-500/10 to-sky-500/10 hover:from-teal-500/20 hover:to-sky-500/20 text-slate-800 border border-teal-500/30 hover:border-teal-500/50 rounded-xl font-semibold text-sm shadow-xs hover:shadow transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-50"
+          className="w-full py-2.5 px-4 bg-sand-50/70 hover:bg-sand-100/80 text-warm-text border border-sand-200/90 hover:border-sand-300 rounded-xl font-semibold text-sm shadow-2xs hover:shadow-xs transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-50"
         >
           {isPasskeyLoading ? (
             <>
-              <Loader2 size={18} className="animate-spin text-teal-600" />
-              <span className="text-teal-700">กำลังตรวจสอบอุปกรณ์ Passkey...</span>
+              <Loader2 size={18} className="animate-spin text-brand-600" />
+              <span className="text-brand-700">กำลังตรวจสอบอุปกรณ์ Passkey...</span>
             </>
           ) : (
             <>
-              <Fingerprint size={19} className="text-teal-600" />
+              <Fingerprint size={19} className="text-brand-600" />
               <span>เข้าสู่ระบบด้วย Passkey (สแกนนิ้ว / Face ID)</span>
             </>
           )}
         </button>
 
         {/* Footer info */}
-        <div className="text-center pt-2 border-t border-slate-200/60 space-y-1.5">
-          <p className="text-xs text-slate-600">
+        <div className="text-center pt-2 border-t border-[#E4E0D6] space-y-1.5">
+          <p className="text-xs text-warm-muted">
             ยังไม่มีบัญชีใช้งาน?{' '}
             <Link
               href="/register"
-              className="text-teal-600 hover:text-sky-600 font-semibold hover:underline transition-colors"
+              className="text-brand-600 hover:text-brand-700 font-semibold hover:underline transition-colors"
             >
               สมัครสมาชิกใหม่
             </Link>
           </p>
-          <p className="text-[11px] text-slate-400">
-            <Link href="/privacy" className="hover:text-slate-600 hover:underline transition">
+          <p className="text-[11px] text-warm-muted/80">
+            <Link href="/privacy" className="hover:text-warm-text hover:underline transition">
               นโยบายความเป็นส่วนตัว (PDPA)
             </Link>
           </p>

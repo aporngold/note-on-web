@@ -105,26 +105,26 @@ function NoteListItem({
         e.stopPropagation();
         if (onOpenFullscreen) onOpenFullscreen(note);
       }}
-      className="py-3 px-4 sm:px-5 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-700/30 active:bg-slate-100/50 dark:active:bg-slate-700/50 transition cursor-pointer group"
+      className="py-3 px-4 sm:px-5 flex items-center justify-between gap-3 hover:bg-warm-bg/70 dark:hover:bg-warm-darkCard/50 active:bg-warm-border/40 dark:active:bg-warm-darkCard/80 transition cursor-pointer group"
     >
       <div className="flex items-center gap-3.5 min-w-0 flex-1">
         {/* Accent dot indicator with soft ring */}
         <div
           className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ring-black/5 dark:ring-white/10 shadow-xs"
-          style={{ backgroundColor: note.color || '#6366F1' }}
+          style={{ backgroundColor: note.color || '#47745C' }}
         />
 
         <div className="min-w-0 flex-1">
           {/* Title Row */}
           <div className="flex items-center gap-2">
             <h4
-              className="font-semibold text-sm text-slate-900 dark:text-white truncate"
+              className="font-semibold text-sm text-warm-text dark:text-warm-darkText truncate"
               style={{ fontFamily: fontPreset?.family }}
             >
               {note.title || 'ไม่มีชื่อบันทึก'}
             </h4>
             {note.isPinned && (
-              <Pin size={12} className="text-indigo-500 fill-indigo-500 flex-shrink-0" />
+              <Pin size={12} className="text-sand-600 dark:text-sand-400 fill-sand-500 flex-shrink-0" />
             )}
             {/* Lock / E2EE status button */}
             <button
@@ -223,7 +223,7 @@ function NoteListItem({
                 router.push(`/notes/${note.id}`);
               }
             }}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-700 transition"
+            className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 rounded-lg hover:bg-warm-bg dark:hover:bg-warm-darkCard transition"
             title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ"
           >
             <Maximize2 size={14} />
@@ -235,10 +235,10 @@ function NoteListItem({
               e.stopPropagation();
               onOpenReminder(note);
             }}
-            className={`p-1.5 rounded-lg transition hover:bg-slate-200/70 dark:hover:bg-slate-700 ${
+            className={`p-1.5 rounded-lg transition hover:bg-warm-bg dark:hover:bg-warm-darkCard ${
               reminder
-                ? 'text-amber-500 hover:text-amber-600'
-                : 'text-slate-400 hover:text-amber-500'
+                ? 'text-sand-600 dark:text-sand-400 hover:text-sand-700'
+                : 'text-slate-400 hover:text-sand-600'
             }`}
             title={
               reminder
@@ -255,10 +255,10 @@ function NoteListItem({
               e.stopPropagation();
               togglePin(note.id);
             }}
-            className={`p-1.5 rounded-lg transition hover:bg-slate-200/70 dark:hover:bg-slate-700 ${
+            className={`p-1.5 rounded-lg transition hover:bg-warm-bg dark:hover:bg-warm-darkCard ${
               note.isPinned
-                ? 'text-indigo-600 dark:text-indigo-400'
-                : 'text-slate-400 hover:text-indigo-600'
+                ? 'text-sand-600 dark:text-sand-400'
+                : 'text-slate-400 hover:text-sand-600'
             }`}
             title={note.isPinned ? 'ยกเลิกปักหมุด' : 'ปักหมุด'}
           >
@@ -274,7 +274,7 @@ function NoteListItem({
               e.stopPropagation();
               onOpenReminder(note);
             }}
-            className="sm:hidden p-1.5 rounded-lg text-amber-500 hover:text-amber-600"
+            className="sm:hidden p-1.5 rounded-lg text-sand-600 hover:text-sand-700"
             title="แก้ไขการเตือนความจำ"
           >
             <Bell size={14} className="fill-current" />
@@ -289,7 +289,7 @@ function NoteListItem({
             e.stopPropagation();
             setIsMoreOpen((prev) => !prev);
           }}
-          className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/70 dark:hover:bg-slate-700 transition"
+          className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 rounded-lg hover:bg-warm-bg dark:hover:bg-warm-darkCard transition"
           title="ตัวเลือกเพิ่มเติม"
         >
           <MoreVertical size={15} />
@@ -301,7 +301,7 @@ function NoteListItem({
           onClose={() => setIsMoreOpen(false)}
           triggerRef={moreBtnRef}
           placement="bottom-end"
-          className="w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 text-xs divide-y divide-slate-100 dark:divide-slate-700"
+          className="w-48 bg-warm-card dark:bg-warm-darkSurface rounded-xl shadow-lg border border-warm-border dark:border-warm-darkBorder p-1 text-xs divide-y divide-warm-border/60 dark:divide-warm-darkBorder/60"
         >
           <div className="py-1">
             <button
@@ -312,7 +312,7 @@ function NoteListItem({
                 if (onOpenFullscreen) onOpenFullscreen(note);
                 else router.push(`/notes/${note.id}`);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-warm-bg dark:hover:bg-warm-darkCard flex items-center gap-2 text-warm-text dark:text-warm-darkText"
             >
               <Maximize2 size={13} />
               <span>เปิดอ่าน / แก้ไข</span>
@@ -324,9 +324,9 @@ function NoteListItem({
                 setIsMoreOpen(false);
                 togglePin(note.id);
               }}
-              className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+              className="w-full text-left px-3 py-1.5 rounded hover:bg-warm-bg dark:hover:bg-warm-darkCard flex items-center gap-2 text-warm-text dark:text-warm-darkText"
             >
-              <Pin size={13} className={note.isPinned ? 'fill-indigo-500 text-indigo-500' : ''} />
+              <Pin size={13} className={note.isPinned ? 'fill-sand-500 text-sand-500' : ''} />
               <span>{note.isPinned ? 'ยกเลิกปักหมุด' : 'ปักหมุด'}</span>
             </button>
             <button
@@ -420,11 +420,11 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
         <>
           {/* Pinned Section */}
           <div className="space-y-2.5">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sand-700 dark:text-sand-400">
               <Pin size={13} className="fill-current" />
               <span>โน้ตที่ปักหมุด ({pinnedNotes.length})</span>
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden shadow-xs divide-y divide-slate-100/80 dark:divide-slate-700/50">
+            <div className="bg-warm-card dark:bg-warm-darkSurface rounded-2xl border border-warm-border dark:border-warm-darkBorder overflow-hidden shadow-xs divide-y divide-warm-border/60 dark:divide-warm-darkBorder/60">
               {pinnedNotes.map((note) => (
                 <NoteListItem
                   key={note.id}
@@ -443,7 +443,7 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
             <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
               โน้ตอื่นๆ ({regularNotes.length})
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden shadow-xs divide-y divide-slate-100/80 dark:divide-slate-700/50">
+            <div className="bg-warm-card dark:bg-warm-darkSurface rounded-2xl border border-warm-border dark:border-warm-darkBorder overflow-hidden shadow-xs divide-y divide-warm-border/60 dark:divide-warm-darkBorder/60">
               {regularNotes.map((note) => (
                 <NoteListItem
                   key={note.id}
@@ -459,7 +459,7 @@ export default function NoteList({ notes, onUnlockRequest, onOpenFullscreen }: N
         </>
       ) : (
         /* Single Container when all notes are pinned or all are regular */
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden shadow-xs divide-y divide-slate-100/80 dark:divide-slate-700/50">
+        <div className="bg-warm-card dark:bg-warm-darkSurface rounded-2xl border border-warm-border dark:border-warm-darkBorder overflow-hidden shadow-xs divide-y divide-warm-border/60 dark:divide-warm-darkBorder/60">
           {notes.map((note) => (
             <NoteListItem
               key={note.id}

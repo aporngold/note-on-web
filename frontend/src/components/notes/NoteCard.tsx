@@ -120,11 +120,11 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
         if (onOpenFullscreen) onOpenFullscreen(note);
       }}
       onContextMenu={handleContextMenu}
-      className={`group relative bg-white dark:bg-slate-800/90 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden ${
-        note.isPinned ? 'ring-2 ring-indigo-500/30' : ''
+      className={`group relative bg-warm-card dark:bg-warm-darkSurface rounded-2xl p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border border-warm-border dark:border-warm-darkBorder flex flex-col justify-between overflow-hidden ${
+        note.isPinned ? 'ring-1 ring-sand-400/80 dark:ring-sand-500/50' : ''
       }`}
       style={{
-        borderTop: `4px solid ${note.color || '#6366F1'}`,
+        borderTop: `4px solid ${note.color || '#47745C'}`,
         fontFamily: fontPreset?.family,
       }}
     >
@@ -204,7 +204,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
 
             {note.attachments && note.attachments.length > 0 && (
               <span
-                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-sand-100 dark:bg-sand-950/60 text-sand-800 dark:text-sand-300"
                 title={`มีไฟล์แนบ ${note.attachments.length} รายการ`}
               >
                 <Paperclip size={11} />
@@ -219,7 +219,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   e.stopPropagation();
                   setIsShareModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition"
+                className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/60 transition"
                 title="คลิกเพื่อจัดการหรือคัดลอกลิงก์แชร์"
               >
                 <Share2 size={11} />
@@ -238,8 +238,8 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               }}
               className={`p-1.5 rounded-lg transition ${
                 reminder
-                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50'
-                  : 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  ? 'text-sand-600 dark:text-sand-400 bg-sand-100/70 dark:bg-sand-950/50'
+                  : 'text-slate-300 dark:text-slate-600 hover:text-sand-600 dark:hover:text-sand-400 hover:bg-warm-bg dark:hover:bg-warm-darkCard'
               }`}
               title={
                 reminder
@@ -247,7 +247,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   : 'ตั้งเวลาแจ้งเตือน (เตือนความจำ)'
               }
             >
-              <Bell size={15} className={reminder ? 'fill-current text-amber-500' : ''} />
+              <Bell size={15} className={reminder ? 'fill-current text-sand-600 dark:text-sand-400' : ''} />
             </button>
 
             {/* Favorite Button */}
@@ -259,8 +259,8 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               }}
               className={`p-1.5 rounded-lg transition ${
                 note.isFavorite
-                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50'
-                  : 'text-slate-300 dark:text-slate-600 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  ? 'text-sand-500 bg-sand-50 dark:bg-sand-950/50'
+                  : 'text-slate-300 dark:text-slate-600 hover:text-sand-500 hover:bg-warm-bg dark:hover:bg-warm-darkCard'
               }`}
               title={note.isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด'}
             >
@@ -276,8 +276,8 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               }}
               className={`p-1.5 rounded-lg transition ${
                 note.isPinned
-                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  ? 'text-sand-600 dark:text-sand-300 bg-sand-100/80 dark:bg-sand-950/60'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-warm-bg dark:hover:bg-warm-darkCard'
               }`}
               title={note.isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ต'}
             >
@@ -295,7 +295,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                   router.push(`/notes/${note.id}`);
                 }
               }}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 hover:bg-warm-bg dark:hover:bg-warm-darkCard transition"
               title="ดูและแก้ไขโน้ตนี้แบบเต็มจอ (เหมือนหน้าคัมบัง)"
             >
               <Maximize2 size={15} />
@@ -350,7 +350,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-400">
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-warm-border/60 dark:border-warm-darkBorder/60 text-[11px] text-slate-400">
         <span>
           {formatDistanceToNow(new Date(note.updatedAt), {
             addSuffix: true,
@@ -364,7 +364,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               e.stopPropagation();
               duplicateNote(note.id);
             }}
-            className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+            className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 hover:bg-warm-bg dark:hover:bg-warm-darkCard rounded-lg transition"
             title="คัดลอกโน้ต"
           >
             <Copy size={14} />
@@ -388,7 +388,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                 e.stopPropagation();
                 setIsMoreOpen(!isMoreOpen);
               }}
-              className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition"
+              className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-300 hover:bg-warm-bg dark:hover:bg-warm-darkCard rounded-lg transition"
               title="เมนูตัวเลือก"
             >
               <MoreVertical size={14} />
@@ -397,7 +397,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
               triggerRef={moreBtnRef}
               isOpen={isMoreOpen}
               onClose={() => setIsMoreOpen(false)}
-              className="w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-1 text-xs divide-y divide-slate-100 dark:divide-slate-700"
+              className="w-44 bg-warm-card dark:bg-warm-darkSurface rounded-xl shadow-lg border border-warm-border dark:border-warm-darkBorder p-1 text-xs divide-y divide-warm-border/60 dark:divide-warm-darkBorder/60"
             >
               <div className="py-1">
                 <button
@@ -448,9 +448,9 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                     setIsMoreOpen(false);
                     togglePin(note.id);
                   }}
-                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-warm-bg dark:hover:bg-warm-darkCard flex items-center gap-2 text-warm-text dark:text-warm-darkText"
                 >
-                  <Pin size={13} className={note.isPinned ? 'fill-indigo-500 text-indigo-500' : ''} />
+                  <Pin size={13} className={note.isPinned ? 'fill-sand-500 text-sand-500' : ''} />
                   <span>{note.isPinned ? 'ยกเลิกปักหมุด' : 'ปักหมุด'}</span>
                 </button>
                 <button
@@ -460,7 +460,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                     setIsMoreOpen(false);
                     duplicateNote(note.id);
                   }}
-                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-warm-bg dark:hover:bg-warm-darkCard flex items-center gap-2 text-warm-text dark:text-warm-darkText"
                 >
                   <Copy size={13} />
                   <span>คัดลอกโน้ต</span>
@@ -472,9 +472,9 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
                     setIsMoreOpen(false);
                     setIsShareModalOpen(true);
                   }}
-                  className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-200"
+                  className="w-full text-left px-3 py-1.5 rounded hover:bg-warm-bg dark:hover:bg-warm-darkCard flex items-center gap-2 text-warm-text dark:text-warm-darkText"
                 >
-                  <Share2 size={13} className="text-indigo-500" />
+                  <Share2 size={13} className="text-brand-600 dark:text-brand-400" />
                   <span>แชร์โน้ตนี้</span>
                 </button>
                 <button
@@ -542,7 +542,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
             onClick={() => toggleNoteLock(note, onUnlockRequest)}
           />
           <ViewportMenuItem
-            icon={<Pin size={14} className={note.isPinned ? 'fill-indigo-500 text-indigo-500' : ''} />}
+            icon={<Pin size={14} className={note.isPinned ? 'fill-sand-500 text-sand-500' : ''} />}
             label={note.isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ต'}
             onClick={() => togglePin(note.id)}
           />
@@ -552,7 +552,7 @@ export default function NoteCard({ note, onUnlockRequest, onOpenFullscreen }: No
             onClick={() => duplicateNote(note.id)}
           />
           <ViewportMenuItem
-            icon={<Share2 size={14} className="text-indigo-500" />}
+            icon={<Share2 size={14} className="text-brand-600 dark:text-brand-400" />}
             label="แชร์โน้ตนี้"
             onClick={() => setIsShareModalOpen(true)}
           />

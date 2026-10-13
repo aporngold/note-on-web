@@ -68,10 +68,10 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-warm-bg dark:bg-warm-darkBg">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-medium text-warm-muted dark:text-warm-darkMuted">
             กำลังโหลดข้อมูลความปลอดภัย...
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-warm-bg dark:bg-warm-darkBg text-warm-text dark:text-warm-darkText">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block flex-shrink-0 transition-all duration-300">
         <Sidebar
@@ -113,7 +113,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
 
         {/* Top Navbar */}
         <header
-          className={`h-16 px-4 sm:px-8 items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10 ${
+          className={`h-16 px-4 sm:px-8 items-center justify-between gap-4 border-b border-warm-border dark:border-warm-darkBorder bg-warm-bg/90 dark:bg-warm-darkBg/90 backdrop-blur-md z-10 ${
             router.pathname.startsWith('/notes/') ? 'hidden lg:flex' : 'flex'
           }`}
         >
@@ -121,7 +121,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="lg:hidden p-2 text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition"
             >
               <Menu size={20} />
             </button>
@@ -132,8 +132,8 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 <div
                   className={`flex items-center transition-all duration-300 ease-in-out ${
                     isSearchExpanded
-                      ? 'w-[calc(100vw-110px)] max-w-xs sm:w-96 sm:max-w-none bg-slate-50 dark:bg-slate-800/90 border border-indigo-500/50 ring-2 ring-indigo-500/20 rounded-xl shadow-sm'
-                      : 'w-10 h-10 justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer'
+                      ? 'w-[calc(100vw-110px)] max-w-xs sm:w-96 sm:max-w-none bg-warm-surface dark:bg-warm-darkSurface border border-brand-500/50 ring-2 ring-brand-500/20 rounded-xl shadow-xs'
+                      : 'w-10 h-10 justify-center rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 cursor-pointer transition'
                   }`}
                 >
                   <button
@@ -143,8 +143,8 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                     }}
                     className={`p-2.5 rounded-xl transition flex items-center justify-center shrink-0 ${
                       isSearchExpanded
-                        ? 'text-indigo-600 dark:text-indigo-400'
-                        : 'text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400'
+                        ? 'text-brand-600 dark:text-brand-400'
+                        : 'text-warm-muted hover:text-brand-600 dark:hover:text-brand-400'
                     }`}
                     title={isSearchExpanded ? 'ย่อแถบค้นหา' : 'คลิกเพื่อค้นหาโน้ต'}
                   >
@@ -187,7 +187,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
 
           <div className="flex items-center gap-1.5">
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl gap-0.5">
+            <div className="flex items-center bg-warm-surface dark:bg-warm-darkSurface border border-warm-border/70 dark:border-warm-darkBorder/70 p-1 rounded-xl gap-0.5 shadow-2xs">
               <button
                 onClick={() => {
                   setViewMode('grid');
@@ -197,14 +197,14 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 }}
                 className={`p-1.5 rounded-lg transition relative ${
                   viewMode === 'grid' && router.pathname === '/dashboard'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                    ? 'bg-warm-card dark:bg-warm-darkCard text-brand-600 dark:text-brand-400 shadow-xs'
+                    : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                 }`}
                 title="มุมมองการ์ด (Grid)"
               >
                 <Grid size={17} />
                 {defaultViewMode === 'grid' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sand-400 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
                 )}
               </button>
               <button
@@ -216,14 +216,14 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 }}
                 className={`p-1.5 rounded-lg transition relative ${
                   viewMode === 'list' && router.pathname === '/dashboard'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                    ? 'bg-warm-card dark:bg-warm-darkCard text-brand-600 dark:text-brand-400 shadow-xs'
+                    : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                 }`}
                 title="มุมมองรายการ (List)"
               >
                 <List size={17} />
                 {defaultViewMode === 'list' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sand-400 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
                 )}
               </button>
               <button
@@ -236,15 +236,15 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 }}
                 className={`p-1.5 rounded-lg transition flex items-center gap-1 relative ${
                   viewMode === 'kanban' || (viewMode === 'board' && boardViewMode === 'kanban')
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                    ? 'bg-warm-card dark:bg-warm-darkCard text-brand-600 dark:text-brand-400 shadow-xs'
+                    : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                 }`}
                 title="มุมมองกระดานคัมบัง (Kanban)"
               >
                 <Columns size={17} />
                 <span className="hidden md:inline text-[11px] font-bold">คัมบัง</span>
                 {defaultViewMode === 'kanban' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-800" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sand-400 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
                 )}
               </button>
               <button
@@ -261,15 +261,15 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 }}
                 className={`p-1.5 rounded-lg transition flex items-center gap-1 text-xs font-bold relative ${
                   (viewMode === 'board' && boardViewMode === 'freeform') || (router.pathname === '/board' && boardViewMode === 'freeform')
-                    ? 'bg-amber-300 text-amber-950 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                    ? 'bg-sand-200 dark:bg-sand-950/80 text-sand-900 dark:text-sand-200 shadow-xs'
+                    : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                 }`}
                 title="มุมมองกระดานโพสต์อิทอิสระ (Sticky Board)"
               >
                 <span>📌</span>
                 <span className="hidden md:inline text-[11px]">บอร์ด</span>
                 {defaultViewMode === 'board' && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-800" />
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sand-400 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
                 )}
               </button>
 
@@ -289,8 +289,8 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                 }}
                 className={`p-1.5 rounded-lg transition ml-0.5 flex items-center gap-1 ${
                   viewMode === defaultViewMode
-                    ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40'
-                    : 'text-slate-400 hover:text-amber-500 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                    ? 'text-sand-600 dark:text-sand-300 bg-sand-100/70 dark:bg-sand-950/50'
+                    : 'text-warm-muted hover:text-sand-600 hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
                 title={
                   viewMode === defaultViewMode
@@ -298,7 +298,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                     : 'คลิกเพื่อตั้งโหมดที่เปิดอยู่นี้เป็นหน้าหลักเริ่มต้นเมื่อเปิดแอป'
                 }
               >
-                <Star size={14} className={viewMode === defaultViewMode ? 'fill-amber-400' : ''} />
+                <Star size={14} className={viewMode === defaultViewMode ? 'fill-sand-400 text-sand-500' : ''} />
                 <span className="text-[10px] font-bold hidden xl:inline">
                   หน้าหลัก
                 </span>
@@ -308,10 +308,10 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
             {/* Backup Button */}
             <button
               onClick={() => setIsBackupModalOpen(true)}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ml-1"
+              className="px-3 py-2 bg-warm-surface hover:bg-black/5 dark:bg-warm-darkSurface dark:hover:bg-white/5 border border-warm-border/70 dark:border-warm-darkBorder/70 text-warm-text dark:text-warm-darkText rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ml-1 shadow-2xs"
               title="สำรองและกู้คืนข้อมูลโน้ต (Backup & Restore)"
             >
-              <Database size={15} className="text-indigo-600 dark:text-indigo-400" />
+              <Database size={15} className="text-brand-600 dark:text-brand-400" />
               <span className="hidden sm:inline">สำรองข้อมูล</span>
             </button>
 
@@ -329,7 +329,7 @@ export default function Layout({ children, showSearch = true }: LayoutProps) {
                   const url = activeBoardId ? `/notes/new?boardId=${activeBoardId}` : '/notes/new';
                   router.push(url);
                 }}
-                className="hidden md:flex px-3.5 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-full text-xs font-bold shadow-md shadow-indigo-500/25 items-center gap-1.5 transition-all duration-200 active:scale-95 ml-1 shrink-0"
+                className="hidden md:flex px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold shadow-xs hover:shadow transition-all duration-200 active:scale-95 ml-1 shrink-0 items-center gap-1.5"
                 title="สร้างโน้ตใหม่"
                 aria-label="สร้างโน้ตใหม่"
               >

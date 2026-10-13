@@ -240,7 +240,7 @@ export default function ShareNoteModal({
                               handleCopyLink();
                             }
                           }}
-                          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-semibold shadow-xs transition-all whitespace-nowrap"
+                          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold shadow-xs transition-all whitespace-nowrap cursor-pointer active:scale-95"
                           title="แชร์เข้าแอปบนมือถือ (LINE, Messenger ฯลฯ)"
                         >
                           <Share2 className="w-3.5 h-3.5" />

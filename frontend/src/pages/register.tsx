@@ -187,10 +187,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-slate-950 overflow-hidden p-4 sm:p-6 select-none font-inter">
-      {/* 3D Animated Grid Bloom Background */}
+    <div className="relative min-h-screen flex items-center justify-center bg-[#1E201E] overflow-hidden p-4 sm:p-6 select-none font-inter">
+      {/* 3D Animated Grid Bloom Background - Warm Forest Green */}
       <GridBloom
-        color="#818cf8"
+        color="#47745C"
         speed={0.8}
         gridScale={14.0}
         fadeFalloff={8.0}
@@ -201,12 +201,12 @@ export default function RegisterPage() {
         blending="additive"
       />
 
-      {/* Register Card: Bright, Eye-Pleasing, Glassmorphic Form */}
-      <div className="relative z-10 w-full max-w-md p-7 sm:p-9 bg-white/75 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-2xl shadow-slate-950/20 space-y-6 animate-fade-in">
+      {/* Register Card: Warm Minimalist Clean Form */}
+      <div className="relative z-10 w-full max-w-md p-7 sm:p-9 bg-[#FCFBF9]/95 backdrop-blur-xl border border-[#E4E0D6] rounded-2xl shadow-xl space-y-6 animate-fade-in">
         {/* Header Branding */}
         <div className="text-center space-y-1.5">
           <div className="inline-flex items-center justify-center mb-1">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-md flex items-center justify-center bg-slate-900">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xs flex items-center justify-center bg-warm-text dark:bg-warm-darkText/10">
               <img
                 src="/NoteAll-icon.png"
                 alt="NoteAll"
@@ -214,10 +214,10 @@ export default function RegisterPage() {
               />
             </div>
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-warm-text tracking-tight">
             NoteAll
           </h1>
-          <p className="text-xs text-slate-500 font-normal">
+          <p className="text-xs text-warm-muted font-normal">
             ระบบจดบันทึกความปลอดภัยสูง ป้องกันข้อมูลลับของคุณ
           </p>
         </div>
@@ -225,14 +225,14 @@ export default function RegisterPage() {
         {/* STEP 1: Google Verification Requirement */}
         {step === 1 && (
           <div className="space-y-5 animate-fade-in">
-            <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200/70 text-center space-y-2">
-              <div className="inline-flex p-2 rounded-xl bg-teal-100 text-teal-700 mb-0.5">
+            <div className="p-4 rounded-2xl bg-brand-50/80 border border-brand-200/80 text-center space-y-2">
+              <div className="inline-flex p-2 rounded-xl bg-brand-100 text-brand-700 mb-0.5">
                 <ShieldCheck size={22} />
               </div>
-              <h2 className="text-sm font-bold text-teal-950">
+              <h2 className="text-sm font-bold text-brand-950">
                 ใช้ Gmail เพื่อสร้างบัญชี
               </h2>
-              <p className="text-xs text-teal-800 leading-relaxed">
+              <p className="text-xs text-brand-800 leading-relaxed">
                 คุณต้องใช้บัญชี Google ที่มี Gmail เพื่อยืนยันตัวตนก่อนสมัครสมาชิก
               </p>
             </div>
@@ -351,13 +351,13 @@ export default function RegisterPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="อย่างน้อย 13 ตัวอักษร"
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300/80 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#DCD8CE] bg-white text-warm-text text-sm focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:outline-none transition shadow-2xs"
                     />
-                    <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
+                    <Lock size={17} className="absolute left-3.5 top-3 text-warm-muted" />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition"
+                      className="absolute right-3 top-3 text-warm-muted hover:text-warm-text transition"
                     >
                       {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                     </button>
@@ -365,7 +365,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-semibold text-warm-text uppercase tracking-wider mb-1">
                     ยืนยันรหัสผ่าน
                   </label>
                   <div className="relative">
@@ -374,28 +374,28 @@ export default function RegisterPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="กรอกรหัสผ่านซ้ำอีกครั้ง"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300/80 bg-white text-slate-900 text-sm focus:ring-2 focus:ring-teal-500/40 focus:border-teal-500 focus:outline-none transition"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#DCD8CE] bg-white text-warm-text text-sm focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 focus:outline-none transition shadow-2xs"
                     />
-                    <Lock size={17} className="absolute left-3.5 top-3 text-slate-400" />
+                    <Lock size={17} className="absolute left-3.5 top-3 text-warm-muted" />
                   </div>
                 </div>
 
                 {/* Password Strength Checklist */}
-                <div className="p-2 rounded-xl bg-white border border-slate-200 space-y-1">
+                <div className="p-2.5 rounded-xl bg-warm-surface border border-[#E4E0D6] space-y-1">
                   <div className="grid grid-cols-2 gap-1 text-[11px]">
-                    <span className={`flex items-center gap-1.5 ${isMinLength ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                    <span className={`flex items-center gap-1.5 ${isMinLength ? 'text-brand-700 font-semibold' : 'text-warm-muted'}`}>
                       <span>{isMinLength ? '✓' : '○'}</span>
                       <span>ความยาว 13+ ตัว ({password.length}/13)</span>
                     </span>
-                    <span className={`flex items-center gap-1.5 ${hasUpper ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                    <span className={`flex items-center gap-1.5 ${hasUpper ? 'text-brand-700 font-semibold' : 'text-warm-muted'}`}>
                       <span>{hasUpper ? '✓' : '○'}</span>
                       <span>ตัวพิมพ์ใหญ่ (A-Z)</span>
                     </span>
-                    <span className={`flex items-center gap-1.5 ${hasLower ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                    <span className={`flex items-center gap-1.5 ${hasLower ? 'text-brand-700 font-semibold' : 'text-warm-muted'}`}>
                       <span>{hasLower ? '✓' : '○'}</span>
                       <span>ตัวพิมพ์เล็ก (a-z)</span>
                     </span>
-                    <span className={`flex items-center gap-1.5 ${hasNumber && hasSpecial ? 'text-emerald-600 font-semibold' : 'text-slate-500'}`}>
+                    <span className={`flex items-center gap-1.5 ${hasNumber && hasSpecial ? 'text-brand-700 font-semibold' : 'text-warm-muted'}`}>
                       <span>{hasNumber && hasSpecial ? '✓' : '○'}</span>
                       <span>ตัวเลข & สัญลักษณ์ (!@#)</span>
                     </span>
@@ -416,17 +416,17 @@ export default function RegisterPage() {
             />
 
             {/* PDPA Explicit Consent & Notice */}
-            <div className="space-y-2 pt-2 border-t border-slate-200/80">
+            <div className="space-y-2 pt-2 border-t border-[#E4E0D6]">
               <label className="flex items-start gap-2.5 cursor-pointer text-left">
                 <input
                   type="checkbox"
                   checked={agreedTerms}
                   onChange={(e) => setAgreedTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 rounded border-[#DCD8CE] text-brand-600 focus:ring-brand-500 cursor-pointer"
                 />
-                <span className="text-xs text-slate-600 leading-snug">
+                <span className="text-xs text-warm-muted leading-snug">
                   ฉันได้อ่านและยอมรับ{' '}
-                  <Link href="/privacy" target="_blank" className="text-indigo-600 hover:underline font-semibold">
+                  <Link href="/privacy" target="_blank" className="text-brand-600 hover:underline font-semibold">
                     ข้อตกลงการให้บริการ (Terms of Service)
                   </Link>
                 </span>
@@ -437,11 +437,11 @@ export default function RegisterPage() {
                   type="checkbox"
                   checked={ackPrivacy}
                   onChange={(e) => setAckPrivacy(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                  className="mt-0.5 w-4 h-4 rounded border-[#DCD8CE] text-brand-600 focus:ring-brand-500 cursor-pointer"
                 />
-                <span className="text-xs text-slate-600 leading-snug">
+                <span className="text-xs text-warm-muted leading-snug">
                   ฉันรับทราบ{' '}
-                  <Link href="/privacy" target="_blank" className="text-indigo-600 hover:underline font-semibold">
+                  <Link href="/privacy" target="_blank" className="text-brand-600 hover:underline font-semibold">
                     ประกาศความเป็นส่วนตัว (Privacy Notice)
                   </Link>{' '}
                   ตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
@@ -459,7 +459,7 @@ export default function RegisterPage() {
                 !agreedTerms ||
                 !ackPrivacy
               }
-              className="w-full py-3 bg-gradient-to-r from-teal-500 to-sky-500 hover:from-teal-600 hover:to-sky-600 text-white rounded-xl font-semibold shadow-lg shadow-teal-500/20 active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-3"
+              className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-semibold shadow-xs hover:shadow active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm mt-3"
             >
               {isLoading ? (
                 <>

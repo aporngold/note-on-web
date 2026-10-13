@@ -983,15 +983,15 @@ export default function StickyNoteItem({
               }}
               className={`p-1 rounded hover:bg-black/15 transition flex items-center gap-0.5 cursor-ns-resize ${
                 isRotating
-                  ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-100/70 dark:bg-indigo-950/70 ring-2 ring-indigo-500 scale-105'
+                  ? 'text-brand-700 dark:text-brand-300 font-bold bg-brand-100/80 dark:bg-brand-950/80 ring-2 ring-brand-500 scale-105'
                   : rotation !== 0
-                  ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-black/5'
-                  : 'hover:text-indigo-600 dark:hover:text-indigo-400'
+                  ? 'text-brand-700 dark:text-brand-300 font-bold bg-black/5'
+                  : 'hover:text-brand-600 dark:hover:text-brand-400'
               }`}
               style={{ color: (rotation !== 0 || isRotating) ? undefined : textColor }}
               title={`คลิกค้างแล้วเลื่อนขึ้นเพื่อหมุนขวา / เลื่อนลงเพื่อหมุนซ้าย (ดับเบิลคลิกเพื่อรีเซ็ต 0°)`}
             >
-              <RotateCw size={12} className={rotation !== 0 ? 'text-indigo-600' : ''} />
+              <RotateCw size={12} className={rotation !== 0 ? 'text-brand-600' : ''} />
               {(rotation !== 0 || isRotating) && (
                 <span className="text-[9px] font-mono leading-none">{rotation > 0 ? `+${rotation}` : rotation}°</span>
               )}
@@ -1099,7 +1099,7 @@ export default function StickyNoteItem({
                   onStartConnect && onStartConnect(note.id);
                 }}
                 className={`p-1 rounded hover:bg-black/10 transition cursor-pointer ${
-                  isConnectingSource ? 'bg-indigo-600 text-white shadow-xs' : ''
+                  isConnectingSource ? 'bg-brand-600 text-white shadow-xs' : ''
                 }`}
                 style={{ color: isConnectingSource ? '#FFFFFF' : textColor }}
                 title="เชื่อมโยงโน้ตนี้กับโน้ตอื่นด้วยเส้นลูกศร"
@@ -1127,7 +1127,7 @@ export default function StickyNoteItem({
                 >
                   <Paperclip size={12} />
                   {attachments.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-600 text-white rounded-full text-[8px] flex items-center justify-center font-bold">
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-600 text-white rounded-full text-[8px] flex items-center justify-center font-bold">
                       {attachments.length}
                     </span>
                   )}

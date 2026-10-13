@@ -1595,7 +1595,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
               setNewBoardColor(TAB_COLORS[Math.floor(Math.random() * TAB_COLORS.length)]);
               setIsAddBoardModalOpen(true);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-t-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition shrink-0 border-t-2 border-transparent"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-t-xl text-xs font-bold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/40 hover:bg-brand-100 dark:hover:bg-brand-900/40 transition shrink-0 border-t-2 border-transparent"
           >
             <Plus size={14} />
             <span>+ บอร์ดใหม่</span>
@@ -1698,7 +1698,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             {activeBoard && (
               <button
                 onClick={() => setIsShareModalOpen(true)}
-                className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition active:scale-95"
+                className="px-2.5 py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
                 title="แชร์กระดานนี้ให้ผู้อื่น (แก้ไขเรียลไทม์ หรือ ดูอย่างเดียว)"
               >
                 <Share2 size={13} />
@@ -1709,10 +1709,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
             {/* Change Background Button */}
             <button
               onClick={() => setIsBackgroundModalOpen(true)}
-              className="px-2.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-slate-200 dark:border-slate-700 transition active:scale-95"
+              className="px-2.5 py-1.5 bg-warm-card dark:bg-warm-darkSurface hover:bg-warm-bg dark:hover:bg-warm-darkCard text-warm-text dark:text-warm-darkText font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-warm-border dark:border-warm-darkBorder transition active:scale-95 cursor-pointer"
               title="เปลี่ยนพื้นหลังและลวดลายกระดาน"
             >
-              <Palette size={14} className="text-indigo-600 dark:text-indigo-400" />
+              <Palette size={14} className="text-brand-600 dark:text-brand-300" />
               <span className="hidden sm:inline">เปลี่ยนพื้นหลัง</span>
             </button>
 
@@ -1722,10 +1722,10 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
                 setStickerTargetNoteId(null);
                 setIsStickerModalOpen(true);
               }}
-              className="px-2.5 py-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-amber-200 dark:border-amber-800/60 transition active:scale-95"
+              className="px-2.5 py-1.5 bg-sand-100/80 dark:bg-sand-950/60 hover:bg-sand-200/80 dark:hover:bg-sand-900/50 text-sand-800 dark:text-sand-300 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs border border-sand-300 dark:border-sand-800/60 transition active:scale-95 cursor-pointer"
               title="แปะสติกเกอร์, ลูกศร, ไอเดีย และสัญลักษณ์ตกแต่งบนกระดาน"
             >
-              <Sparkles size={14} className="text-amber-500 animate-pulse" />
+              <Sparkles size={14} className="text-sand-600 dark:text-sand-400 animate-pulse" />
               <span className="hidden sm:inline">สติกเกอร์</span>
             </button>
           </div>
@@ -1734,7 +1734,7 @@ export default function StickyBoard({ notes }: StickyBoardProps) {
 
       {/* ── CONNECTION IN PROGRESS BANNER ── */}
       {connectingSourceId && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-indigo-600 text-white px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-bold animate-bounce">
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-brand-600 text-white px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-bold animate-bounce">
           <Link2 size={16} />
           <span>🔗 โหมดเชื่อมต่อโน้ต: คลิกที่โน้ตปลายทางเพื่อเชื่อมโยงเส้นลูกศร</span>
           <button

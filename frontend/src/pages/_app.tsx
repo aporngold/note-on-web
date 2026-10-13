@@ -78,12 +78,12 @@ export default function App({ Component, pageProps }: AppProps) {
               custom: { duration: 4000 },
               style: {
                 borderRadius: '12px',
-                background: '#1e293b',
-                color: '#f8fafc',
+                background: '#222623',
+                color: '#F5F3EE',
                 fontSize: '13px',
                 fontWeight: 500,
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 12px 28px -6px rgba(0, 0, 0, 0.35)',
+                border: '1px solid #363C37',
                 maxWidth: '380px',
               },
             }}

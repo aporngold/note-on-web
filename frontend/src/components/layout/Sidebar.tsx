@@ -133,13 +133,13 @@ export default function Sidebar({
   // ────────────── COLLAPSED MINI SIDEBAR (ยุบเมนูซ้าย) ──────────────
   if (isCollapsed) {
     return (
-      <aside className="w-16 h-screen flex flex-col justify-between items-center bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 py-4 select-none z-30 transition-all duration-300">
+      <aside className="w-16 h-screen flex flex-col justify-between items-center bg-warm-surface dark:bg-warm-darkSurface border-r border-warm-border dark:border-warm-darkBorder py-4 select-none z-30 transition-all duration-300">
         <div className="flex flex-col items-center gap-4 w-full">
           {/* App Icon / Logo */}
           <Link href="/dashboard" className="p-1 group" title="NoteAll Dashboard">
             <div
               onPointerDown={handleLogoPointerDown}
-              className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-md shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900 cursor-pointer"
+              className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-xs group-hover:scale-105 transition bg-warm-text dark:bg-warm-darkText/10 cursor-pointer"
             >
               <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover select-none pointer-events-none" />
             </div>
@@ -149,14 +149,14 @@ export default function Sidebar({
           {onToggleCollapse && (
             <button
               onClick={onToggleCollapse}
-              className="p-2 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="p-2 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition"
               title="ขยายเมนูด้านซ้าย"
             >
               <PanelLeft size={18} />
             </button>
           )}
 
-          <hr className="w-8 border-slate-200 dark:border-slate-800 my-1" />
+          <hr className="w-8 border-warm-border dark:border-warm-darkBorder my-1" />
 
           {/* Navigation Icons */}
           <nav className="flex flex-col items-center gap-2 w-full px-2">
@@ -169,8 +169,8 @@ export default function Sidebar({
               }}
               className={`p-2.5 rounded-xl transition ${
                 currentPath === '/dashboard' && !selectedNotebook && !selectedLabel && !selectedColor && router.query.tab !== 'reminders'
-                  ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-semibold'
+                  : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText hover:bg-black/5 dark:hover:bg-white/5'
               }`}
               title="โน้ตทั้งหมด"
             >
@@ -186,14 +186,14 @@ export default function Sidebar({
               }}
               className={`p-2.5 rounded-xl transition relative ${
                 currentPath === '/dashboard' && router.query.tab === 'reminders'
-                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 font-semibold'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-sand-100 dark:bg-sand-950/60 text-sand-800 dark:text-sand-300 font-semibold'
+                  : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText hover:bg-black/5 dark:hover:bg-white/5'
               }`}
               title={`เตือนความจำ (${reminderCount} รายการ)`}
             >
-              <Bell size={18} className={reminderCount > 0 ? 'fill-current text-amber-500' : ''} />
+              <Bell size={18} className={reminderCount > 0 ? 'fill-current text-sand-500' : ''} />
               {reminderCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-sand-500 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
               )}
             </button>
 
@@ -201,8 +201,8 @@ export default function Sidebar({
               onClick={() => handleNavClick('/vault')}
               className={`p-2.5 rounded-xl transition ${
                 currentPath === '/vault'
-                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'bg-sand-100 dark:bg-sand-950/60 text-sand-900 dark:text-sand-200'
+                  : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText hover:bg-black/5 dark:hover:bg-white/5'
               }`}
               title="ห้องนิรภัยส่วนตัว (Vault)"
             >
@@ -219,13 +219,13 @@ export default function Sidebar({
               className={`p-2.5 rounded-xl transition relative ${
                 currentPath === '/trash'
                   ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 font-semibold'
-                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                  : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText hover:bg-black/5 dark:hover:bg-white/5'
               }`}
               title={`ถังขยะ (${trashNotes.length} รายการ)`}
             >
               <Trash2 size={18} />
               {trashNotes.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-warm-surface dark:ring-warm-darkSurface" />
               )}
             </button>
 
@@ -234,12 +234,12 @@ export default function Sidebar({
                 onClick={() => handleNavClick('/admin')}
                 className={`p-2.5 rounded-xl transition ${
                   currentPath === '/admin'
-                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-semibold'
+                    : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
                 title="แผงควบคุมระบบ (Admin Dashboard)"
               >
-                <ShieldCheck size={18} className="text-indigo-500" />
+                <ShieldCheck size={18} className="text-brand-600" />
               </button>
             )}
           </nav>
@@ -285,7 +285,7 @@ export default function Sidebar({
 
           {/* User Avatar */}
           <div
-            className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-sm"
+            className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shadow-xs"
             title={user?.email || 'User'}
           >
             {user?.username?.charAt(0)?.toUpperCase() || 'U'}
@@ -312,22 +312,22 @@ export default function Sidebar({
 
   // ────────────── FULL EXPANDED SIDEBAR (ขยายเต็ม 72) ──────────────
   return (
-    <aside className="w-72 h-screen flex flex-col justify-between bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 p-4 select-none overflow-y-auto transition-all duration-300">
+    <aside className="w-72 h-screen flex flex-col justify-between bg-warm-surface dark:bg-warm-darkSurface border-r border-warm-border dark:border-warm-darkBorder p-4 select-none overflow-y-auto transition-all duration-300">
       <div className="space-y-6">
         {/* Logo, Collapse Button & Close on mobile */}
         <div className="flex items-center justify-between pt-1 px-3.5">
           <Link href="/dashboard" className="flex items-center gap-3 group">
             <div
               onPointerDown={handleLogoPointerDown}
-              className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition bg-slate-900 cursor-pointer"
+              className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-xs group-hover:scale-105 transition bg-warm-text dark:bg-warm-darkText/10 cursor-pointer"
             >
               <img src="/NoteAll-icon.png" alt="NoteAll" className="w-full h-full object-cover select-none pointer-events-none" />
             </div>
             <div>
-              <h1 className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight leading-none">
+              <h1 className="font-extrabold text-lg text-warm-text dark:text-warm-darkText tracking-tight leading-none">
                 NoteAll
               </h1>
-              <span className="text-[11px] text-slate-400 font-medium">End-to-End Vault</span>
+              <span className="text-[11px] text-warm-muted font-medium">End-to-End Vault</span>
             </div>
           </Link>
 
@@ -336,7 +336,7 @@ export default function Sidebar({
             {onToggleCollapse && (
               <button
                 onClick={onToggleCollapse}
-                className="hidden lg:flex w-6 h-6 items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="hidden lg:flex w-6 h-6 items-center justify-center text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition"
                 title="ยุบเมนูด้านซ้าย เพื่อดูเต็มจอ"
               >
                 <PanelLeftClose size={18} />
@@ -347,7 +347,7 @@ export default function Sidebar({
             {onCloseMobile && (
               <button
                 onClick={onCloseMobile}
-                className="lg:hidden w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="lg:hidden w-6 h-6 flex items-center justify-center text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText"
               >
                 <X size={20} />
               </button>
@@ -366,8 +366,8 @@ export default function Sidebar({
             }}
             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
               currentPath === '/dashboard' && !selectedNotebook && !selectedLabel && !selectedColor && router.query.tab !== 'reminders'
-                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-semibold'
+                : 'text-warm-text/80 dark:text-warm-darkText/80 hover:bg-black/5 dark:hover:bg-white/5 hover:text-warm-text dark:hover:text-warm-darkText'
             }`}
           >
             <FileText size={18} />
@@ -383,16 +383,16 @@ export default function Sidebar({
             }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
               currentPath === '/dashboard' && router.query.tab === 'reminders'
-                ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-sand-100 dark:bg-sand-950/60 text-sand-800 dark:text-sand-300 font-semibold'
+                : 'text-warm-text/80 dark:text-warm-darkText/80 hover:bg-black/5 dark:hover:bg-white/5 hover:text-warm-text dark:hover:text-warm-darkText'
             }`}
           >
             <div className="flex items-center gap-3">
-              <Bell size={18} className={reminderCount > 0 ? 'text-amber-500 fill-amber-500' : ''} />
+              <Bell size={18} className={reminderCount > 0 ? 'text-sand-500 fill-sand-500' : ''} />
               <span>เตือนความจำ</span>
             </div>
             {reminderCount > 0 && (
-              <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-sand-200 dark:bg-sand-950/80 text-sand-800 dark:text-sand-300 flex items-center justify-center">
                 {reminderCount}
               </span>
             )}
@@ -402,8 +402,8 @@ export default function Sidebar({
             onClick={() => handleNavClick('/vault')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
               currentPath === '/vault'
-                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-sand-100 dark:bg-sand-950/60 text-sand-900 dark:text-sand-200 font-semibold'
+                : 'text-warm-text/80 dark:text-warm-darkText/80 hover:bg-black/5 dark:hover:bg-white/5'
             }`}
           >
             <div className="flex items-center gap-3">
@@ -413,7 +413,7 @@ export default function Sidebar({
             <div className="w-6 h-6 flex items-center justify-center shrink-0">
               <span
                 className={`w-2.5 h-2.5 rounded-full ${
-                  isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                  isVaultUnlocked ? 'bg-emerald-500 animate-pulse' : 'bg-sand-500'
                 }`}
               />
             </div>
@@ -429,7 +429,7 @@ export default function Sidebar({
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
               currentPath === '/trash'
                 ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                : 'text-warm-text/80 dark:text-warm-darkText/80 hover:bg-black/5 dark:hover:bg-white/5 hover:text-warm-text dark:hover:text-warm-darkText'
             }`}
           >
             <div className="flex items-center gap-3">
@@ -450,12 +450,12 @@ export default function Sidebar({
               onClick={() => handleNavClick('/admin')}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
                 currentPath === '/admin'
-                  ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-semibold border border-indigo-200 dark:border-indigo-800/60'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-semibold border border-brand-200 dark:border-brand-800/60'
+                  : 'text-warm-text/80 dark:text-warm-darkText/80 hover:bg-black/5 dark:hover:bg-white/5 hover:text-warm-text dark:hover:text-warm-darkText'
               }`}
             >
               <div className="flex items-center gap-3">
-                <ShieldCheck size={18} className="text-indigo-500 dark:text-indigo-400" />
+                <ShieldCheck size={18} className="text-brand-600 dark:text-brand-400" />
                 <span>แผงควบคุมระบบ</span>
               </div>
               <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
@@ -597,7 +597,7 @@ export default function Sidebar({
           ) : (
             <button
               onClick={() => setIsVaultModalOpen(true)}
-              className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50"
+              className="text-[11px] font-semibold text-brand-700 hover:text-brand-800 dark:text-brand-300 px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-950/60 transition"
             >
               ปลดล็อก
             </button>
@@ -607,14 +607,14 @@ export default function Sidebar({
         {/* User bar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
               {user?.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+              <p className="text-xs font-bold text-warm-text dark:text-warm-darkText truncate">
                 {user?.username || 'ผู้ใช้งาน'}
               </p>
-              <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+              <p className="text-[10px] text-warm-muted truncate">{user?.email}</p>
             </div>
           </div>
 
@@ -622,7 +622,7 @@ export default function Sidebar({
             {/* Privacy Policy (PDPA) */}
             <Link
               href="/privacy"
-              className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition"
+              className="p-1.5 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition"
               title="นโยบายความเป็นส่วนตัว (PDPA)"
             >
               <ShieldCheck size={16} />
@@ -631,7 +631,7 @@ export default function Sidebar({
             {/* Help Guide */}
             <button
               onClick={() => setIsHelpModalOpen(true)}
-              className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition"
+              className="p-1.5 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition"
               title="วิธีใช้งานและคำแนะนำ (Help)"
             >
               <HelpCircle size={16} />

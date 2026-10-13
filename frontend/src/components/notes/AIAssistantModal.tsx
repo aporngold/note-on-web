@@ -387,7 +387,7 @@ export default function AIAssistantModal({
                   type="button"
                   onClick={handleFormatNote}
                   disabled={isLoading}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer active:scale-95"
                 >
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   <span>{isLoading ? 'AI กำลังออกแบบจัดรูปแบบ...' : '🚀 เริ่มจัดรูปแบบด้วย AI'}</span>

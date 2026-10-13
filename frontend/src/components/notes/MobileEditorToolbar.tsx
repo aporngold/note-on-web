@@ -248,7 +248,7 @@ export default function MobileEditorToolbar({
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={`min-w-[40px] h-10 rounded-xl flex items-center justify-center transition ${
               editor.isActive('bold')
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-brand-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="ตัวหนา"
@@ -263,7 +263,7 @@ export default function MobileEditorToolbar({
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`min-w-[40px] h-10 rounded-xl flex items-center justify-center transition ${
               editor.isActive('italic')
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-brand-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="ตัวเอียง"
@@ -278,7 +278,7 @@ export default function MobileEditorToolbar({
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             className={`min-w-[40px] h-10 rounded-xl flex items-center justify-center transition ${
               editor.isActive('underline')
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-brand-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="ขีดเส้นใต้"
@@ -404,7 +404,7 @@ export default function MobileEditorToolbar({
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={`min-w-[40px] h-10 rounded-xl flex items-center justify-center transition ${
               editor.isActive('bulletList')
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-brand-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="รายการหัวข้อย่อย"
@@ -419,7 +419,7 @@ export default function MobileEditorToolbar({
             onClick={() => editor.chain().focus().toggleTaskList().run()}
             className={`min-w-[40px] h-10 rounded-xl flex items-center justify-center transition ${
               editor.isActive('taskList')
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-brand-500 text-white shadow-xs'
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
             title="เช็คลิสต์รายการ"
@@ -446,7 +446,7 @@ export default function MobileEditorToolbar({
           <button
             type="button"
             onClick={() => setActiveSheet('add')}
-            className="min-w-[40px] h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold transition active:scale-95 shadow-xs"
+            className="min-w-[40px] h-10 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 flex items-center justify-center font-bold transition active:scale-95 shadow-xs"
             title="เครื่องมือเพิ่มเติม"
             aria-label="เครื่องมือเพิ่มเติม"
           >

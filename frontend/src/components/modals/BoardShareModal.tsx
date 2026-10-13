@@ -227,7 +227,7 @@ export default function BoardShareModal({
                     handleCopyLink();
                   }
                 }}
-                className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition active:scale-95 shrink-0"
+                className="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs transition active:scale-95 shrink-0 cursor-pointer"
                 title="แชร์เข้าแอปบนมือถือ (LINE, Messenger ฯลฯ)"
               >
                 <Share2 size={14} />

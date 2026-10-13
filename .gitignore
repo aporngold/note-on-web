@@ -45,3 +45,10 @@ Thumbs.db
 *.mov
 *.avi
 *.wmv
+
+# Agent and AI Tool configs
+.agent/
+.claude/
+.gemini/
+.opencode/
+

@@ -906,7 +906,7 @@ export default function NoteRichToolbar({
   const getToolBtnClass = (isActive: boolean, customPadding: string = 'p-1.5') => {
     return `${customPadding} rounded-lg transition-all duration-150 ${
       isActive
-        ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 font-bold ring-1 ring-indigo-400/50 shadow-xs'
+        ? 'bg-brand-50 dark:bg-brand-950/80 text-brand-700 dark:text-brand-300 font-bold ring-1 ring-brand-500/40 shadow-xs'
         : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
     }`;
   };
@@ -1046,8 +1046,8 @@ export default function NoteRichToolbar({
               onClick={onTogglePin}
               className={`p-1.5 rounded-lg transition ${
                 isPinned
-                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 ring-1 ring-indigo-500/20'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'text-sand-600 dark:text-sand-300 bg-sand-100/80 dark:bg-sand-950/60 ring-1 ring-sand-400/30'
+                  : 'text-slate-500 hover:text-sand-600 hover:bg-warm-bg dark:hover:bg-warm-darkCard'
               }`}
               title={isPinned ? 'ยกเลิกการปักหมุด' : 'ปักหมุดโน้ตนี้'}
               aria-label="ปักหมุด"
@@ -1063,7 +1063,7 @@ export default function NoteRichToolbar({
               onClick={onToggleFavorite}
               className={`p-1.5 rounded-lg transition ${
                 isFavorite
-                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 ring-1 ring-amber-500/20'
+                  ? 'text-sand-500 bg-sand-50 dark:bg-sand-950/50 ring-1 ring-sand-400/20'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
               title={isFavorite ? 'ยกเลิกรายการโปรด' : 'เพิ่มในรายการโปรด (Favorite)'}
@@ -1080,15 +1080,15 @@ export default function NoteRichToolbar({
               onClick={onOpenReminder}
               className={`p-1.5 rounded-lg transition relative ${
                 hasReminder
-                  ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/50 ring-1 ring-amber-500/20'
+                  ? 'text-sand-600 dark:text-sand-400 bg-sand-100/70 dark:bg-sand-950/50 ring-1 ring-sand-400/20'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
               title={hasReminder ? 'มีการตั้งเตือนความจำไว้ (คลิกเพื่อแก้ไข/ลบ)' : 'ตั้งเวลาแจ้งเตือน (Reminder)'}
               aria-label="ตั้งเวลาแจ้งเตือน"
             >
-              <Bell size={16} className={hasReminder ? 'fill-current animate-pulse' : ''} />
+              <Bell size={16} className={hasReminder ? 'fill-current animate-pulse text-sand-600 dark:text-sand-400' : ''} />
               {hasReminder && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-sand-500 ring-2 ring-white dark:ring-slate-900" />
               )}
             </button>
           )}
@@ -1104,7 +1104,7 @@ export default function NoteRichToolbar({
             >
               <Paperclip size={16} />
               {attachmentsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-indigo-600 text-white rounded-full text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-brand-600 text-white rounded-full text-[9px] font-bold flex items-center justify-center">
                   {attachmentsCount}
                 </span>
               )}
@@ -1147,7 +1147,7 @@ export default function NoteRichToolbar({
               onClick={onTogglePreview}
               className={`p-1.5 rounded-lg transition ${
                 isPreview
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 dark:shadow-none'
+                  ? 'bg-brand-500 text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
               title={isPreview ? 'แก้ไขเนื้อหา' : 'ดูตัวอย่าง'}

@@ -348,7 +348,7 @@ export default function NoteQuickPeek({
                   onClose();
                   onEdit(note);
                 }}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-500/20 transition active:scale-95 cursor-pointer"
+                className="flex-1 py-2.5 px-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
               >
                 <Edit3 size={14} />
                 <span>แก้ไขโน้ต</span>

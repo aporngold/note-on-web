@@ -201,11 +201,11 @@ export default function Dashboard() {
                     ? 'รายการโปรด'
                     : 'โน้ตทั้งหมด'}
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300">
                   {filteredNotes.length}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs sm:text-sm text-warm-muted dark:text-warm-darkMuted mt-1">
                 {activeNotebook?.description ||
                   (activeTab === 'reminders'
                     ? 'โน้ตที่มีการกำหนดวันและเวลาแจ้งเตือนล่วงหน้า'
@@ -219,7 +219,7 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
               {/* Quick Filter Tabs (All, Pinned, Favorites, Reminders) */}
-              <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold shadow-xs">
+              <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-warm-surface dark:bg-warm-darkSurface border border-warm-border/70 dark:border-warm-darkBorder/70 text-xs font-semibold shadow-2xs">
                 <button
                   onClick={() => {
                     setActiveTab('all');
@@ -230,8 +230,8 @@ export default function Dashboard() {
                   }}
                   className={`px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'all'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-warm-card dark:bg-warm-darkCard text-warm-text dark:text-warm-darkText shadow-xs'
+                      : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                   }`}
                 >
                   ทั้งหมด ({notes.length})
@@ -246,11 +246,11 @@ export default function Dashboard() {
                   }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'pinned'
-                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-warm-card dark:bg-warm-darkCard text-sand-800 dark:text-sand-300 shadow-xs font-semibold'
+                      : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                   }`}
                 >
-                  <Pin size={13} className="fill-current" />
+                  <Pin size={13} className="fill-current text-sand-600 dark:text-sand-400" />
                   <span>ปักหมุด ({notes.filter((n) => n.isPinned).length})</span>
                 </button>
                 <button
@@ -263,11 +263,11 @@ export default function Dashboard() {
                   }}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'favorites'
-                      ? 'bg-white dark:bg-slate-900 text-amber-500 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-warm-card dark:bg-warm-darkCard text-sand-800 dark:text-sand-300 shadow-xs font-semibold'
+                      : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                   }`}
                 >
-                  <Star size={13} className="fill-current" />
+                  <Star size={13} className="fill-current text-sand-500" />
                   <span>รายการโปรด ({notes.filter((n) => n.isFavorite).length})</span>
                 </button>
                 <button
@@ -279,11 +279,11 @@ export default function Dashboard() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
                     activeTab === 'reminders'
-                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 font-bold shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                      ? 'bg-warm-card dark:bg-warm-darkCard text-amber-700 dark:text-amber-300 font-bold shadow-xs'
+                      : 'text-warm-muted hover:text-warm-text dark:hover:text-warm-darkText'
                   }`}
                 >
-                  <Bell size={13} className={activeTab === 'reminders' ? 'fill-current animate-pulse' : ''} />
+                  <Bell size={13} className={activeTab === 'reminders' ? 'fill-current animate-pulse text-amber-500' : ''} />
                   <span>เตือนความจำ ({reminderNotesCount})</span>
                 </button>
 
@@ -297,7 +297,7 @@ export default function Dashboard() {
                         toast.success('ดาวน์โหลดไฟล์ปฏิทิน .ics เรียบร้อยแล้ว', { icon: '📅' });
                       }
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold shadow-xs transition text-xs active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold shadow-xs transition text-xs active:scale-95"
                     title="ดาวน์โหลดไฟล์ .ics เพื่อนำเข้าปฏิทิน Google / Apple Calendar / Outlook"
                   >
                     <Download size={13} />
@@ -310,10 +310,10 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setIsAiSearchOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-50 hover:bg-violet-100/80 dark:bg-violet-950/40 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 border border-violet-200/80 dark:border-violet-800/60 font-semibold shadow-xs transition-all duration-200 active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sand-50 hover:bg-sand-100/80 dark:bg-sand-950/40 dark:hover:bg-sand-900/50 text-sand-900 dark:text-sand-200 border border-sand-200/80 dark:border-sand-800/60 font-semibold shadow-2xs transition-all duration-200 active:scale-95"
                   title="ค้นหาโน้ตตามความหมายด้วย AI (ฟรี 100%)"
                 >
-                  <Sparkles size={13} className="text-violet-600 dark:text-violet-400" />
+                  <Sparkles size={13} className="text-sand-600 dark:text-sand-400" />
                   <span>ค้นหา AI</span>
                 </button>
               </div>
@@ -330,10 +330,10 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setIsBoardShareModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition"
+                  className="px-3 py-1.5 rounded-xl border border-warm-border dark:border-warm-darkBorder bg-warm-card dark:bg-warm-darkCard hover:bg-warm-surface text-warm-text dark:text-warm-darkText text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition"
                   title={`แชร์กระดาน "${currentActiveBoard.name}"`}
                 >
-                  <Share2 size={13} className="text-indigo-500" />
+                  <Share2 size={13} className="text-brand-600 dark:text-brand-400" />
                   <span className="hidden sm:inline">แชร์กระดาน</span>
                 </button>
               )}
@@ -343,31 +343,31 @@ export default function Dashboard() {
 
         {/* Reminders Tab Header Strip */}
         {activeTab === 'reminders' && reminderTimelineGroups && (
-          <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-purple-500/10 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-xs">
+          <div className="p-3 sm:p-4 rounded-2xl bg-warm-surface dark:bg-warm-darkSurface border border-warm-border dark:border-warm-darkBorder flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in shadow-2xs">
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <span className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 mr-1">
+              <span className="font-bold text-warm-text dark:text-warm-darkText flex items-center gap-1.5 mr-1">
                 <Bell size={16} className="text-amber-500" />
                 <span>สถานะการแจ้งเตือน:</span>
               </span>
 
               {reminderTimelineGroups.overdue.length > 0 && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 font-bold border border-rose-300/60 dark:border-rose-800">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-800">
                   <AlertCircle size={12} className="animate-pulse" />
                   <span>เลยกำหนด {reminderTimelineGroups.overdue.length}</span>
                 </span>
               )}
 
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-semibold border border-amber-300/60 dark:border-amber-800">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 font-semibold border border-amber-200 dark:border-amber-800">
                 <Clock size={12} />
                 <span>วันนี้ {reminderTimelineGroups.today.length}</span>
               </span>
 
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 font-semibold border border-emerald-300/60 dark:border-emerald-800">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-50 dark:bg-brand-950/70 text-brand-800 dark:text-brand-300 font-semibold border border-brand-200 dark:border-brand-800">
                 <Calendar size={12} />
                 <span>พรุ่งนี้ {reminderTimelineGroups.tomorrow.length}</span>
               </span>
 
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-950/70 text-indigo-800 dark:text-indigo-300 font-semibold border border-indigo-300/60 dark:border-indigo-800">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-sand-100 dark:bg-sand-950/70 text-sand-800 dark:text-sand-300 font-semibold border border-sand-200 dark:border-sand-800">
                 <CalendarDays size={12} />
                 <span>เร็วๆ นี้ {reminderTimelineGroups.upcoming.length}</span>
               </span>
@@ -377,13 +377,13 @@ export default function Dashboard() {
 
         {/* Active Filters Bar */}
         {hasActiveFilter && (
-          <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs">
-            <span className="flex items-center gap-1.5 font-bold text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2 flex-wrap p-3 rounded-2xl bg-warm-card dark:bg-warm-darkCard border border-warm-border dark:border-warm-darkBorder text-xs shadow-2xs">
+            <span className="flex items-center gap-1.5 font-bold text-warm-muted dark:text-warm-darkMuted">
               <Filter size={14} /> ตัวกรองที่เปิดอยู่:
             </span>
 
             {activeNotebook && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-medium">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300 font-medium">
                 สมุด: {activeNotebook.name}
                 <button onClick={() => setSelectedNotebook(null)} className="hover:opacity-75">
                   <X size={12} />
@@ -392,7 +392,7 @@ export default function Dashboard() {
             )}
 
             {activeLabel && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 font-medium">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sand-100 dark:bg-sand-950/50 text-sand-800 dark:text-sand-300 font-medium">
                 ป้าย: #{activeLabel.name}
                 <button onClick={() => setSelectedLabel(null)} className="hover:opacity-75">
                   <X size={12} />
@@ -401,7 +401,7 @@ export default function Dashboard() {
             )}
 
             {selectedColor && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-warm-surface dark:bg-warm-darkSurface text-warm-text dark:text-warm-darkText font-medium border border-warm-border/60">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: selectedColor }}
@@ -414,7 +414,7 @@ export default function Dashboard() {
             )}
 
             {searchQuery && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-warm-surface dark:bg-warm-darkSurface text-warm-text dark:text-warm-darkText font-medium border border-warm-border/60">
                 คำค้น: "{searchQuery}"
                 <button onClick={() => setSearchQuery('')} className="hover:opacity-75">
                   <X size={12} />
@@ -424,7 +424,7 @@ export default function Dashboard() {
 
             <button
               onClick={clearAllFilters}
-              className="ml-auto text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+              className="ml-auto text-brand-600 dark:text-brand-400 hover:underline font-semibold"
             >
               ล้างตัวกรองทั้งหมด
             </button>
@@ -435,16 +435,16 @@ export default function Dashboard() {
           /* Sticky Board Canvas Mode */
           <StickyBoard notes={boardNotes} />
         ) : viewMode === 'kanban' ? (
-          <div className="flex-1 w-full h-[calc(100vh-140px)] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xl overflow-hidden bg-white dark:bg-slate-900">
+          <div className="flex-1 w-full h-[calc(100vh-140px)] rounded-2xl border border-warm-border dark:border-warm-darkBorder shadow-lg overflow-hidden bg-warm-card dark:bg-warm-darkCard">
             <KanbanView notes={filteredNotes} />
           </div>
         ) : filteredNotes.length === 0 && !isLoading ? (
           /* Empty State for Grid & List modes */
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-10 sm:p-12 text-center space-y-4 shadow-sm my-6 max-w-xl mx-auto">
+          <div className="bg-warm-card dark:bg-warm-darkCard border border-warm-border dark:border-warm-darkBorder rounded-2xl p-10 sm:p-12 text-center space-y-4 shadow-xs my-6 max-w-xl mx-auto">
             <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-inner ${
               activeTab === 'reminders'
                 ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-500'
-                : 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500'
+                : 'bg-brand-50 dark:bg-brand-950/50 text-brand-600'
             }`}>
               {activeTab === 'reminders' ? <Bell size={32} className="fill-amber-500/20" /> : <BookOpen size={32} />}
             </div>
@@ -491,7 +491,7 @@ export default function Dashboard() {
             ) : (
               <button
                 onClick={() => router.push('/notes/new')}
-                className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-500/25 hover:from-indigo-500 hover:to-purple-500 transition"
+                className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-semibold shadow-sm transition active:scale-95 cursor-pointer"
               >
                 + สร้างโน้ตแรกของคุณ
               </button>
