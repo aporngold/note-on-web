@@ -580,9 +580,9 @@ export default function Sidebar({
       </div>
 
       {/* Bottom User Profile, Vault State & Theme */}
-      <div className="pt-4 mt-6 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
+      <div className="pt-3 mt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-2.5">
         {/* Vault Lock Quick Toggle */}
-        <div className="flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs">
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs">
           <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
             <KeyRound size={14} className="text-indigo-500" />
             E2EE Vault:
@@ -604,25 +604,29 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* User bar */}
-        <div className="flex items-center justify-between">
+        {/* User Profile & Actions (2 Rows) */}
+        <div className="flex flex-col gap-2 px-1">
+          {/* Row 1: Profile (Avatar, Username, Email) */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-full bg-brand-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
               {user?.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-warm-text dark:text-warm-darkText truncate">
                 {user?.username || 'ผู้ใช้งาน'}
               </p>
-              <p className="text-[10px] text-warm-muted truncate">{user?.email}</p>
+              <p className="text-[11px] text-warm-muted truncate" title={user?.email}>
+                {user?.email}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          {/* Row 2: Action Icons */}
+          <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/60">
             {/* Privacy Policy (PDPA) */}
             <Link
               href="/privacy"
-              className="p-1.5 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition"
+              className="p-1.5 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition flex items-center justify-center"
               title="นโยบายความเป็นส่วนตัว (PDPA)"
             >
               <ShieldCheck size={16} />
@@ -631,7 +635,7 @@ export default function Sidebar({
             {/* Help Guide */}
             <button
               onClick={() => setIsHelpModalOpen(true)}
-              className="p-1.5 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition"
+              className="p-1.5 text-warm-muted hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition flex items-center justify-center"
               title="วิธีใช้งานและคำแนะนำ (Help)"
             >
               <HelpCircle size={16} />
@@ -649,7 +653,7 @@ export default function Sidebar({
             {/* Passkeys Management */}
             <button
               onClick={() => setIsPasskeyModalOpen(true)}
-              className="p-1.5 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 transition"
+              className="p-1.5 text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 transition flex items-center justify-center"
               title="จัดการ Passkey (สแกนนิ้ว/ใบหน้า)"
             >
               <Fingerprint size={16} />
@@ -658,7 +662,7 @@ export default function Sidebar({
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center"
               title="สลับโหมดมืด/สว่าง"
             >
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
@@ -667,7 +671,7 @@ export default function Sidebar({
             {/* Delete Account (PDPA Right to Erasure) */}
             <button
               onClick={() => setIsDeleteAccountModalOpen(true)}
-              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+              className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center justify-center"
               title="ลบบัญชีและข้อมูลทั้งหมด (PDPA)"
             >
               <Trash2 size={16} />
@@ -676,7 +680,7 @@ export default function Sidebar({
             {/* Logout */}
             <button
               onClick={logout}
-              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition"
+              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center justify-center"
               title="ออกจากระบบ"
             >
               <LogOut size={16} />
